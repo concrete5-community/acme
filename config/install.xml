@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+<concrete5-cif version="1.0">
+
+    <singlepages>
+        <page package="acme" path="/dashboard/system/acme" name="ACME" description="">
+        </page>
+        <page package="acme" path="/dashboard/system/acme/servers" name="ACME servers" description="">
+        </page>
+        <page package="acme" path="/dashboard/system/acme/servers/edit" name="Add/Edit ACME server" description="">
+            <attributes>
+                <attributekey handle="exclude_nav">
+                    <value><![CDATA[1]]></value>
+                </attributekey>
+            </attributes>
+        </page>
+        <page package="acme" path="/dashboard/system/acme/accounts" name="ACME accounts" description="">
+        </page>
+        <page package="acme" path="/dashboard/system/acme/accounts/add" name="Add new ACME account" description="">
+            <attributes>
+                <attributekey handle="exclude_nav">
+                    <value><![CDATA[1]]></value>
+                </attributekey>
+            </attributes>
+        </page>
+        <page package="acme" path="/dashboard/system/acme/accounts/edit" name="Edit ACME account" description="">
+            <attributes>
+                <attributekey handle="exclude_nav">
+                    <value><![CDATA[1]]></value>
+                </attributekey>
+            </attributes>
+        </page>
+        <page package="acme" path="/dashboard/system/acme/domains" name="Authorized domains" description="">
+        </page>
+        <page package="acme" path="/dashboard/system/acme/domains/edit" name="Add/Edit domain" description="">
+            <attributes>
+                <attributekey handle="exclude_nav">
+                    <value><![CDATA[1]]></value>
+                </attributekey>
+            </attributes>
+        </page>
+        <page package="acme" path="/dashboard/system/acme/certificates" name="HTTPS certificates" description="">
+        </page>
+        <page package="acme" path="/dashboard/system/acme/certificates/edit" name="Add/Edit HTTPS certificate" description="">
+            <attributes>
+                <attributekey handle="exclude_nav">
+                    <value><![CDATA[1]]></value>
+                </attributekey>
+            </attributes>
+        </page>
+        <page package="acme" path="/dashboard/system/acme/certificates/actions" name="HTTPS certificate actions" description="">
+            <attributes>
+                <attributekey handle="exclude_nav">
+                    <value><![CDATA[1]]></value>
+                </attributekey>
+            </attributes>
+        </page>
+        <page package="acme" path="/dashboard/system/acme/certificates/operate" name="Renew HTTPS certificate / Run certificate actions" description="">
+            <attributes>
+                <attributekey handle="exclude_nav">
+                    <value><![CDATA[1]]></value>
+                </attributekey>
+            </attributes>
+        </page>
+        <page package="acme" path="/dashboard/system/acme/remote_servers" name="Remote servers" description="">
+        </page>
+        <page package="acme" path="/dashboard/system/acme/remote_servers/edit" name="Add/Edit remote server" description="">
+            <attributes>
+                <attributekey handle="exclude_nav">
+                    <value><![CDATA[1]]></value>
+                </attributekey>
+            </attributes>
+        </page>
+        <page package="acme" path="/dashboard/system/acme/options" name="ACME options" description="">
+        </page>
+
+    </singlepages>
+
+</concrete5-cif>

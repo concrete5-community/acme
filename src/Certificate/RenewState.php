@@ -1,0 +1,119 @@
+<?php
+
+namespace Acme\Certificate;
+
+use Acme\Entity\Order;
+use Acme\Log\ArrayLogger;
+
+defined('C5_EXECUTE') or die('Access Denied.');
+
+/**
+ * Class that contains the result of the Renewer::nextStep() method.
+ */
+class RenewState extends ArrayLogger
+{
+    /**
+     * The number of seconds to wait before re-calling the the "nextStep()" after this number of seconds (NULL if no).
+     *
+     * @var int|null
+     */
+    protected $nextStepAfter;
+
+    /**
+     * The certificate order/authorizations request.
+     *
+     * @var \Acme\Entity\Order|null
+     */
+    protected $orderOrAuthorizationsRequest;
+
+    /**
+     * The info about the new issued certificate (if any).
+     *
+     * @var \Acme\Certificate\CertificateInfo|null
+     */
+    protected $newCertificateInfo;
+
+    protected function __construct()
+    {
+    }
+
+    /**
+     * Create a new instance.
+     *
+     * @return static
+     */
+    public static function create()
+    {
+        $result = new static();
+
+        return $result;
+    }
+
+    /**
+     * Get the number of seconds to wait before re-calling the the "nextStep()" after this number of seconds (NULL if no).
+     *
+     * @return int|null
+     */
+    public function getNextStepAfter()
+    {
+        return $this->nextStepAfter;
+    }
+
+    /**
+     * Set the number of seconds to wait before re-calling the the "nextStep()" after this number of seconds (NULL if no).
+     *
+     * @param int|null $value
+     *
+     * @return $this
+     */
+    public function setNextStepAfter($value)
+    {
+        $this->nextStepAfter = (string) $value === '' ? null : (int) $value;
+
+        return $this;
+    }
+
+    /**
+     * Get the info about the new issued certificate (if any).
+     *
+     * @return \Acme\Certificate\CertificateInfo|null
+     */
+    public function getNewCertificateInfo()
+    {
+        return $this->newCertificateInfo;
+    }
+
+    /**
+     * Set the certificate order/authorizations request.
+     *
+     * @param \Acme\Entity\Order|null $value
+     */
+    public function setOrderOrAuthorizationsRequest(Order $value = null)
+    {
+        $this->orderOrAuthorizationsRequest = $value;
+
+        return $this;
+    }
+
+    /**
+     * Get the certificate order/authorizations request.
+     *
+     * @return \Acme\Entity\Order|null
+     */
+    public function getOrderOrAuthorizationsRequest()
+    {
+        return $this->orderOrAuthorizationsRequest;
+    }
+
+    /**
+     * Set the info about the new issued certificate (if any).
+     *
+     * @param \Acme\Certificate\CertificateInfo|null $value
+     */
+    public function setNewCertificateInfo(CertificateInfo $value = null)
+    {
+        $this->newCertificateInfo = $value;
+
+        return $this;
+    }
+}

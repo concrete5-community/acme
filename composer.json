@@ -1,0 +1,49 @@
+{
+    "name" : "mlocati-concrete5-packages/acme",
+    "description" : "A concrete5 package to create and manage HTTPS certificates for your websites",
+    "type" : "concrete5-package",
+    "keywords": [
+        "concrete5",
+        "package",
+        "acme",
+        "letsencrypt",
+        "lets encrypt",
+        "https",
+        "certificate",
+        "tls",
+        "ssl",
+        "security"
+    ],
+    "homepage": "https://github.com/mlocati/concrete5_acme",
+    "license" : "MIT",
+    "authors" : [
+        {
+            "name" : "Michele Locati",
+            "email" : "michele@locati.it",
+            "homepage" : "https://mlocati.github.io",
+            "role" : "Author"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/mlocati/concrete5_acme/issues",
+        "source": "https://github.com/mlocati/concrete5_acme"
+    },
+    "require": {
+        "concrete5/core" : ">=8.5.0",
+        "mlocati/idna": "^1.0.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Acme\\": "src/"
+        }
+    },
+    "config": {
+        "platform": {
+            "php": "5.5.9"
+        },
+        "prepend-autoloader": false,
+        "sort-packages": true,
+        "optimize-autoloader": true,
+        "classmap-authoritative": false
+    }
+}
