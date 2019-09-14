@@ -59,7 +59,7 @@ class DateTimeParser
             return $timestamp;
         }
         $m = null;
-        if (preg_match('/^(\d\d\d\d-\d\d-\d\d{2}T\d\d:\d\d:\d\d)\.\d*(\D.*)?$/', $value, $m)) {
+        if (preg_match('/^(\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d)\.\d*(\D.*)?$/', $value, $m)) {
             $timestamp = (int) $this->ignoringWarnings(function () use ($m) {
                 return strtotime($m[1] . $m[2]);
             });
