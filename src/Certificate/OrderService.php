@@ -8,7 +8,6 @@ use Acme\Entity\AuthorizationChallenge;
 use Acme\Entity\Certificate;
 use Acme\Entity\Domain;
 use Acme\Entity\Order;
-use Acme\Exception\Exception as AcmeException;
 use Acme\Exception\RuntimeException;
 use Acme\Exception\UnrecognizedProtocolVersionException;
 use Acme\Order\OrderUnserializer;
@@ -384,7 +383,7 @@ class OrderService
         $payload = $this->getStartAuthorizationChallengePayload($authorizationChallenge);
         $revertStartedStatus = false;
         if ($authorizationChallenge->isChallengeStarted() !== true) {
-            $challengeType->beforeChallenge($domain);
+            $challengeType->beforeChallenge($authorizationChallenge);
             $revertStartedStatus = true;
         }
         try {
@@ -399,11 +398,19 @@ class OrderService
                     $payload,
                     [200, 202]
                 )->getData();
-            } catch (AcmeException $x) {
+            } catch (Exception $x) {
                 $startException = $x;
-                $challenge = $this->fetchChallengeData($authorizationChallenge);
+            } catch (Throwable $x) {
+                $startException = $x;
             }
-            $authorization = $this->fetchAuthorizationData($authorizationChallenge, $authorizationChallenge->getAuthorizationUrl());
+            try {
+                if ($startException !== null) {
+                    $challenge = $this->fetchChallengeData($authorizationChallenge);
+                }
+                $authorization = $this->fetchAuthorizationData($authorizationChallenge, $authorizationChallenge->getAuthorizationUrl());
+            } catch (Exception $foo) {
+            } catch (Throwable $foo) {
+            }
             $this->orderUnserializer->updateAuthorizationChallenge($authorizationChallenge, $authorization, $challenge);
             if ($startException !== null && $authorizationChallenge->getChallengeStatus() === $authorizationChallenge::CHALLENGESTATUS_PENDING) {
                 throw $startException;
@@ -413,7 +420,7 @@ class OrderService
         } finally {
             if ($revertStartedStatus) {
                 try {
-                    $challengeType->afterChallenge($domain);
+                    $challengeType->afterChallenge($authorizationChallenge);
                 } catch (Exception $foo) {
                 } catch (Throwable $foo) {
                 }
@@ -462,7 +469,7 @@ class OrderService
                 $domain = $authorizationChallenge->getDomain();
                 $challengeType = $this->challengeTypeManager->getChallengeByHandle($domain->getChallengeTypeHandle());
                 if ($challengeType !== null) {
-                    $challengeType->afterChallenge($domain);
+                    $challengeType->afterChallenge($authorizationChallenge);
                 }
             } catch (Exception $foo) {
             } catch (Throwable $foo) {

@@ -2,6 +2,7 @@
 
 namespace Acme\ChallengeType;
 
+use Acme\Entity\AuthorizationChallenge;
 use Acme\Entity\Domain;
 use ArrayAccess;
 use Concrete\Core\Filesystem\ElementManager;
@@ -85,14 +86,14 @@ interface ChallengeTypeInterface
     /**
      * Method called right before initiating the authorization challenge.
      *
-     * @param \Acme\Entity\Domain $domain
+     * @param \Acme\Entity\AuthorizationChallenge $authorizationChallenge
      */
-    public function beforeChallenge(Domain $domain);
+    public function beforeChallenge(AuthorizationChallenge $authorizationChallenge);
 
     /**
      * Method called right after terminating the authorization challenge.
      *
-     * @param \Acme\Entity\Domain $domain
+     * @param \Acme\Entity\AuthorizationChallenge $authorizationChallenge
      */
-    public function afterChallenge(Domain $domain);
+    public function afterChallenge(AuthorizationChallenge $authorizationChallenge);
 }

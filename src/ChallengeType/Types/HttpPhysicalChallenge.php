@@ -2,6 +2,7 @@
 
 namespace Acme\ChallengeType\Types;
 
+use Acme\Entity\AuthorizationChallenge;
 use Acme\Entity\Domain;
 use Acme\Entity\RemoteServer;
 use Acme\Exception\FilesystemException;
@@ -173,10 +174,10 @@ class HttpPhysicalChallenge extends HttpChallenge
      *
      * @see \Acme\ChallengeType\ChallengeTypeInterface::beforeChallenge()
      */
-    public function beforeChallenge(Domain $domain)
+    public function beforeChallenge(AuthorizationChallenge $authorizationChallenge)
     {
-        $writer = $this->createTokenWriter($domain->getChallengeTypeConfiguration());
-        $writer->createTokenFile($domain->getChallengeToken(), $domain->getChallengeAuthorizationKey());
+        $writer = $this->createTokenWriter($authorizationChallenge->getDomain()->getChallengeTypeConfiguration());
+        $writer->createTokenFile($authorizationChallenge->getChallengeToken(), $authorizationChallenge->getChallengeAuthorizationKey());
     }
 
     /**
@@ -184,10 +185,10 @@ class HttpPhysicalChallenge extends HttpChallenge
      *
      * @see \Acme\ChallengeType\ChallengeTypeInterface::afterChallenge()
      */
-    public function afterChallenge(Domain $domain)
+    public function afterChallenge(AuthorizationChallenge $authorizationChallenge)
     {
-        $writer = $this->createTokenWriter($domain->getChallengeTypeConfiguration());
-        $writer->deleteTokenFile($domain->getChallengeToken());
+        $writer = $this->createTokenWriter($authorizationChallenge->getDomain()->getChallengeTypeConfiguration());
+        $writer->deleteTokenFile($authorizationChallenge->getChallengeToken());
     }
 
     /**

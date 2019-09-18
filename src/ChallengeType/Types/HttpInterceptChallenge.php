@@ -2,6 +2,7 @@
 
 namespace Acme\ChallengeType\Types;
 
+use Acme\Entity\AuthorizationChallenge;
 use Acme\Entity\Domain;
 use Acme\Http\AuthorizationMiddleware;
 use Acme\Security\Crypto;
@@ -128,7 +129,7 @@ class HttpInterceptChallenge extends HttpChallenge
      *
      * @see \Acme\ChallengeType\ChallengeTypeInterface::beforeChallenge()
      */
-    public function beforeChallenge(Domain $domain)
+    public function beforeChallenge(AuthorizationChallenge $authorizationChallenge)
     {
     }
 
@@ -137,7 +138,7 @@ class HttpInterceptChallenge extends HttpChallenge
      *
      * @see \Acme\ChallengeType\ChallengeTypeInterface::afterChallenge()
      */
-    public function afterChallenge(Domain $domain)
+    public function afterChallenge(AuthorizationChallenge $authorizationChallenge)
     {
     }
 
