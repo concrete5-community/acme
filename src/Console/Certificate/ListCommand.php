@@ -168,7 +168,7 @@ EOT
             'Valid from         : ' . ($info === null ? '(certificate not yet issued)' : $info->getStartDate()->format('c')),
             'Valid to           : ' . ($info === null ? '(certificate not yet issued)' : $info->getEndDate()->format('c')),
             'Issuer name        : ' . ($info === null ? '(certificate not yet issued)' : $info->getIssuerName()),
-            'OCSR responder URL : ' . ($info === null ? '(certificate not yet issued)' : $info->getOcspResponderUrl()),
+            'OCSP responder URL : ' . ($info === null ? '(certificate not yet issued)' : $info->getOcspResponderUrl()),
         ]);
 
         return 0;

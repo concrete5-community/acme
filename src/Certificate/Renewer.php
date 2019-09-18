@@ -4,6 +4,7 @@ namespace Acme\Certificate;
 
 use Acme\Entity\Certificate;
 use Acme\Entity\Order;
+use Acme\Exception\CheckRevocationException;
 use Acme\Exception\UnrecognizedProtocolVersionException;
 use Acme\Protocol\Version;
 use Concrete\Core\Config\Repository\Repository;
@@ -93,6 +94,11 @@ class Renewer
     protected $revoker;
 
     /**
+     * @var \Acme\Certificate\RevocationChecker
+     */
+    protected $revocationChecker;
+
+    /**
      * @param \Concrete\Core\System\Mutex\MutexInterface $mutex
      * @param \Doctrine\ORM\EntityManagerInterface $em
      * @param \Concrete\Core\Config\Repository\Repository $config
@@ -100,8 +106,9 @@ class Renewer
      * @param \Acme\Certificate\CertificateInfoCreator $certificateInfoCreator
      * @param \Acme\Certificate\ActionRunner $actionRunner
      * @param \Acme\Certificate\Revoker $revoker
+     * @param \Acme\Certificate\RevocationChecker $revocationChecker
      */
-    public function __construct(MutexInterface $mutex, EntityManagerInterface $em, Repository $config, OrderService $orderService, CertificateInfoCreator $certificateInfoCreator, ActionRunner $actionRunner, Revoker $revoker)
+    public function __construct(MutexInterface $mutex, EntityManagerInterface $em, Repository $config, OrderService $orderService, CertificateInfoCreator $certificateInfoCreator, ActionRunner $actionRunner, Revoker $revoker, RevocationChecker $revocationChecker)
     {
         $this->mutex = $mutex;
         $this->em = $em;
@@ -110,6 +117,7 @@ class Renewer
         $this->certificateInfoCreator = $certificateInfoCreator;
         $this->actionRunner = $actionRunner;
         $this->revoker = $revoker;
+        $this->revocationChecker = $revocationChecker;
     }
 
     /**
@@ -180,6 +188,7 @@ class Renewer
      */
     protected function doStep(Certificate $certificate, RenewerOptions $options)
     {
+        $state = RenewState::create();
         if ($options->isForceActionsExecution()) {
             $certificate
                 ->setActionsState($certificate::ACTIONSTATE_NONE)
@@ -188,46 +197,56 @@ class Renewer
             $this->em->flush($certificate);
         }
         if ($certificate->getOngoingOrder() !== null) {
-            return $this->handleOngoingOrder($certificate);
-        }
-        if ($options->isForceCertificateRenewal() || in_array($this->getCertificateState($certificate), [static::CERTIFICATESTATE_GOOD, static::CERTIFICATESTATE_RUNACTIONS], true) !== true) {
-            return $this->requestNewCertificate($certificate);
+            $this->handleOngoingOrder($state, $certificate);
+        } else {
+            if ($options->isForceCertificateRenewal() || in_array($this->getCertificateState($certificate), [static::CERTIFICATESTATE_GOOD, static::CERTIFICATESTATE_RUNACTIONS], true) !== true) {
+                $doRenew = true;
+            } elseif ($options->isCheckRevocation()) {
+                $doRenew = $this->shouldRenewForRevocation($state, $certificate);
+            } else {
+                $doRenew = false;
+            }
+            if ($doRenew) {
+                $this->requestNewCertificate($state, $certificate);
+            } else {
+                $this->runActions($state, $certificate);
+            }
         }
 
-        return $this->runActions($certificate);
+        return $state;
     }
 
     /**
      * Request a new certificate, using the 'new-cert' ACME v1 resource, or creating an ACME v2 certificate order.
      *
+     * @param \Acme\Certificate\RenewState $state
      * @param \Acme\Entity\Certificate $certificate
-     *
-     * @return \Acme\Certificate\RenewState
      */
-    protected function requestNewCertificate(Certificate $certificate)
+    protected function requestNewCertificate(RenewState $state, Certificate $certificate)
     {
         $protocolVersion = $certificate->getAccount()->getServer()->getProtocolVersion();
         switch ($protocolVersion) {
             case Version::ACME_01:
-                return $this->requestNewCertificateDirect($certificate);
+                $this->requestNewCertificateDirect($state, $certificate);
+                break;
             case Version::ACME_02:
-                return $this->createNewOrder($certificate);
+                $this->createNewOrder($state, $certificate);
+                break;
             default:
-                return RenewState::create()
-                    ->chainCritical(UnrecognizedProtocolVersionException::create($protocolVersion)->getMessage())
-                ;
+                $state->chainCritical(UnrecognizedProtocolVersionException::create($protocolVersion)->getMessage());
+                break;
         }
     }
 
     /**
      * Request a new certificate using the 'new-cert' resource (ACME v1 only).
      *
+     * @param \Acme\Certificate\RenewState $state
      * @param \Acme\Entity\Certificate $certificate
-     *
-     * @return \Acme\Certificate\RenewState
      */
-    protected function requestNewCertificateDirect(Certificate $certificate)
+    protected function requestNewCertificateDirect(RenewState $state, Certificate $certificate)
     {
+        $error = null;
         try {
             $response = $this->orderService->callAcme01NewCert($certificate);
             if ($response->getCode() === 201) {
@@ -240,53 +259,48 @@ class Renewer
                 $newCertificate = $this->orderService->downloadActualCertificate($certificate->getAccount(), $response->getLocation(), true);
                 $certificateInfo = $this->certificateInfoCreator->createCertificateInfo($newCertificate, $issuerCertificate, true);
                 $this->setNewCertificateInfo($certificate, $certificateInfo);
-
-                return RenewState::create()
+                $state
                     ->chainNotice(t('The certificate has been renewed'))
                     ->setNewCertificateInfo($certificateInfo)
                     ->setNextStepAfter($certificate->getActions()->isEmpty() ? null : 0)
                 ;
-            }
-            if ($response->getCode() === 403 && $response->getErrorIdentifier() === 'urn:acme:error:unauthorized') {
+            } elseif ($response->getCode() === 403 && $response->getErrorIdentifier() === 'urn:acme:error:unauthorized') {
                 $order = $this->orderService->createAuthorizationChallenges($certificate);
                 $this->setCurrentCertificateOrder($certificate, $order);
                 $this->orderService->startAuthorizationChallenges($order);
-
-                return RenewState::create()
+                $state
                     ->chainNotice(t('The authorization process started since the ACME server needs to authorize the domains'))
                     ->setNextStepAfter(1)
                 ;
+            } else {
+                $error = $response->getErrorDescription();
             }
-            $error = $response->getErrorDescription();
         } catch (Exception $foo) {
             $error = $foo->getMessage();
         } catch (Throwable $foo) {
             $error = $foo->getMessage();
         }
 
-        $certificate->setOngoingOrder(null);
-
-        return RenewState::create()
-            ->chainCritical(t('Failed to request the certificate to the ACME server: %s', $error))
-        ;
+        if ($error !== null) {
+            $certificate->setOngoingOrder(null);
+            $state->chainCritical(t('Failed to request the certificate to the ACME server: %s', $error));
+        }
     }
 
     /**
      * Initialize a new certificate order (ACME v2 only).
      *
+     * @param \Acme\Certificate\RenewState $state
      * @param \Acme\Entity\Certificate $certificate
-     *
-     * @return \Acme\Certificate\RenewState
      */
-    protected function createNewOrder(Certificate $certificate)
+    protected function createNewOrder(RenewState $state, Certificate $certificate)
     {
         $error = null;
         try {
             $order = $this->orderService->createOrder($certificate);
             $this->setCurrentCertificateOrder($certificate, $order);
             $this->orderService->startAuthorizationChallenges($order);
-
-            return RenewState::create()
+            $state
                 ->chainNotice(t('The order for a new certificate has been submitted'))
                 ->setNextStepAfter(1)
             ;
@@ -295,61 +309,58 @@ class Renewer
         } catch (Throwable $foo) {
             $error = $foo->getMessage();
         }
-        $certificate->setOngoingOrder(null);
-        $this->em->flush($certificate);
-
-        return RenewState::create()
-            ->chainCritical(t('The order for a new certificate failed: %s', $error))
-        ;
+        if ($error !== null) {
+            $certificate->setOngoingOrder(null);
+            $this->em->flush($certificate);
+            $state->chainCritical(t('The order for a new certificate failed: %s', $error));
+        }
     }
 
     /**
      * Refresh the ongoing authorizations (ACME v1) or certificate order (ACME v2).
      *
+     * @param \Acme\Certificate\RenewState $state
      * @param \Acme\Entity\Certificate $certificate
-     *
-     * @return \Acme\Certificate\RenewState
      */
-    protected function handleOngoingOrder(Certificate $certificate)
+    protected function handleOngoingOrder(RenewState $state, Certificate $certificate)
     {
         $order = $certificate->getOngoingOrder();
         if ($order->getExpiration() !== null && $order->getExpiration() < new DateTime()) {
-            return $this->handleOngoingOrderExpired($certificate);
+            $this->handleOngoingOrderExpired($state, $certificate);
+        } else {
+            $error = null;
+            try {
+                $this->orderService->refresh($order);
+            } catch (Exception $x) {
+                $error = $x;
+            } catch (Throwable $x) {
+                $error = $x;
+            }
+            if ($error === null) {
+                $this->handleOngoingOrderRefreshed($state, $certificate);
+            } else {
+                $state
+                    ->chainCritical(t('Failed to refresh the domain authorizations state: %s', $error->getMessage()))
+                    ->setOrderOrAuthorizationsRequest($order)
+                    ->setNextStepAfter(10)
+                ;
+            }
         }
-        $error = null;
-        try {
-            $this->orderService->refresh($order);
-        } catch (Exception $x) {
-            $error = $x;
-        } catch (Throwable $x) {
-            $error = $x;
-        }
-        if ($error !== null) {
-            return RenewState::create()
-                ->chainCritical(t('Failed to refresh the domain authorizations state: %s', $error->getMessage()))
-                ->setOrderOrAuthorizationsRequest($order)
-                ->setNextStepAfter(10)
-            ;
-        }
-
-        return $this->handleOngoingOrderRefreshed($certificate);
     }
 
     /**
      * Handle the case when the the ongoing authorizations (ACME v1) or certificate order (ACME v2) are expired.
      *
+     * @param \Acme\Certificate\RenewState $state
      * @param \Acme\Entity\Certificate $certificate
-     *
-     * @return \Acme\Certificate\RenewState
      */
-    protected function handleOngoingOrderExpired(Certificate $certificate)
+    protected function handleOngoingOrderExpired(RenewState $state, Certificate $certificate)
     {
         $order = $certificate->getOngoingOrder();
         $certificate->setOngoingOrder(null);
         $this->em->flush($certificate);
         $this->orderService->stopAuthorizationChallenges($order);
-
-        return RenewState::create()
+        $state
             ->chainError(t('The domains authorization process expired on %s', $order->getExpiration()->format('c')))
             ->setOrderOrAuthorizationsRequest($order)
             ->setNextStepAfter(1)
@@ -359,38 +370,41 @@ class Renewer
     /**
      * Refresh the ongoing authorizations (ACME v1) or certificate order (ACME v2) after it has been refreshed.
      *
+     * @param \Acme\Certificate\RenewState $state
      * @param \Acme\Entity\Certificate $certificate
-     *
-     * @return \Acme\Certificate\RenewState
      */
-    protected function handleOngoingOrderRefreshed(Certificate $certificate)
+    protected function handleOngoingOrderRefreshed(RenewState $state, Certificate $certificate)
     {
         $order = $certificate->getOngoingOrder();
         switch ($order->getStatus()) {
             case $order::STATUS_PENDING:
-                return $this->handleOngoingOrderPending($certificate);
+                $this->handleOngoingOrderPending($state, $certificate);
+                break;
             case $order::STATUS_READY:
-                return $this->handleOngoingOrderReady($certificate);
+                $this->handleOngoingOrderReady($state, $certificate);
+                break;
             case $order::STATUS_PROCESSING:
-                return $this->handleOngoingOrderProcessing($certificate);
+                $this->handleOngoingOrderProcessing($state, $certificate);
+                break;
             case $order::STATUS_VALID:
-                return $this->handleOngoingOrderValid($certificate);
+                $this->handleOngoingOrderValid($state, $certificate);
+                break;
             case $order::STATUS_INVALID:
             default:
-                return $this->handleOngoingOrderInvalid($certificate);
+                $this->handleOngoingOrderInvalid($state, $certificate);
+                break;
         }
     }
 
     /**
      * Handle the case when the ACME server is still authorizing the domains.
      *
+     * @param \Acme\Certificate\RenewState $state
      * @param \Acme\Entity\Certificate $certificate
-     *
-     * @return \Acme\Certificate\RenewState
      */
-    protected function handleOngoingOrderPending(Certificate $certificate)
+    protected function handleOngoingOrderPending(RenewState $state, Certificate $certificate)
     {
-        return RenewState::create()
+        $state
             ->chainInfo(t('The domains authorization process is still running'))
             ->setOrderOrAuthorizationsRequest($certificate->getOngoingOrder())
             ->setNextStepAfter(1)
@@ -400,54 +414,52 @@ class Renewer
     /**
      * Continue the processing after the domains authorizations succeeded, by asking a new certificate.
      *
+     * @param \Acme\Certificate\RenewState $state
      * @param \Acme\Entity\Certificate $certificate
-     *
-     * @return \Acme\Certificate\RenewState
      */
-    protected function handleOngoingOrderReady(Certificate $certificate)
+    protected function handleOngoingOrderReady(RenewState $state, Certificate $certificate)
     {
         $order = $certificate->getOngoingOrder();
         $this->orderService->stopAuthorizationChallenges($order);
         if ($order->getType() === $order::TYPE_AUTHORIZATION) {
             $certificate->setOngoingOrder(null);
             $this->em->flush($certificate);
-
-            return $this->requestNewCertificateDirect($certificate)->setOrderOrAuthorizationsRequest($order);
+            $state->setOrderOrAuthorizationsRequest($order);
+            $this->requestNewCertificateDirect($state, $certificate);
+        } else {
+            $error = null;
+            try {
+                $this->orderService->finalizeOrder($order);
+                $state
+                    ->chainInfo(t('The ACME server authorized the domains, and the request for the certificate generation has been submitted'))
+                    ->setOrderOrAuthorizationsRequest($order)
+                    ->setNextStepAfter(1)
+                ;
+            } catch (Exception $x) {
+                $error = $x;
+            } catch (Throwable $x) {
+                $error = $x;
+            }
+            if ($error !== null) {
+                $state
+                    ->chainCritical(t('Failed to request the certificate generation: %s', $error->getMessage()))
+                    ->setOrderOrAuthorizationsRequest($order)
+                    ->setNextStepAfter(2)
+                ;
+            }
         }
-        $error = null;
-        try {
-            $this->orderService->finalizeOrder($order);
-
-            return RenewState::create()
-                ->chainInfo(t('The ACME server authorized the domains, and the request for the certificate generation has been submitted'))
-                ->setOrderOrAuthorizationsRequest($order)
-                ->setNextStepAfter(1)
-            ;
-        } catch (Exception $x) {
-            $error = $x;
-        } catch (Throwable $x) {
-            $error = $x;
-        }
-
-        return RenewState::create()
-            ->chainCritical(t('Failed to request the certificate generation: %s', $error->getMessage()))
-            ->setOrderOrAuthorizationsRequest($order)
-            ->setNextStepAfter(2)
-        ;
     }
 
     /**
      * Handle the case when the ACME server has been asked to generate a certificate, but the certificate is not ready yet.
      *
+     * @param \Acme\Certificate\RenewState $state
      * @param \Acme\Entity\Certificate $certificate
-     *
-     * @return \Acme\Certificate\RenewState
      */
-    protected function handleOngoingOrderProcessing(Certificate $certificate)
+    protected function handleOngoingOrderProcessing(RenewState $state, Certificate $certificate)
     {
         $this->orderService->stopAuthorizationChallenges($certificate->getOngoingOrder());
-
-        return RenewState::create()
+        $state
             ->chainInfo(t('The ACME server is going to issue the requested certificate'))
             ->setOrderOrAuthorizationsRequest($certificate->getOngoingOrder())
             ->setNextStepAfter(1)
@@ -457,11 +469,10 @@ class Renewer
     /**
      * Handle the case when the ACME server has generate a certificate: it's ready to be downloaded.
      *
+     * @param \Acme\Certificate\RenewState $state
      * @param \Acme\Entity\Certificate $certificate
-     *
-     * @return \Acme\Certificate\RenewState
      */
-    protected function handleOngoingOrderValid(Certificate $certificate)
+    protected function handleOngoingOrderValid(RenewState $state, Certificate $certificate)
     {
         $order = $certificate->getOngoingOrder();
         $this->orderService->stopAuthorizationChallenges($order);
@@ -473,45 +484,44 @@ class Renewer
             if (!preg_match('/(^.*?[\r\n]+---+[ \t]*END[^\r\n\-]*---+)\s*[\r\n]+\s*(---+[ \t]*BEGIN.*)$/ms', $allCertificates, $matches)) {
                 $certificate->setOngoingOrder(null);
                 $this->em->flush($certificate);
-
-                return RenewState::create()
+                $state
                     ->chainCritical(t('Failed to detect certificate and issuer certificate'))
                     ->setOrderOrAuthorizationsRequest($order)
                 ;
+            } else {
+                $newCertificate = trim($matches[1]);
+                $issuerCertificate = trim($matches[2]);
+                $certificateInfo = $this->certificateInfoCreator->createCertificateInfo($newCertificate, $issuerCertificate);
+                $this->setNewCertificateInfo($certificate, $certificateInfo);
+                $certificate->setOngoingOrder(null);
+                $this->em->flush($certificate);
+                $state
+                    ->chainInfo(t('The certificate has been renewed'))
+                    ->setNewCertificateInfo($certificateInfo)
+                    ->setNextStepAfter($certificate->getActions()->isEmpty() ? null : 0)
+                ;
             }
-            $newCertificate = trim($matches[1]);
-            $issuerCertificate = trim($matches[2]);
-            $certificateInfo = $this->certificateInfoCreator->createCertificateInfo($newCertificate, $issuerCertificate);
-            $this->setNewCertificateInfo($certificate, $certificateInfo);
-            $certificate->setOngoingOrder(null);
-            $this->em->flush($certificate);
-
-            return RenewState::create()
-                ->chainInfo(t('The certificate has been renewed'))
-                ->setNewCertificateInfo($certificateInfo)
-                ->setNextStepAfter($certificate->getActions()->isEmpty() ? null : 0)
-            ;
         } catch (Exception $x) {
             $error = $x;
         } catch (Throwable $x) {
             $error = $x;
         }
-
-        return RenewState::create()
-            ->chainError(t('Failed to download the generated certificate: %s', $error->getMessage()))
-            ->setOrderOrAuthorizationsRequest($order)
-            ->setNextStepAfter(2)
-        ;
+        if ($error !== null) {
+            $state
+                ->chainError(t('Failed to download the generated certificate: %s', $error->getMessage()))
+                ->setOrderOrAuthorizationsRequest($order)
+                ->setNextStepAfter(2)
+            ;
+        }
     }
 
     /**
      * Handle the case when there are problems in the authorization process.
      *
+     * @param \Acme\Certificate\RenewState $state
      * @param \Acme\Entity\Certificate $certificate
-     *
-     * @return \Acme\Certificate\RenewState
      */
-    protected function handleOngoingOrderInvalid(Certificate $certificate)
+    protected function handleOngoingOrderInvalid(RenewState $state, Certificate $certificate)
     {
         $order = $certificate->getOngoingOrder();
         $this->orderService->stopAuthorizationChallenges($order);
@@ -529,9 +539,9 @@ class Renewer
             $errors[] = t('The domain authorization process failed.');
         }
 
-        return RenewState::create()
+        $state
             ->chainError(implode("\n", $errors))
-            ->setOrderOrAuthorizationsRequest($certificate->getOngoingOrder())
+            ->setOrderOrAuthorizationsRequest($order)
         ;
     }
 
@@ -570,53 +580,95 @@ class Renewer
     }
 
     /**
+     * Check if a certificate should be renewed because it's revoked.
+     *
+     * @param \Acme\Certificate\RenewState $state
+     * @param \Acme\Entity\Certificate $certificate
+     *
+     * @return bool
+     */
+    protected function shouldRenewForRevocation(RenewState $state, Certificate $certificate)
+    {
+        $certificateInfo = $certificate->getCertificateInfo();
+        if ($certificateInfo === false) {
+            $state->info(t('Revocation check not performed because the certificate has not been issued yet'));
+
+            return false;
+        }
+        if ($certificateInfo->getOcspResponderUrl() === '') {
+            $state->info(t('Revocation check not performed because the OCSP Responder URL is missing'));
+
+            return false;
+        }
+        try {
+            $status = $this->revocationChecker->checkRevocation($certificateInfo);
+        } catch (CheckRevocationException $x) {
+            $state->error(t('Revocation check failed: %s', $x->getMessage()));
+
+            return false;
+        }
+        if ($status->isRevoked() === true) {
+            $state->warning(t('The certificate must be renewed since it has been revoked on %s', $status->getRevokedOn() ? $status->getRevokedOn()->format('c') : '?'));
+
+            return true;
+        }
+        if ($status->isRevoked() === false) {
+            $state->info(t('The certificate is not revoked'));
+
+            return false;
+        }
+        $state->warning(t('The OCSP Responder did not return a revocation status'));
+
+        return false;
+    }
+
+    /**
      * Execute the (remaining) actions on a certificate.
      *
+     * @param \Acme\Certificate\RenewState $state
      * @param \Acme\Entity\Certificate $certificate
      *
      * @return \Acme\Certificate\RenewState
      */
-    protected function runActions(Certificate $certificate)
+    protected function runActions(RenewState $state, Certificate $certificate)
     {
-        $result = RenewState::create()
-            ->setNewCertificateInfo($certificate->getCertificateInfo());
+        $state->setNewCertificateInfo($certificate->getCertificateInfo());
 
         if ($certificate->getActions()->isEmpty()) {
-            return $result->chainInfo(t('No actions are defined for this certificate'));
-        }
-        $action = $this->getNextActionToBeExecuted($certificate);
-        if ($action === null) {
-            $certificate->setActionsState($certificate->getActionsState() & $certificate::ACTIONSTATEFLAG_EXECUTED);
-            $this->em->flush($certificate);
-
-            return $result->chainInfo(t('No action needs to be executed'));
-        }
-        $result->chainInfo(t(
-            'Executing action with ID %1$s on %2$s',
-            $action->getID(),
-            $action->getRemoteServer() === null ? t('local server') : $action->getRemoteServer()->getName()
-        ));
-        $logIndex = $result->getEntriesCount();
-        $this->actionRunner->runAction($action, $result);
-        $actionsHadProblems = $result->hasMaxLevelSince($logIndex, LogLevel::ERROR);
-        $certificate->setLastActionExecuted($action);
-        $actionsState = $certificate->getActionsState();
-        if ($actionsState & $certificate::ACTIONSTATEFLAG_EXECUTED) {
-            $actionsState = $certificate::ACTIONSTATE_NONE;
-            $certificate->setActionsState($actionsState);
-        }
-        if ($this->getNextActionToBeExecuted($certificate) !== null) {
-            $certificate->setActionsState($actionsState | ($actionsHadProblems ? $certificate::ACTIONSTATEFLAG_PROBLEMS : 0));
-            $result->setNextStepAfter(0);
+            $state->chainInfo(t('No actions are defined for this certificate'));
         } else {
-            $certificate
-                ->setActionsState($actionsState | $certificate::ACTIONSTATEFLAG_EXECUTED | ($actionsHadProblems ? $certificate::ACTIONSTATEFLAG_PROBLEMS : 0))
-                ->setLastActionExecuted(null)
-            ;
+            $action = $this->getNextActionToBeExecuted($certificate);
+            if ($action === null) {
+                $certificate->setActionsState($certificate->getActionsState() & $certificate::ACTIONSTATEFLAG_EXECUTED);
+                $this->em->flush($certificate);
+                $state->chainInfo(t('No action needs to be executed'));
+            } else {
+                $state->chainInfo(t(
+                    'Executing action with ID %1$s on %2$s',
+                    $action->getID(),
+                    $action->getRemoteServer() === null ? t('local server') : $action->getRemoteServer()->getName()
+                ));
+                $logIndex = $state->getEntriesCount();
+                $this->actionRunner->runAction($action, $state);
+                $actionsHadProblems = $state->hasMaxLevelSince($logIndex, LogLevel::ERROR);
+                $certificate->setLastActionExecuted($action);
+                $actionsState = $certificate->getActionsState();
+                if ($actionsState & $certificate::ACTIONSTATEFLAG_EXECUTED) {
+                    $actionsState = $certificate::ACTIONSTATE_NONE;
+                    $certificate->setActionsState($actionsState);
+                }
+                if ($this->getNextActionToBeExecuted($certificate) !== null) {
+                    $certificate->setActionsState($actionsState | ($actionsHadProblems ? $certificate::ACTIONSTATEFLAG_PROBLEMS : 0));
+                    $state->setNextStepAfter(0);
+                } else {
+                    $certificate
+                        ->setActionsState($actionsState | $certificate::ACTIONSTATEFLAG_EXECUTED | ($actionsHadProblems ? $certificate::ACTIONSTATEFLAG_PROBLEMS : 0))
+                        ->setLastActionExecuted(null)
+                    ;
+                }
+                $this->em->flush($certificate);
+            }
         }
-        $this->em->flush($certificate);
-
-        return $result;
     }
 
     /**

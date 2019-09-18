@@ -4,7 +4,9 @@ namespace Concrete\Package\Acme\Controller\SinglePage\Dashboard\System\Acme\Cert
 
 use Acme\Certificate\Renewer;
 use Acme\Certificate\RenewerOptions;
+use Acme\Certificate\RevocationChecker;
 use Acme\Entity\Certificate;
+use Acme\Exception\CheckRevocationException;
 use Concrete\Core\Error\UserMessageException;
 use Concrete\Core\Http\ResponseFactoryInterface;
 use Concrete\Core\Page\Controller\DashboardPageController;
@@ -59,6 +61,36 @@ class Operate extends DashboardPageController
         }
 
         return $this->app->make(ResponseFactoryInterface::class)->json($responseData);
+    }
+
+    public function check_revocation($certificateID = '')
+    {
+        if (!$this->request->isXmlHttpRequest()) {
+            return $this->buildReturnRedirectResponse();
+        }
+        $certificate = $this->getCertificate($certificateID);
+        if ($certificate === null) {
+            throw new UserMessageException(t('Unable to find the requested certificate.'));
+        }
+        if (!$this->token->validate('acme-certificate-checkrevocation-' . $certificateID)) {
+            throw new UserMessageException($this->token->getErrorMessage());
+        }
+        $certificateInfo = $certificate->getCertificateInfo();
+        if ($certificateInfo === null) {
+            throw new UserMessageException(t('The certificate has not been issued yet'));
+        }
+        try {
+            $status = $this->app->make(RevocationChecker::class)->checkRevocation($certificateInfo);
+        } catch (CheckRevocationException $x) {
+            throw new UserMessageException($x->getMessage());
+        }
+        $dh = $this->app->make('date');
+
+        return $this->app->make(ResponseFactoryInterface::class)->json([
+            'revoked' => $status->isRevoked(),
+            'revokedOn' => $dh->formatDateTime($status->getRevokedOn(), true, true),
+            'thisUpdate' => $dh->formatDateTime($status->getThisUpdate(), true, true),
+        ]);
     }
 
     /***

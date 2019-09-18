@@ -30,7 +30,8 @@
     },
     "require": {
         "concrete5/core" : ">=8.5.0",
-        "mlocati/idna": "^1.0.0"
+        "mlocati/idna": "^1.0.0",
+        "mlocati/ocsp": "^1.0.1"
     },
     "autoload": {
         "psr-4": {

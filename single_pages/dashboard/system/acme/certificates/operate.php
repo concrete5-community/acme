@@ -66,6 +66,10 @@ defined('C5_EXECUTE') or die('Access Denied.');
                             <th><?= t('Issued by') ?></th>
                             <td>{{ certificateInfo.issuerName }}</td>
                         </tr>
+                        <tr>
+                            <th></th>
+                            <td><button class="btn btn-default" v-on:click.prevent="checkRevocation()" v-bind:disabled="busy"><?= t('Check revocation') ?></button></td>
+                        </tr>
                     </tbody>
                 </table>
             </fieldset>
@@ -280,6 +284,41 @@ new Vue({
             this.firstStepOptions = $.extend(true, {}, options || {});
             this.setStep(this.steps.PROCESSING);
         },
+        checkRevocation: function() {
+            var my = this;
+            if (my.busy) {
+                return;
+            }
+            my.busy = true;
+            $.ajax({
+                dataType: 'json',
+                method: 'POST',
+                url: <?= json_encode((string) $view->action(['check_revocation', $certificate->getID()])) ?>,
+                data: {
+                    <?= json_encode($token::DEFAULT_TOKEN_NAME) ?>: <?= json_encode($token->generate('acme-certificate-checkrevocation-' . $certificate->getID())) ?>,
+                },
+            })
+            .done(function(data, status, xhr) {
+                ConcreteAjaxRequest.validateResponse(data, function(ok) {
+                    if (!ok) {
+                        return;
+                    }
+                    if (data.revoked === false) {
+                        window.alert(<?= json_encode(t('The certificate is not revoked.')) ?>);
+                    } else if (data.revoked === true) {
+                    	window.alert(<?= json_encode(t('The certificate has been REVOKED on %s.')) ?>.replace(/\%s/, data.revokedOn));
+                    } else {
+                    	window.alert(<?= json_encode(t('It was not possible to determine if the certificate is revoked.')) ?>);
+                    }
+                });
+            })
+            .fail(function(xhr, status, error) {
+                ConcreteAlert.dialog(ccmi18n.error, ConcreteAjaxRequest.renderErrorResponse(xhr, true));
+            })
+            .always(function() {
+                my.busy = false;
+            });
+        }
     },
     mounted: function() {
         var my = this;

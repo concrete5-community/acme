@@ -23,6 +23,13 @@ class RenewerOptions
      */
     protected $forceActionsExecution;
 
+    /**
+     * Should we check if the certificate has been revoked?
+     *
+     * @var bool
+     */
+    protected $checkRevocation;
+
     protected function __construct()
     {
     }
@@ -39,6 +46,7 @@ class RenewerOptions
         return $result
             ->setForceCertificateRenewal(false)
             ->setForceActionsExecution(false)
+            ->setCheckRevocation(false)
         ;
     }
 
@@ -86,6 +94,30 @@ class RenewerOptions
     public function setForceActionsExecution($value)
     {
         $this->forceActionsExecution = (bool) $value;
+
+        return $this;
+    }
+
+    /**
+     * Should we check if the certificate has been revoked?
+     *
+     * @return bool
+     */
+    public function isCheckRevocation()
+    {
+        return $this->checkRevocation;
+    }
+
+    /**
+     * Should we check if the certificate has been revoked?
+     *
+     * @param bool $value
+     *
+     * @return $this
+     */
+    public function setCheckRevocation($value)
+    {
+        $this->checkRevocation = (bool) $value;
 
         return $this;
     }

@@ -37,6 +37,7 @@ class RefreshCommand extends Command
     protected $signature = <<<'EOT'
 acme:certificate:refresh
     {certificate? : the certificate to be refreshed - if omitted we'll refresh all the certificates}
+    {--c|check-revocation : check certificate revokation - if so, the certificate(s) will be renewed}
     {--f|force-renew : force the of certificates even if not needed}
     {--r|rerun-actions : force the execution of certificate actions even if not needed}
     {--e|email=* : the email address where the log of the operations should be sent to}
@@ -235,6 +236,7 @@ EOT
         $options = RenewerOptions::create()
             ->setForceCertificateRenewal($this->input->getOption('force-renew'))
             ->setForceActionsExecution($this->input->getOption('rerun-actions'))
+            ->setCheckRevocation($this->input->getOption('check-revocation'))
         ;
         for (; ;) {
             $renewState = $renewer->nextStep($certificate, $options);
