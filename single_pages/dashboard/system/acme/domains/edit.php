@@ -132,7 +132,10 @@ $numCertificates = $domain->getCertificates()->count();
         ?>
         <div class="acme-challengetypeelement alert alert-info" id="acme-challengetypeelement-<?= h($challengeType->getHandle()) ?>"<?= $challengeType->getHandle() === $domain->getChallengeTypeHandle() ? '' : ' style="display: none"'?>>
             <?php
-            $challengeType->getDomainConfigurationElement($domain, $elementManager, $page)->render();
+            $element = $challengeType->getDomainConfigurationElement($domain, $elementManager, $page);
+            $element->set('fieldsPrefix', 'challengetypeconfiguration[' . $challengeType->getHandle() . ']');
+            $element->set('formService', $form);
+            $element->render();
             ?>
         </div>
         <?php

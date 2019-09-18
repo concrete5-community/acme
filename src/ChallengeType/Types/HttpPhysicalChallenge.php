@@ -10,7 +10,6 @@ use Acme\Security\Crypto;
 use Acme\Service\HttpTokenWriter;
 use ArrayAccess;
 use Concrete\Core\Error\UserMessageException;
-use Concrete\Core\Form\Service\Form;
 use Concrete\Core\Http\Client\Client;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
 use Doctrine\ORM\EntityManagerInterface;
@@ -36,11 +35,6 @@ class HttpPhysicalChallenge extends HttpChallenge
     protected $httpClient;
 
     /**
-     * @var \Concrete\Core\Form\Service\Form
-     */
-    protected $formService;
-
-    /**
      * @var \Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface
      */
     protected $resolverManager;
@@ -50,16 +44,14 @@ class HttpPhysicalChallenge extends HttpChallenge
      * @param \Acme\Filesystem\DriverManager $filesystemDriverManager
      * @param \Concrete\Core\Http\Client\Client $httpClient
      * @param \Acme\Security\Crypto $crypto
-     * @param \Concrete\Core\Form\Service\Form $formService
      * @param \Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface $resolverManager
      */
-    public function __construct(EntityManagerInterface $em, FilesystemDriverManager $filesystemDriverManager, Client $httpClient, Crypto $crypto, Form $formService, ResolverManagerInterface $resolverManager)
+    public function __construct(EntityManagerInterface $em, FilesystemDriverManager $filesystemDriverManager, Client $httpClient, Crypto $crypto, ResolverManagerInterface $resolverManager)
     {
         parent::__construct($crypto);
         $this->em = $em;
         $this->filesystemDriverManager = $filesystemDriverManager;
         $this->httpClient = $httpClient;
-        $this->formService = $formService;
         $this->resolverManager = $resolverManager;
     }
 
@@ -217,7 +209,6 @@ class HttpPhysicalChallenge extends HttpChallenge
         }
 
         return [
-            'formService' => $this->formService,
             'server' => $server,
             'webroot' => $webroot,
             'nocheck' => $nocheck,

@@ -72,7 +72,7 @@ abstract class HttpChallenge implements ChallengeTypeInterface
             'challenge_type/' . $this->getHandle(),
             'acme',
             $page,
-            ['challengeType' => $this] + $this->getDomainConfigurationElementData($domain)
+            $this->getDomainConfigurationElementData($domain)
         );
     }
 

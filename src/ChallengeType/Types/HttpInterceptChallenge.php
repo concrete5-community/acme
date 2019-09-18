@@ -7,7 +7,6 @@ use Acme\Http\AuthorizationMiddleware;
 use Acme\Security\Crypto;
 use ArrayAccess;
 use Concrete\Core\Config\Repository\Repository;
-use Concrete\Core\Form\Service\Form;
 use Concrete\Core\Http\Client\Client;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
 use Zend\Http\Client\Exception\RuntimeException as ZendClientRuntimeException;
@@ -32,24 +31,17 @@ class HttpInterceptChallenge extends HttpChallenge
     protected $httpClient;
 
     /**
-     * @var \Concrete\Core\Form\Service\Form
-     */
-    protected $formService;
-
-    /**
      * @param \Concrete\Core\Config\Repository\Repository $config
      * @param \Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface $resolverManager
      * @param \Concrete\Core\Http\Client\Client $httpClient
      * @param \Acme\Security\Crypto $crypto
-     * @param \Concrete\Core\Form\Service\Form $formService
      */
-    public function __construct(Repository $config, ResolverManagerInterface $resolverManager, Client $httpClient, Crypto $crypto, Form $formService)
+    public function __construct(Repository $config, ResolverManagerInterface $resolverManager, Client $httpClient, Crypto $crypto)
     {
         parent::__construct($crypto);
         $this->config = $config;
         $this->resolverManager = $resolverManager;
         $this->httpClient = $httpClient;
-        $this->formService = $formService;
     }
 
     /**
@@ -164,7 +156,6 @@ class HttpInterceptChallenge extends HttpChallenge
         }
 
         return [
-            'formService' => $this->formService,
             'nocheck' => $nocheck,
             'isInstalledInWebroot' => trim(DIR_REL, '/') === '',
             'isPrettyUrlEnabled' => (bool) $this->config->get('concrete.seo.url_rewriting'),

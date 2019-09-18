@@ -6,15 +6,15 @@ defined('C5_EXECUTE') or die('Access Denied.');
 
 /**
  * @var int[] $authorizationPorts
- * @var Acme\ChallengeType\Types\HttpPhysicalChallenge $challengeType
  * @var string $server
  * @var Acme\Entity\RemoteServer $remoteServers
  * @var string $webroot
  * @var bool $nocheck
  * @var string $remoteServersPage
+ *
+ * @var string $fieldsPrefix
  * @var Concrete\Core\Form\Service\Form $formService
  */
-$fieldsPrefix = 'challengetypeconfiguration[' . $challengeType->getHandle() . ']';
 
 $servers = [
     '.' => t('this server'),

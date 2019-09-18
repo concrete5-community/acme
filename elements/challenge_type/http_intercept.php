@@ -5,15 +5,14 @@ use Acme\Http\AuthorizationMiddleware;
 defined('C5_EXECUTE') or die('Access Denied.');
 
 /**
- * @var Acme\ChallengeType\Types\HttpInterceptChallenge $challengeType
  * @var bool $nocheck
  * @var bool $isInstalledInWebroot
  * @var bool $isPrettyUrlEnabled
  * @var string $seoUrlsPage
+ *
+ * @var string $fieldsPrefix
  * @var Concrete\Core\Form\Service\Form $formService
  */
-
-$fieldsPrefix = 'challengetypeconfiguration[' . $challengeType->getHandle() . ']';
 
 ?>
 <p><?= t('With this validation, the ACME server reads an URL located under the root of the website using the HTTP protocol.') ?></p>

@@ -68,6 +68,11 @@ interface ChallengeTypeInterface
 
     /**
      * Get the element to be displayed in the web interface when configuring a domain.
+     * These "sets" will always be set by the caller:
+     * <ul>
+     *     <li>string <code>$fieldsPrefix</code> for example 'challengetypeconfiguration[http_intercept]'
+     *     <li>\Concrete\Core\Form\Service\Form <code>$formService</li>
+     * </ul>.
      *
      * @param \Acme\Entity\Domain $domain
      * @param \Concrete\Core\Filesystem\ElementManager $elementManager
