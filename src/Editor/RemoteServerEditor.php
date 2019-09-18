@@ -354,7 +354,7 @@ class RemoteServerEditor
         }
         $driverInfo = $drivers[$driver];
         if (!$driverInfo['available']) {
-            $state->addError(t("The remote server driver '%s' is not available", driverInfo['name']));
+            $state->addError(t("The remote server driver '%s' is not available", $driverInfo['name']));
 
             return $result;
         }
