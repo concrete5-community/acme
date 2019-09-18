@@ -142,11 +142,7 @@ EOT
      */
     protected function deleteCertificate(Certificate $certificate, CertificateEditor $certificateEditor)
     {
-        $domainNames = [];
-        foreach ($certificate->getDomains() as $certificateDomain) {
-            $domainNames[] = $certificateDomain->getDomain()->getHostDisplayName();
-        }
-        $domainNames = implode(', ', $domainNames);
+        $domainNames = implode(', ', $certificate->getDomainHostDisplayNames());
         if ($this->input->getOption('force')) {
             $this->output->writeln("# DELETING CERTIFICATE FOR {$domainNames} (ID: {$certificate->getID()}, account: {$certificate->getAccount()->getName()})");
         } else {

@@ -214,7 +214,7 @@ class Certificate
      * The list of the orders/sets of authorizations associated to this certificate.
      *
      * @Doctrine\ORM\Mapping\OneToMany(targetEntity="Order", mappedBy="certificate", cascade={"all"})
-     * @Doctrine\ORM\Mapping\OrderBy({"createdOn"="DESC"})
+     * @Doctrine\ORM\Mapping\OrderBy({"createdOn"="DESC", "id"="DESC"})
      *
      * @var \Doctrine\Common\Collections\Collection|\Acme\Entity\Order[]
      */
@@ -224,7 +224,7 @@ class Certificate
      * The list of revoked certificates associated to this instance.
      *
      * @Doctrine\ORM\Mapping\OneToMany(targetEntity="RevokedCertificate", mappedBy="parentCertificate", cascade={"persist"})
-     * @Doctrine\ORM\Mapping\OrderBy({"createdOn"="ASC"})
+     * @Doctrine\ORM\Mapping\OrderBy({"createdOn"="DESC", "id"="DESC"})
      *
      * @var \Doctrine\Common\Collections\Collection|\Acme\Entity\RevokedCertificate[]
      */
@@ -513,6 +513,21 @@ class Certificate
     public function getDomains()
     {
         return $this->domains;
+    }
+
+    /**
+     * Get the list of the domain names.
+     *
+     * @return string[]
+     */
+    public function getDomainHostDisplayNames()
+    {
+        $result = [];
+        foreach ($this->getDomains() as $certificateDomain) {
+            $result[] = $certificateDomain->getDomain()->getHostDisplayName();
+        }
+
+        return $result;
     }
 
     /**

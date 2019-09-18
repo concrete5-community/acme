@@ -227,10 +227,7 @@ EOT
      */
     protected function processCertificate(Certificate $certificate, Renewer $renewer)
     {
-        $domainNames = [];
-        foreach ($certificate->getDomains() as $certificateDomain) {
-            $domainNames[] = $certificateDomain->getDomain()->getHostDisplayName();
-        }
+        $domainNames = $certificate->getDomainHostDisplayNames();
         $sectionTitle = 'Processing certificate with id ' . $certificate->getID() . ' for ' . implode(', ', $domainNames);
         $this->consoleLog->section($sectionTitle);
         $options = RenewerOptions::create()

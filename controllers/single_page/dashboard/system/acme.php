@@ -6,6 +6,7 @@ use Acme\Entity\Account;
 use Acme\Entity\Certificate;
 use Acme\Entity\Domain;
 use Acme\Entity\RemoteServer;
+use Acme\Entity\RevokedCertificate;
 use Acme\Entity\Server;
 use Concrete\Core\Http\ResponseFactoryInterface;
 use Concrete\Core\Page\Controller\DashboardPageController;
@@ -59,6 +60,20 @@ class Acme extends DashboardPageController
                 }
                 $pages[] = $data;
             }
+        }
+        $page = Page::getByPath('/dashboard/system/acme/certificates/revoked');
+        if ($this->canGoTo($page)) {
+            $qb = $em->createQueryBuilder();
+            $pages[] = [
+                'name' => t('Revoked certificates'),
+                'url' => (string) $resolverManager->resolve([$page, 'unlinked']),
+                'kind' => 'revoked_certificates',
+                'revoked_certificates' => (int) $qb
+                    ->select($qb->expr()->count('rc.id'))
+                    ->from(RevokedCertificate::class, 'rc')
+                    ->andWhere($qb->expr()->isNull('rc.parentCertificate'))
+                    ->getQuery()->getSingleScalarResult(),
+            ];
         }
         if ($pages === []) {
             return $this->app->make(ResponseFactoryInterface::class)->forbidden($this->request->getUri());

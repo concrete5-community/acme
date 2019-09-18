@@ -14,11 +14,13 @@ This is a really feature rich package:
 - adding ACME servers and accounts requires just a few clicks
 - supports both [ACME v1](https://tools.ietf.org/html/draft-ietf-acme-acme-01) and [ACME v2 (aka RFC8555)](https://tools.ietf.org/html/rfc8555) protocols
 - supports multiple domains, both local and remotes
-- support domain names with international characters
+- supports domain names with international characters
 - supports creating HTTPS certificates for multiple domains
 - lets you specify actions to be performed upon certificate generations/renewals (for example, it can save the newly generate certificate to a remote server by using SSH, and reload the web server configuration)
 - offers a full set of CLI (Command Line Interface) commands so that you can create/edit/modify/delete/control almost everything via a terminal console
 - the renewal of the certificates can be automated by adding a single line in your crontab
+- you have full control of the revoked certificates
+- supports checking if a certificate has been revoked
 
 
 ## Initial setup

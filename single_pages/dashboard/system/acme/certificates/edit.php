@@ -16,6 +16,8 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var int $minimumKeySize
  */
 
+$canEdit = $applicableDomains !== [] && $certificate->getCsr() === '' && $certificate->getOngoingOrder() === null;
+
 if ($certificate->getID() !== null) {
     ?>
     <form method="POST" action="<?= h($view->action('delete', $certificate->getID())) ?>" id="acme-certificate-delete" class="hide">
@@ -40,7 +42,7 @@ if ($certificate->getID() !== null) {
             </div>
             <?php
         }
-        elseif ($certificate->getCsr() === '' && $certificate->getOngoingOrder() === null) {
+        elseif ($canEdit) {
             ?>
             <table class="table table-striped" style="width: auto" id="acme-certificate-domains">
                 <thead>
@@ -157,7 +159,15 @@ if ($certificate->getID() !== null) {
 
     <div class="ccm-dashboard-form-actions-wrapper">
         <div class="ccm-dashboard-form-actions">
-            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates'])) ?>" class="btn btn-default pull-left"><?= t('Cancel') ?></a>
+            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates'])) ?>" class="btn btn-default pull-left">
+                <?php
+                if ($certificate->getID() === null || $applicableDomains === [] || $canEdit) {
+                    echo t('Cancel');
+                } else {
+                    echo t('Back');
+                }
+                ?>
+            </a>
             <div class="pull-right">
                 <?php
                 if ($certificate->getID() !== null) {
@@ -165,17 +175,36 @@ if ($certificate->getID() !== null) {
                     <a href="#" id="acme-btn-delete" class="btn btn-danger"><?= t('Delete') ?></a>
                     <?php
                 }
+                if ($certificate->getID() !== null) {
+                    if ($certificate->getOrders()->isEmpty()) {
+                        ?>
+                        <button class="btn btn-primary" disabled="disabled"><?= t('Renewal history') ?></button>
+                        <?php
+                    } else {
+                        ?>
+                        <a href="<?= $resolverManager->resolve(['/dashboard/system/acme/certificates/renewals', $certificate->getID()])?>" class="btn btn-primary"><?= t('Renewal history') ?></a>
+                        <?php
+                    }
+                    if ($certificate->getRevokedCertificates()->isEmpty()) {
+                        ?>
+                        <button class="btn btn-primary" disabled="disabled"><?= t('Revoked certificates') ?></button>
+                        <?php
+                    } else {
+                        ?>
+                        <a href="<?= $resolverManager->resolve(['/dashboard/system/acme/certificates/revoked', $certificate->getID()])?>" class="btn btn-primary"><?= t('Revoked certificates') ?></a>
+                        <?php
+                    }
+                }
                 if ($applicableDomains === []) {
                     ?>
                     <button class="btn btn-primary" disabled="disabled"><?= t('Save') ?></button>
                     <?php
-                } else {
+                } elseif ($canEdit) {
                     ?>
                     <input type="submit" class="btn btn-primary" value="<?= t('Save') ?>" />
                     <?php
                 }
                 ?>
-
             </div>
         </div>
     </div>

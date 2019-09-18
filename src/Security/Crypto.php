@@ -240,7 +240,7 @@ class Crypto
     }
 
     /**
-     * Convert an ASCII representation of a key (PEM) to its binary representation (BER).
+     * Convert an ASCII representation of a key (PEM) to its binary representation (DER).
      *
      * @param string $value
      *

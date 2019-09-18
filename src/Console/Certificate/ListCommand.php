@@ -122,16 +122,12 @@ EOT
                 ->andWhere($qb->expr()->eq('a.server', ':server'))->setParameter('server', $server);
         }
         foreach ($qb->getQuery()->execute() as $certificate) {
-            $domains = [];
-            foreach ($certificate->getDomains() as $certificateDomain) {
-                $domains[] = $certificateDomain->getDomain()->getHostDisplayName();
-            }
             $info = $certificate->getCertificateInfo();
             $table->addRow([
                 $certificate->getID(),
                 $certificate->getAccount()->getServer()->getName(),
                 $certificate->getAccount()->getName(),
-                implode("\n", $domains),
+                implode("\n", $certificate->getDomainHostDisplayNames()),
                 $info === null ? '' : $info->getStartDate()->format('c'),
                 $info === null ? '' : $info->getEndDate()->format('c'),
                 $info === null ? '' : $info->getIssuerName(),

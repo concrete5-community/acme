@@ -61,6 +61,20 @@
                 </attributekey>
             </attributes>
         </page>
+        <page package="acme" path="/dashboard/system/acme/certificates/renewals" name="Certificate renewal list" description="">
+            <attributes>
+                <attributekey handle="exclude_nav">
+                    <value><![CDATA[1]]></value>
+                </attributekey>
+            </attributes>
+        </page>
+        <page package="acme" path="/dashboard/system/acme/certificates/revoked" name="Revoked certificates" description="">
+            <attributes>
+                <attributekey handle="exclude_nav">
+                    <value><![CDATA[1]]></value>
+                </attributekey>
+            </attributes>
+        </page>
         <page package="acme" path="/dashboard/system/acme/remote_servers" name="Remote servers" description="">
         </page>
         <page package="acme" path="/dashboard/system/acme/remote_servers/edit" name="Add/Edit remote server" description="">
