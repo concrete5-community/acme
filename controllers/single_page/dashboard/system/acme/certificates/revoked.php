@@ -109,7 +109,7 @@ class Revoked extends DashboardPageController
             $qb
                 ->andWhere($qb->expr()->eq(
                     'rc.parentCertificate',
-                    ':parentCertificate',
+                    ':parentCertificate'
                 ))
                 ->setParameter('parentCertificate', $certificate)
             ;
