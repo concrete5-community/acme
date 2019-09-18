@@ -60,12 +60,12 @@ class Revoked extends DashboardPageController
         $revokedCertificate = $revokedCertificateID === 0 ? null : $this->app->make(EntityManagerInterface::class)->find(RevokedCertificate::class, $revokedCertificateID);
         if ($revokedCertificate === null) {
             $this->error->add(t('Unable to find the requested revoked certificate'));
-            
+
             return $this->view($certificateID);
         }
         if (!$this->token->validate('acme-download-revokedcertificate-key-' . $revokedCertificate->getID())) {
             $this->error->add($this->token->getErrorMessage());
-            
+
             return $this->view($certificateID);
         }
         $downloader = $this->app->make(FileDownloader::class);
@@ -123,8 +123,7 @@ class Revoked extends DashboardPageController
             302
         );
     }
-    
-    
+
     /***
      * @param mixed $certificateID
      * @param bool $flashOnNotFound

@@ -107,7 +107,7 @@ if (!$certificate->getOrders()->isEmpty()) {
         $('#acme-certificate-clearhistory').on('click', function(e) {
             e.preventDefault();
             if (window.confirm(<?= json_encode(t('Are you sure you want to clear the certificate renewal history?')) ?>)) {
-            	$('#acme-certificate-clearhistory-do').submit();
+                $('#acme-certificate-clearhistory-do').submit();
             }
         });
     });

@@ -60,7 +60,6 @@ if ($revokedCertificates === []) {
                             <div class="dialog-buttons">
                                 <button class="btn btn-primary pull-right" onclick="$(this).closest('.ui-dialog').find('.ui-dialog-content').dialog('close')"><?= t('Close') ?></button>
                             </div>
-                            
                         </div>
                     </td>
                     <td><?= h($dateHelper->formatPrettyDateTime($revokedCertificate->getCreatedOn())) ?></td>
@@ -101,13 +100,13 @@ if ($revokedCertificates === []) {
             <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme'])) ?>" class="btn btn-default pull-left">
                 <?= t('Back') ?>
             </a>
-            <?php 
+            <?php
         } else {
             ?>
             <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', $certificate->getID()])) ?>" class="btn btn-default pull-left">
                 <?= t('Back') ?>
             </a>
-            <?php 
+            <?php
         }
         ?>
         <div class="pull-right">

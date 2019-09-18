@@ -2,7 +2,7 @@
 
 This is a concrete5 package that lets you generate certificates for websites, so that they can use the HTTPS protocol.
 
-The certificates are generated via the ACME (Automated Certificate Management Environment) protocol, which is offered for free for example by [Let's Encrypt](https://letsencrypt.org/). 
+The certificates are generated via the ACME (Automated Certificate Management Environment) protocol, which is offered for free for example by [Let's Encrypt](https://letsencrypt.org/).
 
 
 ## Features
