@@ -169,7 +169,7 @@ abstract class Sftp implements DriverInterface, ExecutableDriverInterface, Remot
     public function setFileContents($path, $contents)
     {
         $this->connect();
-        if (!$this->connection->put($path, $contents, self::SOURCE_STRING)) {
+        if (!$this->connection->put($path, $contents)) {
             throw FilesystemException::create(FilesystemException::ERROR_WRITING_FILE, t('Failed to upload file %s via SFTP', $path), $path);
         }
     }
