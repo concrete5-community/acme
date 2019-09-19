@@ -12,5 +12,9 @@ return [
         'http_physical' => [
             'class' => Types\HttpPhysicalChallenge::class,
         ],
+        'dns_challtestsrv' => [
+            'class' => Types\DnsChallTestSrvChallenge::class,
+            'default_management_address' => 'http://localhost:8055',
+        ],
     ],
 ];
