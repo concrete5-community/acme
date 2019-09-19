@@ -403,14 +403,10 @@ class OrderService
             } catch (Throwable $x) {
                 $startException = $x;
             }
-            try {
-                if ($startException !== null) {
-                    $challenge = $this->fetchChallengeData($authorizationChallenge);
-                }
-                $authorization = $this->fetchAuthorizationData($authorizationChallenge, $authorizationChallenge->getAuthorizationUrl());
-            } catch (Exception $foo) {
-            } catch (Throwable $foo) {
+            if ($startException !== null) {
+                $challenge = $this->fetchChallengeData($authorizationChallenge);
             }
+            $authorization = $this->fetchAuthorizationData($authorizationChallenge, $authorizationChallenge->getAuthorizationUrl());
             $this->orderUnserializer->updateAuthorizationChallenge($authorizationChallenge, $authorization, $challenge);
             if ($startException !== null && $authorizationChallenge->getChallengeStatus() === $authorizationChallenge::CHALLENGESTATUS_PENDING) {
                 throw $startException;
