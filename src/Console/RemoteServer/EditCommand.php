@@ -4,6 +4,8 @@ namespace Acme\Console\RemoteServer;
 
 use Acme\Editor\RemoteServerEditor;
 use Acme\Exception\EntityNotFoundException;
+use Acme\Exception\FilesystemException;
+use Acme\Filesystem\DriverManager as FilesystemDriverManager;
 use Acme\Finder;
 use Concrete\Core\Error\ErrorList\ErrorList;
 
@@ -38,7 +40,7 @@ acme:remote:edit
 EOT
     ;
 
-    public function handle(RemoteServerEditor $remoteServerEditor, Finder $finder)
+    public function handle(RemoteServerEditor $remoteServerEditor, Finder $finder, FilesystemDriverManager $filesystemDriverManager)
     {
         try {
             $remoteServer = $finder->findRemoteServer($this->input->getArgument('remote-server'));
@@ -50,14 +52,16 @@ EOT
         $privateKey = $remoteServer->getPrivateKey();
         $privateKeyFile = (string) $this->input->getOption('private-key');
         if ($privateKeyFile !== '') {
-            if (!is_file($privateKeyFile)) {
+            $localDriver = $filesystemDriverManager->getLocalDriver();
+            if (!$localDriver->isFile($privateKeyFile)) {
                 $this->output->error("Unable to find the private key file '{$privateKeyFile}'");
 
                 return 1;
             }
-            $privateKey = file_get_contents($privateKeyFile);
-            if ($privateKey === false) {
-                $this->output->error("Unable to read the private key file '{$privateKeyFile}'");
+            try {
+                $privateKey = $localDriver->getFileContents($privateKeyFile);
+            } catch (FilesystemException $x) {
+                $this->output->error($x->getMessage());
 
                 return 1;
             }

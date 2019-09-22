@@ -5,6 +5,8 @@ namespace Acme\Console\Account;
 use Acme\Editor\AccountEditor;
 use Acme\Entity\Server;
 use Acme\Exception\EntityNotFoundException;
+use Acme\Exception\FilesystemException;
+use Acme\Filesystem\DriverManager as FilesystemDriverManager;
 use Acme\Finder;
 use Concrete\Core\Console\Command;
 use Concrete\Core\Error\ErrorList\ErrorList;
@@ -38,7 +40,7 @@ acme:account:add
 EOT
     ;
 
-    public function handle(AccountEditor $accountEditor, EntityManagerInterface $em, Finder $finder)
+    public function handle(AccountEditor $accountEditor, EntityManagerInterface $em, Finder $finder, FilesystemDriverManager $filesystemDriverManager)
     {
         $serverIDOrName = $this->input->getOption('server');
         if ($serverIDOrName === null) {
@@ -65,14 +67,16 @@ EOT
         ];
         $pk = $this->input->getOption('existing-user-pk');
         if ($pk) {
-            if (!is_file($pk)) {
+            $localDriver = $filesystemDriverManager->getLocalDriver();
+            if (!$localDriver->isFile($pk)) {
                 $this->output->error("Unable to find the private key file {$pk}");
 
                 return 1;
             }
-            $pkContents = file_get_contents($pk);
-            if ($pkContents === false) {
-                $this->output->error("Failed to read the private key file {$pk}");
+            try {
+                $pkContents = $localDriver->getFileContents($pk);
+            } catch (FilesystemException $x) {
+                $this->output->error($x->getMessage());
 
                 return 1;
             }
