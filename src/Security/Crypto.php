@@ -5,9 +5,11 @@ namespace Acme\Security;
 use Acme\Entity\Account;
 use Acme\Exception\Codec\Base64EncodingException;
 use Acme\Exception\Codec\JsonEncodingException;
+use Acme\Exception\FilesystemException;
 use Acme\Exception\KeyPair\GenerationTimeoutException;
 use Acme\Exception\KeyPair\MalformedPrivateKeyException;
 use Acme\Exception\KeyPair\PrivateKeyTooShortException;
+use Acme\Filesystem\DriverManager as FilesystemDriverManager;
 use Acme\Service\NotificationSilencerTrait;
 use Concrete\Core\Config\Repository\Repository;
 use Concrete\Core\File\Service\File;
@@ -36,11 +38,17 @@ class Crypto
      */
     protected $fileService;
 
-    public function __construct(Repository $config, FunctionInspector $functionInspector, File $fileService)
+    /**
+     * @var \Acme\Filesystem\DriverManager
+     */
+    protected $filesystemDriverManager;
+
+    public function __construct(Repository $config, FunctionInspector $functionInspector, File $fileService, FilesystemDriverManager $filesystemDriverManager)
     {
         $this->config = $config;
         $this->functionInspector = $functionInspector;
         $this->fileService = $fileService;
+        $this->filesystemDriverManager = $filesystemDriverManager;
     }
 
     /**
@@ -138,9 +146,10 @@ class Crypto
             return KeyPair::create($generated['privatekey'], $generated['publickey']);
         } finally {
             if ($deleteOpenSslConfFile) {
-                $this->ignoringWarnings(function () use ($openSslConfFile) {
-                    unlink($openSslConfFile);
-                });
+                try {
+                    $this->filesystemDriverManager->getLocalDriver()->deleteFile($openSslConfFile);
+                } catch (FilesystemException $foo) {
+                }
             }
         }
     }
@@ -347,10 +356,9 @@ class Crypto
             '[ v3_ca ]',
             '',
         ]);
-        $saved = (bool) $this->ignoringWarnings(function () use ($path, $contents) {
-            return file_put_contents($path, $contents);
-        });
-        if (!$saved) {
+        try {
+            $this->filesystemDriverManager->getLocalDriver()->setFileContents($path, $contents);
+        } catch (FilesystemException $x) {
             return ['', false];
         }
 
