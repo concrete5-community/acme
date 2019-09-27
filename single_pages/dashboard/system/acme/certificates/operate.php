@@ -245,7 +245,7 @@ new Vue({
             var map = <?= json_encode([
                 AuthorizationChallenge::CHALLENGESTATUS_PENDING => t('pending'),
                 AuthorizationChallenge::CHALLENGESTATUS_PROCESSING => t('the ACME server is checking the domain'),
-                AuthorizationChallenge::CHALLENGESTATUS_VALID => t('the ACME confirmed the authorization challenge'),
+                AuthorizationChallenge::CHALLENGESTATUS_VALID => t('the ACME server confirmed the authorization challenge'),
                 AuthorizationChallenge::CHALLENGESTATUS_INVALID => t('the authorization challenge failed'),
             ]) ?>;
             return map.hasOwnProperty(status) ? map[status] : <?= json_encode(t('Unknown')) ?>;
