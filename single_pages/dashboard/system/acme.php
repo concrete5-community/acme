@@ -44,7 +44,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
                             break;
                         case 'certificates':
                             ?>
-                            <div><?= t('Here you can manage the HTTP certificates.') ?></div>
+                            <div><?= t('Here you can manage the HTTPS certificates.') ?></div>
                             <div class="small text-muted"><div><?= t('Number of currently defined certificates: %s', $page['certificates']) ?></div></div>
                             <?php
                             break;
