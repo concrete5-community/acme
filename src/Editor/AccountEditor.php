@@ -447,7 +447,7 @@ class AccountEditor
     {
         $privateKey = $state->popValue('privateKey');
         if (!is_string($privateKey) || $privateKey === '') {
-            $state->addError(t('The private key of the existing account has not beed specified'));
+            $state->addError(t('The private key of the existing account has not been specified'));
 
             return null;
         }
