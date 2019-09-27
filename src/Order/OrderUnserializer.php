@@ -257,7 +257,7 @@ class OrderUnserializer
         }
         if ($result === null) {
             throw new RuntimeException(
-                t("There's no compatible authorization method found for domain %s.", $domain->getHostDisplayName())
+                t("There's no compatible authorization method for domain %s.", $domain->getHostDisplayName())
                 . "\n" .
                 t('Wanted authorization method: %s', $domainChallengeType->getAcmeTypeName())
                 . "\n" .
