@@ -41,7 +41,7 @@ class SftpWithPrivateKey extends Sftp
     {
         $privateKey = $this->remoteServer->getPrivateKey();
         if ($privateKey === '') {
-            throw FilesystemException::create(FilesystemException::ERROR_CONNECTING, t('No private key set remote server'));
+            throw FilesystemException::create(FilesystemException::ERROR_CONNECTING, t('No private key configured for the remote server'));
         }
         $rsa = new RSA();
         if (!$rsa->loadKey($privateKey)) {
