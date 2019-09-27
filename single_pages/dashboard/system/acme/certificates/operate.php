@@ -304,11 +304,11 @@ new Vue({
                         return;
                     }
                     if (data.revoked === false) {
-                        window.alert(<?= json_encode(t('The certificate is not revoked.')) ?>);
+                    	ConcreteAlert.info({title: <?= json_encode('Certificate revokation') ?>, message: <?= json_encode(t('The certificate is not revoked.')) ?>});
                     } else if (data.revoked === true) {
-                        window.alert(<?= json_encode(t('The certificate has been REVOKED on %s.')) ?>.replace(/\%s/, data.revokedOn));
+                    	ConcreteAlert.error({title: <?= json_encode('Certificate revokation') ?>, message: <?= json_encode(t('The certificate has been REVOKED on %s.')) ?>.replace(/\%s/, data.revokedOn)});
                     } else {
-                        window.alert(<?= json_encode(t('It was not possible to determine if the certificate is revoked.')) ?>);
+                    	ConcreteAlert.error({title: <?= json_encode('Certificate revokation') ?>, message: <?= json_encode(t('It was not possible to determine if the certificate is revoked.')) ?>});
                     }
                 });
             })
