@@ -10,6 +10,11 @@ defined('C5_EXECUTE') or die('Access Denied.');
 
 class RouteList implements RouteListInterface
 {
+    /**
+     * {@inheritdoc}
+     *
+     * @see \Concrete\Core\Routing\RouteListInterface::loadRoutes()
+     */
     public function loadRoutes(Router $router)
     {
         $router->post('/_acme_ccm/first_time_setup/server', [FirstTimeSetup::class, 'createFirstServer']);
