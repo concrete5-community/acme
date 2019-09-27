@@ -17,7 +17,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
 if ($revokedCertificates === []) {
     ?>
     <div class="alert alert-info">
-        <?= $certificate === null ? t('There are no revoked certificates for deleted certificates') : t('There are no revoked certiifcates for this certficate') ?>
+        <?= $certificate === null ? t('There are no revoked certificates for deleted certificates') : t('There are no revoked certificates for this certificate') ?>
     </div>
     <?php
 } else {

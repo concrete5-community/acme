@@ -36,13 +36,13 @@ $numCertificates = $domain->getCertificates()->count();
         ?>
         <div class="col-md-<?= $md ?>">
             <div class="form-group">
-                <?= $form->label('', 'ACME server') ?>
+                <?= $form->label('', t('ACME server')) ?>
                 <div class="form-control"><?= h($domain->getAccount()->getServer()->getName()) ?></div>
             </div>
         </div>
         <div class="col-md-<?= $md ?>">
             <div class="form-group">
-                <?= $form->label('', 'Associated account') ?>
+                <?= $form->label('', t('Associated account')) ?>
                 <div class="form-control"><?= h($domain->getAccount()->getName()) ?></div>
             </div>
         </div>
@@ -51,7 +51,7 @@ $numCertificates = $domain->getCertificates()->count();
             ?>
             <div class="col-md-4">
                 <div class="form-group">
-                    <?= $form->label('', 'Created on') ?>
+                    <?= $form->label('', t('Created on')) ?>
                     <div class="form-control"><?= h($dateHelper->formatDateTime($domain->getCreatedOn(), true, true)) ?></div>
                 </div>
             </div>
@@ -254,7 +254,6 @@ $('#challengetype')
 <?php
 if ($domain->getID() !== null) {
     ?>
-    var alreadyDeleted = false;
     $('a#acme-btn-delete').on('click', function(e) {
         e.preventDefault();
         if (window.confirm(<?= json_encode(t('Are you sure you want to delete this domain?')) ?>)) {

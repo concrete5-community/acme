@@ -37,7 +37,7 @@ $redIcon = '<i class="fa fa-exclamation-circle" style="color: red"></i>';
             <td>
                 <?php
                 if (!$checks->isOpenSslInstalled()) {
-                    ?><i class="fa fa-question-circle launch-tooltip" title="<?= h(t('For faster execution, you should enable the "%s" PHP extension', 'openssl')) ?>"></i><?php
+                    ?><i class="fa fa-question-circle launch-tooltip" data-html="true" title="<?= h(t('For faster execution, you should enable the %s PHP extension', '<code>openssl</code>')) ?>"></i><?php
                 }
                 ?>
             </td>
@@ -65,7 +65,7 @@ $redIcon = '<i class="fa fa-exclamation-circle" style="color: red"></i>';
             <td>
                 <?php
                 if (!$checks->isFastBigIntegerAvailable()) {
-                    ?><i class="fa fa-question-circle launch-tooltip" title="<?= h(t('For faster execution, you should enable the %s and/or the %s PHP extension', '"gmp"', '"bcmath"')) ?>"></i><?php
+                    ?><i class="fa fa-question-circle launch-tooltip" data-html="true" title="<?= h(t('For faster execution, you should enable the %s and/or the %s PHP extension', '<code>gmp</code>', '<code>bcmath</code>')) ?>"></i><?php
                 }
                 ?>
             </td>
@@ -87,7 +87,7 @@ $redIcon = '<i class="fa fa-exclamation-circle" style="color: red"></i>';
             <td>
                 <?php
                 if ($checks->getFtpExtensionState() === $checks::FTPEXTENSION_UNAVAILABLE) {
-                    ?><i class="fa fa-question-circle launch-tooltip" title="<?= h(t('To enable uploading certificates to remote servers with FTP or SSH, you should enable the "%s" PHP extension', 'ftp')) ?>"></i><?php
+                    ?><i class="fa fa-question-circle launch-tooltip" data-html="true" title="<?= h(t('To enable uploading certificates to remote servers with FTP or SSH, you should enable the %s PHP extension', '<code>ftp</code>')) ?>"></i><?php
                 }
                 ?>
             </td>
@@ -101,7 +101,7 @@ $redIcon = '<i class="fa fa-exclamation-circle" style="color: red"></i>';
                 <td>
                     <?php
                     if ($checks->getFtpExtensionState() !== $checks::FTPEXTENSION_OK) {
-                        ?><i class="fa fa-question-circle launch-tooltip" title="<?= h(t('To enable uploading certificates to remote servers with FTP or SSH, you should enable the "%s" PHP extension', 'ftp')) ?>"></i><?php
+                        ?><i class="fa fa-question-circle launch-tooltip" data-html="true" title="<?= h(t('To enable uploading certificates to remote servers with FTP or SSH, you should enable the %s PHP extension', '<code>ftp</code>')) ?>"></i><?php
                     }
                     ?>
                 </td>

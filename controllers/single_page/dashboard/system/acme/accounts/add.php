@@ -73,7 +73,7 @@ class Add extends DashboardPageController
             return $server;
         }
         if ($id !== 0 && $flashOnNotFound) {
-            $this->flash('error', t('Unable to find the requester ACME server'));
+            $this->flash('error', t('Unable to find the requested ACME server'));
         }
 
         return null;

@@ -120,7 +120,7 @@ class HttpTokenWriter
     protected function createChallengeDirectory()
     {
         if (!$this->driver->isDirectory($this->webroot)) {
-            throw new UserMessageException(t("The directory {$this->webroot} does not exist."));
+            throw new UserMessageException(t("The directory %s does not exist.", $this->webroot));
         }
         $path = $this->webroot;
         $created = false;

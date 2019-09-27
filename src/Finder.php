@@ -133,7 +133,7 @@ class Finder
             if ($account === null || $criteria->getAccount() === $account) {
                 return $criteria;
             }
-            throw new EntityNotFoundException(t("There domain '%1\$s' is associated to the account '%2\$s' and not to the account '%3\$s'", $criteria->getHostDisplayName(), $criteria->getAccount()->getName(), $account->getName()));
+            throw new EntityNotFoundException(t("The domain '%1\$s' is associated to the account '%2\$s' and not to the account '%3\$s'", $criteria->getHostDisplayName(), $criteria->getAccount()->getName(), $account->getName()));
         }
         if ($this->isInteger($criteria)) {
             $domain = $this->em->find(Domain::class, (int) $criteria);
@@ -141,7 +141,7 @@ class Finder
                 if ($account === null || $domain->getAccount() === $account) {
                     return $domain;
                 }
-                throw new EntityNotFoundException(t("There domain with ID %1\$s is associated to the account '%2\$s' and not to the account '%3\$s'", $criteria, $domain->getAccount()->getName(), $account->getName()));
+                throw new EntityNotFoundException(t("The domain with ID %1\$s is associated to the account '%2\$s' and not to the account '%3\$s'", $criteria, $domain->getAccount()->getName(), $account->getName()));
             }
             throw new EntityNotFoundException(t("There's no domain with ID %s", $criteria));
         }

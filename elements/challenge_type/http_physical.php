@@ -40,7 +40,7 @@ foreach ($remoteServers as $remoteServer) {
     <?= $formService->label($fieldsPrefix . '[server]', t('Server containing the web root directory')) ?>
     <?= $formService->select($fieldsPrefix . '[server]', $servers, $server) ?>
     <div class="small text-muted">
-        <?= t('You can define remote servers %shere%s.', '<a href="' . h($remoteServersPage) . '" target="_blanl">', '</a>') ?>
+        <?= t('You can define remote servers %shere%s.', '<a href="' . h($remoteServersPage) . '" target="_blank">', '</a>') ?>
     </div>
 </div>
 
