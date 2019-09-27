@@ -156,6 +156,21 @@ switch (count($servers)) {
 
 $('#acme-installpost-app').show();
 
+<?php
+if ($step !== 'ready') {
+    ?>
+    setTimeout(
+        function() {
+            try {
+                $('#acme-installpost-app').closest('.ui-dialog-content').dialog('option', 'height', Math.min(Math.max($(window).height() - 80, 420), 600));
+            } catch (e) {
+            }
+        },
+        10
+    );
+    <?php
+}
+?>
 new Vue({
     el: '#acme-installpost-app',
     data: function() {
