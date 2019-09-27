@@ -123,10 +123,10 @@ class DnsChallTestSrvChallenge implements ChallengeTypeInterface
                 filter_var($result['managementaddress'], FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED | FILTER_FLAG_HOST_REQUIRED) === false
                 || !preg_match('_^https?://_i', $result['managementaddress'])
             ) {
-                $errors[] = t('The URL of the management address seems wrong');
+                $errors[] = t('The URL of the management seems wrong');
                 $failed = true;
             } elseif (strpos($result['managementaddress'], '?') !== false || strpos($result['managementaddress'], '#')) {
-                $errors[] = t("The URL of the management address can't contain these characters: %s", '"?", "#"');
+                $errors[] = t("The URL of the management can't contain these characters: %s", '"?", "#"');
                 $failed = true;
             }
         }
