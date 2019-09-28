@@ -233,7 +233,7 @@ new Vue({
         getAuthorizationStatusName: function(status) {
             var map = <?= json_encode([
                 AuthorizationChallenge::AUTHORIZATIONSTATUS_PENDING => t('pending'),
-                AuthorizationChallenge::AUTHORIZATIONSTATUS_VALID => t('authorizing confirmed'),
+                AuthorizationChallenge::AUTHORIZATIONSTATUS_VALID => t('authorization confirmed'),
                 AuthorizationChallenge::AUTHORIZATIONSTATUS_INVALID => t('authorization failed'),
                 AuthorizationChallenge::AUTHORIZATIONSTATUS_EXPIRED => t('authorization expired'),
                 AuthorizationChallenge::AUTHORIZATIONSTATUS_DEACTIVATED => t('authorization deactivated by the client'),
