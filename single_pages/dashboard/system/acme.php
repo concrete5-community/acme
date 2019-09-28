@@ -62,7 +62,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
                             break;
                         case 'revoked_certificates':
                             ?>
-                            <div><?= t('Here you view the certificates that issued for deleted certificates.') ?></div>
+                            <div><?= t('Here you view the certificates issued for deleted certificates.') ?></div>
                             <div><?= t('When you delete a certificate, its data is stored here for logging purposes.') ?></div>
                             <div class="small text-muted"><div><?= t('Number of revoked certificates: %s', $page['revoked_certificates']) ?></div></div>
                             <?php
