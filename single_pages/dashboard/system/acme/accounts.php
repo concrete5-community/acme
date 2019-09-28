@@ -16,7 +16,7 @@ $numServers = count($servers);
 if ($numServers === 0) {
     ?>
     <div class="alert alert-danger">
-        <?= t('No ACME server has been defined: you need to add at least one account <a href="%s">here</a>.', h($resolverManager->resolve(['/dashboard/system/acme/servers']))) ?>
+        <?= t('No ACME server has been defined: you need to add at least one server <a href="%s">here</a>.', h($resolverManager->resolve(['/dashboard/system/acme/servers']))) ?>
     </div>
     <?php
     return;
