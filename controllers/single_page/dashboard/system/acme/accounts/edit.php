@@ -72,7 +72,7 @@ class Edit extends DashboardPageController
                 [
                     FileDownloader::WHAT_PRIVATEKEY => $account->getPrivateKey(),
                 ],
-                $this->request->request->get('format'), t('Key for account %1$s at server %2$s', $account->getName(), $account->getServer()->getName())
+                t('Key for account %1$s at server %2$s', $account->getName(), $account->getServer()->getName())
             );
         } catch (FileDownloaderException $x) {
             $this->error->add($x->getMessage());
