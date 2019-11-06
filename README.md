@@ -23,6 +23,11 @@ This is a really feature rich package:
 - supports checking if a certificate has been revoked
 
 
+## Demo video
+
+[![concrete5 ACME addon demo](https://img.youtube.com/vi/luWkxDvSxdc/mqdefault.jpg)](https://www.youtube.com/watch?v=luWkxDvSxdc)
+
+
 ## Initial setup
 
 This package can be installed in two ways:
