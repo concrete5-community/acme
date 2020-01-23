@@ -1,6 +1,5 @@
 <?php
 
-
 defined('C5_EXECUTE') or die('Access Denied.');
 
 /**
@@ -13,6 +12,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
  */
 
 $numAccounts = count($accounts);
+
 if ($numAccounts === 0) {
     ?>
     <div class="alert alert-info">
@@ -22,49 +22,28 @@ if ($numAccounts === 0) {
     <?php
     return;
 }
+
 $numServers = count($servers);
 ?>
-
-<div class="ccm-dashboard-header-buttons">
-    <?php
-    if ($numAccounts === 1) {
-        ?>
-        <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', 'new', $accounts[0]->getID()])) ?>" class="btn btn-primary"><?= t('Add certificate') ?></a>
-        <?php
-    } else {
-        ?>
-        <div class="btn-group">
-            <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
-                <?= t('Add certificate') ?>
-                <span class="caret"></span>
-            </button>
-            <ul class="dropdown-menu">
+<div class="ccm-dashboard-header-buttons col-md-4 acme-hide-loading hide">
+    <div class="input-group">
+        <input type="search" id="acme-filter" placeholder="<?= t('Search') ?>" class="form-control" />
+        <div class="input-group-btn">
+            <?php
+            if ($numAccounts === 1) {
+                ?>
+                <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', 'new', $accounts[0]->getID()])) ?>" class="btn btn-primary"><?= t('Add certificate') ?></a>
                 <?php
-                if ($numServers === 1) {
-                    foreach ($accounts as $account) {
-                        ?>
-                        <li>
-                            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', 'new', $account->getID()])) ?>">
-                                <?php
-                                if ($account->isDefault()) {
-                                    echo '<strong>', h($account->getName()), '</strong>';
-                                } else {
-                                    echo h($account->getName());
-                                }
-                                ?>
-                            </a>
-                        </li>
-                        <?php
-                    }
-                } else {
-                    foreach ($servers as $server) {
-                        ?>
-                        <li class="dropdown-header"><?= h($server->getName())?></li>
-                        <?php
+            } else {
+                ?>
+                <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+                    <?= t('Add certificate') ?>
+                    <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                    <?php
+                    if ($numServers === 1) {
                         foreach ($accounts as $account) {
-                            if ($account->getServer() !== $server) {
-                                continue;
-                            }
                             ?>
                             <li>
                                 <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', 'new', $account->getID()])) ?>">
@@ -79,14 +58,38 @@ $numServers = count($servers);
                             </li>
                             <?php
                         }
+                    } else {
+                        foreach ($servers as $server) {
+                            ?>
+                            <li class="dropdown-header"><?= h($server->getName())?></li>
+                            <?php
+                            foreach ($accounts as $account) {
+                                if ($account->getServer() !== $server) {
+                                    continue;
+                                }
+                                ?>
+                                <li>
+                                    <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', 'new', $account->getID()])) ?>">
+                                        <?php
+                                        if ($account->isDefault()) {
+                                            echo '<strong>', h($account->getName()), '</strong>';
+                                        } else {
+                                            echo h($account->getName());
+                                        }
+                                        ?>
+                                    </a>
+                                </li>
+                                <?php
+                            }
+                        }
                     }
-                }
-                ?>
-            </ul>
+                    ?>
+                </ul>
+                <?php
+            }
+            ?>
         </div>
-        <?php
-    }
-    ?>
+    </div>
 </div>
 
 <?php
@@ -101,7 +104,7 @@ if ($certificates === []) {
 $showAccount = $numAccounts > 1;
 $showServer = $numServers > 1;
 ?>
-<table class="table table-striped table-condensed">
+<table class="table table-striped table-condensed acme-hide-loading hide" id="acme-list">
     <col width="1" />
     <thead>
         <tr>
@@ -131,8 +134,12 @@ $showServer = $numServers > 1;
         foreach ($certificates as $certificate) {
             $info = $certificate->getCertificateInfo();
             $numActions = $certificate->getActions()->count();
+            $domainNames = [];
+            foreach ($certificate->getDomains() as $certificateDomain) {
+                $domainNames[] = $certificateDomain->getDomain()->getHostDisplayName();
+            }
             ?>
-            <tr>
+            <tr data-acme-domain-names="<?= h(mb_strtolower(implode(' ', $domainNames)))?>">
                 <td>
                     <a class="btn btn-xs btn-primary" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', $certificate->getID()])) ?>"><?php
                     if ($certificate->getCsr() === '' && $certificate->getOngoingOrder() === null) {
@@ -203,3 +210,84 @@ $showServer = $numServers > 1;
         ?>
     </tbody>
 </table>
+<script>
+$(document).ready(function() {
+    var $search = $('#acme-filter'),
+        $table = $('#acme-list'),
+        $rows = $('#acme-list').find('>tbody>tr'),
+        persistentSearch = (function() {
+            var LS = window.localStorage && window.localStorage.getItem && window.localStorage.setItem && window.localStorage.removeItem ? window.localStorage : null,
+                KEY = 'acme-certificates-list-search'
+            ;
+            return {
+                get: function() {
+                    return LS === null ? '' : (LS.getItem(KEY) || '');
+                },
+                set: function(value) {
+                    if (LS === null) {
+                        return;
+                    }
+                    if (typeof value !== 'string' || (value = $.trim(value)) == '') {
+                        LS.removeItem(KEY);
+                    } else {
+                        LS.setItem(KEY, value);
+                    }
+                }
+            };
+        })(),
+        currentSearch = null;
+
+    var applyFilter = (function() {
+        var prevWhat = null;
+        function getKeywords(what) {
+            if (typeof what !== 'string') {
+                return [];
+            }
+            var result = [];
+            $.each($.trim(what).toLowerCase().split(/\s+/), function (_, word) {
+                if (word !== '' && result.indexOf(word) < 0) {
+                    result.push(word);
+                }
+            });
+            return result;
+        }
+        return function(what) {
+            if (what === prevWhat) {
+                return;
+            }
+            prevWhat = what;
+            var keywords = getKeywords(what);
+            persistentSearch.set(what);
+            $rows.each(function() {
+                var $row = $(this),
+                    hide = false;
+                if (keywords.length > 0) {
+                    var domainNames = $row.data('acme-domain-names');
+                    $.each(keywords, function(_, word) {
+                        if (domainNames.indexOf(word) < 0) {
+                            hide = true;
+                            return false;
+                        }
+                    });
+                }
+                $row.toggleClass('hide', hide);
+            });
+        };
+    })();
+
+    applyFilter(persistentSearch.get());
+
+    $search
+        .on('input', function() {
+           applyFilter($search.val());
+        })
+        .val(persistentSearch.get());
+    ;
+
+    $('.acme-hide-loading').removeClass('hide');
+
+    if ($search.val().length > 0) {
+        $search.focus();
+    }
+});
+</script>
