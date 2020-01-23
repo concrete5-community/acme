@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -o errexit
+
+ccm-service start db
+
+cd /app/packages/acme
+
+composerpkg install
+
+c5 c5:package:install acme
+
+./vendor/bin/phpunit

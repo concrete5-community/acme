@@ -1,0 +1,24 @@
+name: Test ACME
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  build_base:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        c5_version: ["8.5.2-full", "develop-full"]
+    name: Test with concrete5 ${{ matrix.c5_version }}
+    steps:
+      - name: Fetching Docker image
+        run: docker pull mlocati/docker5:${{ matrix.c5_version }}
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+      - name: Running PHPUnit
+        run: docker run --rm -v "$(pwd):/app/packages/acme" --entrypoint='' mlocati/docker5:${{ matrix.c5_version }} /app/packages/acme/test/start
