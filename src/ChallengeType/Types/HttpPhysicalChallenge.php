@@ -7,11 +7,11 @@ use Acme\Entity\Domain;
 use Acme\Entity\RemoteServer;
 use Acme\Exception\FilesystemException;
 use Acme\Filesystem\DriverManager as FilesystemDriverManager;
+use Acme\Http\ClientFactory;
 use Acme\Security\Crypto;
 use Acme\Service\HttpTokenWriter;
 use ArrayAccess;
 use Concrete\Core\Error\UserMessageException;
-use Concrete\Core\Http\Client\Client;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Zend\Http\Client\Exception\RuntimeException as ZendClientRuntimeException;
@@ -31,9 +31,9 @@ class HttpPhysicalChallenge extends HttpChallenge
     protected $filesystemDriverManager;
 
     /**
-     * @var \Concrete\Core\Http\Client\Client
+     * @var \Acme\Http\ClientFactory
      */
-    protected $httpClient;
+    protected $httpClientFactory;
 
     /**
      * @var \Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface
@@ -43,16 +43,16 @@ class HttpPhysicalChallenge extends HttpChallenge
     /**
      * @param \Doctrine\ORM\EntityManagerInterface $em
      * @param \Acme\Filesystem\DriverManager $filesystemDriverManager
-     * @param \Concrete\Core\Http\Client\Client $httpClient
+     * @param \Acme\Http\ClientFactory $httpClientFactory
      * @param \Acme\Security\Crypto $crypto
      * @param \Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface $resolverManager
      */
-    public function __construct(EntityManagerInterface $em, FilesystemDriverManager $filesystemDriverManager, Client $httpClient, Crypto $crypto, ResolverManagerInterface $resolverManager)
+    public function __construct(EntityManagerInterface $em, FilesystemDriverManager $filesystemDriverManager, ClientFactory $httpClientFactory, Crypto $crypto, ResolverManagerInterface $resolverManager)
     {
         parent::__construct($crypto);
         $this->em = $em;
         $this->filesystemDriverManager = $filesystemDriverManager;
-        $this->httpClient = $httpClient;
+        $this->httpClientFactory = $httpClientFactory;
         $this->resolverManager = $resolverManager;
     }
 
@@ -120,6 +120,7 @@ class HttpPhysicalChallenge extends HttpChallenge
 
             $urls = [];
             $reason = '';
+            $httpClient = $this->httpClientFactory->getAcmeServerLikeClient();
             foreach ($domain->getAccount()->getServer()->getAuthorizationPorts() as $port) {
                 $url = 'http://' . $domain->getPunycode();
                 if ($port !== 80) {
@@ -128,7 +129,7 @@ class HttpPhysicalChallenge extends HttpChallenge
                 $url .= '/' . $writer->getRelativeTokenFilename($sampleToken);
                 $urls[] = $url;
                 try {
-                    $response = $this->httpClient->reset()->setMethod('GET')->setUri($url)->send();
+                    $response = $httpClient->setMethod('GET')->setUri($url)->send();
                 } catch (ZendClientRuntimeException $x) {
                     $reason = $reason ?: $x->getMessage();
                     $response = null;

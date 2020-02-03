@@ -62,7 +62,7 @@ class ClientFactory
         ];
         if ($allowUnsafeConnections !== null) {
             $options += [
-                'sslallowselfsigned' => $allowUnsafeConnections ? false : true,
+                'sslallowselfsigned' => $allowUnsafeConnections ? true : false,
                 'sslverifypeer' => $allowUnsafeConnections ? false : true,
                 'sslverifypeername' => $allowUnsafeConnections ? false : true,
             ];
@@ -73,6 +73,31 @@ class ClientFactory
             if ($adapter instanceof Curl) {
                 $adapter->setCurlOption(CURLOPT_SSL_VERIFYHOST, $allowUnsafeConnections ? 0 : 2);
             }
+        }
+
+        return $httpClient;
+    }
+
+    /**
+     * Get an HTTP client that acts like the ACME Server.
+     *
+     * @return \Concrete\Core\Http\Client\Client
+     */
+    public function getAcmeServerLikeClient()
+    {
+        $httpClient = $this->app->make(Client::class);
+        $httpClient->setOptions([
+            'useragent' => 'Mozilla/5.0 (compatible; Fake ACME validation server; +https://github.com/concrete5-community/acme)',
+            'sslallowselfsigned' => true,
+            'sslverifypeer' => false,
+            'sslverifypeername' => false,
+            'maxredirects' => 10,
+            'strictredirects' => false,
+            'keepalive' => false,
+        ]);
+        $adapter = $httpClient->getAdapter();
+        if ($adapter instanceof Curl) {
+            $adapter->setCurlOption(CURLOPT_SSL_VERIFYHOST, 0);
         }
 
         return $httpClient;

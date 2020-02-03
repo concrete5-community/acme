@@ -5,10 +5,10 @@ namespace Acme\ChallengeType\Types;
 use Acme\Entity\AuthorizationChallenge;
 use Acme\Entity\Domain;
 use Acme\Http\AuthorizationMiddleware;
+use Acme\Http\ClientFactory;
 use Acme\Security\Crypto;
 use ArrayAccess;
 use Concrete\Core\Config\Repository\Repository;
-use Concrete\Core\Http\Client\Client;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
 use Zend\Http\Client\Exception\RuntimeException as ZendClientRuntimeException;
 
@@ -27,22 +27,22 @@ class HttpInterceptChallenge extends HttpChallenge
     protected $resolverManager;
 
     /**
-     * @var \Concrete\Core\Http\Client\Client
+     * @var \Acme\Http\ClientFactory
      */
-    protected $httpClient;
+    protected $httpClientFactory;
 
     /**
      * @param \Concrete\Core\Config\Repository\Repository $config
      * @param \Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface $resolverManager
-     * @param \Concrete\Core\Http\Client\Client $httpClient
+     * @param \Acme\Http\ClientFactory $httpClientFactory
      * @param \Acme\Security\Crypto $crypto
      */
-    public function __construct(Repository $config, ResolverManagerInterface $resolverManager, Client $httpClient, Crypto $crypto)
+    public function __construct(Repository $config, ResolverManagerInterface $resolverManager, ClientFactory $httpClientFactory, Crypto $crypto)
     {
         parent::__construct($crypto);
         $this->config = $config;
         $this->resolverManager = $resolverManager;
-        $this->httpClient = $httpClient;
+        $this->httpClientFactory = $httpClientFactory;
     }
 
     /**
@@ -91,6 +91,7 @@ class HttpInterceptChallenge extends HttpChallenge
         $urls = [];
         $reason = '';
         $found = false;
+        $httpClient = $this->httpClientFactory->getAcmeServerLikeClient();
         foreach ($domain->getAccount()->getServer()->getAuthorizationPorts() as $port) {
             $url = 'http://' . $domain->getPunycode();
             if ($port !== 80) {
@@ -99,7 +100,7 @@ class HttpInterceptChallenge extends HttpChallenge
             $url .= AuthorizationMiddleware::ACME_CHALLENGE_PREFIX . AuthorizationMiddleware::ACME_CHALLENGE_TOKEN_TESTINTERCEPT;
             $urls[] = $url;
             try {
-                $response = $this->httpClient->reset()->setMethod('GET')->setUri($url)->send();
+                $response = $httpClient->reset()->setMethod('GET')->setUri($url)->send();
             } catch (ZendClientRuntimeException $x) {
                 $reason = $reason ?: $x->getMessage();
                 $response = null;
