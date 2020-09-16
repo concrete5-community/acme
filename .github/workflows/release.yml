@@ -1,0 +1,23 @@
+name: Attach release file
+
+on:
+  release:
+    types:
+      - created
+
+jobs:
+  create_release:
+    name: Attach release file
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '5.5'
+          tools: composer:v1
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: Create
+        run: ./.github/workflows/release "${{ github.event.release.upload_url }}" "${{ secrets.GH_PAT }}"
