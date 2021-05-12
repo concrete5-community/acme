@@ -51,7 +51,8 @@ class CertificateInfoCreator
         $endDate = $this->extractEndDate($x509);
         $ocspResponderUrl = $this->extractOcspResponderUrl($x509);
         $certifiedDomains = $this->extractNames($x509);
-        $x509 = $this->loadCertificate($issuerCertificate);
+        $issuerCertificates = $this->splitCertificates($issuerCertificate);
+        $x509 = $this->loadCertificate(array_shift($issuerCertificates));
         $issuerNames = $this->extractNames($x509);
         if ($issuerNames === []) {
             throw new RuntimeException(t('Failed to detect issuer name'));
@@ -59,6 +60,28 @@ class CertificateInfoCreator
         $issuerName = $issuerNames[0];
 
         return CertificateInfo::create($certificate, $startDate, $endDate, $certifiedDomains, $issuerCertificate, $issuerName, $ocspResponderUrl);
+    }
+
+    /**
+     * @param string $certificate
+     *
+     * @return string[]
+     */
+    protected function splitCertificates($certificate)
+    {
+        $normalizedCertificate = str_replace("\r", "\n", str_replace("\r\n", "\n", $certificate));
+        $normalizedCertificate = preg_replace("/[ \t]+/", ' ', $normalizedCertificate);
+        $normalizedCertificate = trim(preg_replace('/\s*\n\s*/', "\n", $normalizedCertificate)) . "\n";
+        $matches = null;
+        if (!preg_match_all('/(?<certificates>---+ ?BEGIN [^\n]+---+\n.+?\n---+ ?END [^\n]+---+\n)/s', $normalizedCertificate, $matches)) {
+            return [$certificate];
+        }
+        $certificates = array_map('trim', $matches['certificates']);
+        if ($normalizedCertificate !== implode("\n", $certificates) . "\n") {
+            return [$certificate];
+        }
+
+        return $certificates;
     }
 
     /**
