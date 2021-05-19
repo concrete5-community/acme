@@ -191,6 +191,15 @@ class Certificate
     protected $lastActionExecuted;
 
     /**
+     * Is this certificate disabled?
+     *
+     * @Doctrine\ORM\Mapping\Column(type="boolean", nullable=false, options={"comment":"Is this certificate disabled?"})
+     *
+     * @var bool
+     */
+    protected $disabled;
+
+    /**
      * The list of the domains that this certificate should be valid for.
      *
      * @Doctrine\ORM\Mapping\OneToMany(targetEntity="CertificateDomain", mappedBy="certificate", orphanRemoval=true, cascade={"persist", "remove"})
@@ -267,6 +276,7 @@ class Certificate
         $result->actions = new ArrayCollection();
         $result->orders = new ArrayCollection();
         $result->revokedCertificates = new ArrayCollection();
+        $result->disabled = false;
         $result
             ->setKeyPair(null)
             ->setCsr('')
@@ -502,6 +512,30 @@ class Certificate
     {
         $this->lastActionExecuted = $value;
 
+        return $this;
+    }
+
+    /**
+     * Is this certificate disabled?
+     *
+     * @return bool
+     */
+    public function isDisabled()
+    {
+        return $this->disabled;
+    }
+
+    /**
+     * Is this certificate disabled?
+     *
+     * @param bool $value
+     *
+     * @return $this
+     */
+    public function setDisabled($value)
+    {
+        $this->disabled = (bool) $value;
+        
         return $this;
     }
 

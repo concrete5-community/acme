@@ -204,12 +204,17 @@ EOT
 
                 return;
             }
+            if ($certificate->isDisabled()) {
+                $this->combinedLog->error("The certificate with ID {$id} is disabled");
+
+                return;
+            }
             $this->processCertificate($certificate, $renewer);
 
             return;
         }
 
-        $certificates = $em->getRepository(Certificate::class)->findAll();
+        $certificates = $em->getRepository(Certificate::class)->findBy(['disabled' => false]);
         if ($certificates === []) {
             $this->combinedLog->notice('No certificates found.');
 

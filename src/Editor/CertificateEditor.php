@@ -10,6 +10,7 @@ use Acme\Entity\RevokedCertificate;
 use Acme\Exception\EntityNotFoundException;
 use Acme\Finder;
 use Acme\Security\Crypto;
+use Acme\Service\BooleanParser;
 use ArrayAccess;
 use Concrete\Core\Error\UserMessageException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -42,17 +43,24 @@ class CertificateEditor
     protected $revoker;
 
     /**
+     * @var \Acme\Service\BooleanParser
+     */
+    protected $booleanParser;
+
+    /**
      * @param \Doctrine\ORM\EntityManagerInterface $em
+     * @param \Acme\Finder $finder
      * @param \Acme\Security\Crypto $crypto
      * @param \Acme\Certificate\Revoker $revoker
-     * @param Finder $finder
+     * @param \Acme\Service\BooleanParser $booleanParser
      */
-    public function __construct(EntityManagerInterface $em, Finder $finder, Crypto $crypto, Revoker $revoker)
+    public function __construct(EntityManagerInterface $em, Finder $finder, Crypto $crypto, Revoker $revoker, BooleanParser $booleanParser)
     {
         $this->em = $em;
         $this->finder = $finder;
         $this->crypto = $crypto;
         $this->revoker = $revoker;
+        $this->booleanParser = $booleanParser;
     }
 
     /**
@@ -90,6 +98,7 @@ class CertificateEditor
      * - string|string[]|int|int[]|\Acme\Entity\Domain[] <code><b>domains</b></code> the domains of the certificate (if a string, separate domains with spaces or commas) [optional]<br />
      * - string|string[]|int|int[]|\Acme\Entity\Domain[] <code><b>addDomains</b></code> alter the existing domain list - don't use with the 'domains' option [optional]<br />
      * - string|string[]|int|int[]|\Acme\Entity\Domain[] <code><b>removeDomains</b></code> alter the existing domain list - don't use with the 'domains' option [optional]<br />
+     * - bool|string|int <code><b>disabled</b></code> alter the existing disabled state [optional]<br />
      * @param \ArrayAccess $errors Errors will be added here
      *
      * @return bool FALSE in case of errors
@@ -235,6 +244,9 @@ class CertificateEditor
                 $state->addError(t('The resulting list of the domains would be empty'));
             }
         }
+        if ($state->hasValue('disabled')) {
+            $normalizedData += ['disabled' => $this->booleanParser->toBoolean($state->popValue('disabled'))];
+        }
 
         $unknownKeys = $state->getRemainingKeys();
         if ($unknownKeys !== []) {
@@ -278,6 +290,9 @@ class CertificateEditor
             foreach ($normalizedCreateData['otherDomains'] as $otherDomain) {
                 $domainList->add(CertificateDomain::create($certificate, $otherDomain));
             }
+        }
+        if (isset($normalizedCreateData['disabled'])) {
+            $certificate->setDisabled($normalizedCreateData['disabled']);
         }
     }
 

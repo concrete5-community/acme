@@ -23,6 +23,10 @@ class Operate extends DashboardPageController
         if ($certificate === null) {
             return $this->buildReturnRedirectResponse();
         }
+        if ($certificate->isDisabled()) {
+            $this->flash('error', t('The certificate is disabled.'));
+            return $this->buildReturnRedirectResponse();
+        }
         $this->set('certificate', $certificate);
         $this->set('resolverManager', $this->app->make(ResolverManagerInterface::class));
         $this->requireAsset('moment');
@@ -40,6 +44,9 @@ class Operate extends DashboardPageController
         }
         if (!$this->token->validate('acme-certificate-nextstep-' . $certificateID)) {
             throw new UserMessageException($this->token->getErrorMessage());
+        }
+        if ($certificate->isDisabled()) {
+            throw new UserMessageException(t('The certificate is disabled.'));
         }
         $post = $this->request->request;
         $renewerOptions = RenewerOptions::create()
@@ -74,6 +81,9 @@ class Operate extends DashboardPageController
         }
         if (!$this->token->validate('acme-certificate-checkrevocation-' . $certificateID)) {
             throw new UserMessageException($this->token->getErrorMessage());
+        }
+        if ($certificate->isDisabled()) {
+            throw new UserMessageException(t('The certificate is disabled.'));
         }
         $certificateInfo = $certificate->getCertificateInfo();
         if ($certificateInfo === null) {

@@ -100,6 +100,7 @@ EOT
         $table
             ->setHeaders([
                 'ID',
+                'Disabled',
                 'Account',
                 'Server',
                 'Domains',
@@ -125,6 +126,7 @@ EOT
             $info = $certificate->getCertificateInfo();
             $table->addRow([
                 $certificate->getID(),
+                $certificate->isDisabled() ? 'yes' : 'no',
                 $certificate->getAccount()->getServer()->getName(),
                 $certificate->getAccount()->getName(),
                 implode("\n", $certificate->getDomainHostDisplayNames()),
@@ -153,6 +155,7 @@ EOT
 
         $this->output->writeln([
             'ID                 : ' . $certificate->getID(),
+            'Disabled           : ' . ($certificate->isDisabled() ? 'yes' : 'no'),
             'Created on         : ' . $certificate->getCreatedOn()->format('c'),
             'Primary domain     : ' . $primaryDomain,
             'Other domains      : ' . implode(' ', $otherDomains),

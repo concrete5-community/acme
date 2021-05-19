@@ -31,6 +31,7 @@ acme:certificate:edit
     {--p|primary= : Change the primary domain for the certificate}
     {--a|add=* : Add domains to the certificate - use IDs or host names}
     {--r|remove=* : Remove domains to the certificate - use IDs or host names}
+    {--disabled= : 1 to disable the certificate, 0 to enable it}
 EOT
     ;
 
@@ -61,6 +62,9 @@ EOT
         }
         if ($this->input->getOption('remove') !== []) {
             $data['removeDomains'] = $this->input->getOption('remove');
+        }
+        if ($this->input->getOption('disabled') !== null) {
+            $data['disabled'] = $this->input->getOption('disabled');
         }
         $updated = $certificateEditor->edit(
             $certificate,

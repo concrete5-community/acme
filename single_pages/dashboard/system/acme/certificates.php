@@ -9,6 +9,8 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface $resolverManager
  * @var Concrete\Core\Localization\Service\Date $dateHelper
  * @var Acme\Certificate\Renewer $renewer
+ * @var Concrete\Core\Validation\CSRF\Token $token
+ * @var Concrete\Core\Page\View\PageView $view
  */
 
 $numAccounts = count($accounts);
@@ -139,7 +141,7 @@ $showServer = $numServers > 1;
                 $domainNames[] = $certificateDomain->getDomain()->getHostDisplayName();
             }
             ?>
-            <tr data-acme-domain-names="<?= h(mb_strtolower(implode(' ', $domainNames)))?>">
+            <tr data-acme-domain-names="<?= h(mb_strtolower(implode(' ', $domainNames)))?>" data-certificate-id="<?= $certificate->getID() ?>" class="<?= $certificate->isDisabled() ? 'certificate-disabled' : 'certificate-enabled' ?>">
                 <td>
                     <a class="btn btn-xs btn-primary" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', $certificate->getID()])) ?>"><?php
                     if ($certificate->getCsr() === '' && $certificate->getOngoingOrder() === null) {
@@ -185,7 +187,9 @@ $showServer = $numServers > 1;
                     </a>
                 </td>
                 <td>
-                    <a class="btn btn-xs btn-primary" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/operate', $certificate->getID()])) ?>">
+                    <a class="btn btn-xs btn-danger disable-certificate" href="#"><?= t('Disable') ?></a>
+                    <a class="btn btn-xs btn-success enable-certificate" href="#"><?= t('Enable') ?></a>
+                    <a class="btn btn-xs btn-primary certificate-operation" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/operate', $certificate->getID()])) ?>">
                         <?php
                         switch ($renewer->getCertificateState($certificate)) {
                             case $renewer::CERTIFICATESTATE_GOOD:
@@ -288,6 +292,41 @@ $(document).ready(function() {
 
     if ($search.val().length > 0) {
         $search.focus();
+    }
+
+    $('.disable-certificate').on('click', function(e) {
+        e.preventDefault();
+        setCertificateEnabled($(this).closest('tr').data('certificate-id'), false);
+    });
+
+    $('.enable-certificate').on('click', function(e) {
+        e.preventDefault();
+        setCertificateEnabled($(this).closest('tr').data('certificate-id'), true);
+    });
+
+    function setCertificateEnabled(certificateID, enable) {
+        $.ajax({
+            dataType: 'json',
+            method: 'POST',
+            url: <?= json_encode((string) $view->action(['set_certificate_disabled'])) ?>,
+            data: {
+                <?= json_encode($token::DEFAULT_TOKEN_NAME) ?>: <?= json_encode($token->generate('acme-setcertificate-disabled')) ?>,
+                certificate: certificateID,
+                disable: enable ? 0 : 1,
+            },
+        })
+        .done(function(data, status, xhr) {
+            ConcreteAjaxRequest.validateResponse(data, function(ok) {
+                if (ok) {
+                    var $tr = $('tr[data-certificate-id="' + certificateID + '"]');
+                    $tr.removeClass(data ? 'certificate-enabled': 'certificate-disabled');
+                    $tr.addClass(data ? 'certificate-disabled': 'certificate-enabled');
+                }
+            });
+        })
+        .fail(function(xhr, status, error) {
+            ConcreteAlert.dialog(ccmi18n.error, ConcreteAjaxRequest.renderErrorResponse(xhr, true));
+        });
     }
 });
 </script>
