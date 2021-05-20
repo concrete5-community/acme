@@ -68,20 +68,23 @@ class Certificates extends DashboardPageController
         if ($certificate === null) {
             throw new UserMessageException(t('Unable to find the requested certificate.'));
         }
-        $rf = $this->app->make(ResponseFactoryInterface::class);
         switch ($this->request->request->get('disable')) {
             case '0':
-                $certificate->setDisabled(false);
+                $newValue = false;
                 break;
             case '1':
-                $certificate->setDisabled(true);
+                $newValue = true;
                 break;
             default:
-                return $rf->json($certificate->isDisabled());
+                $newValue = $certificate->isDisabled();
+                break;
         }
-        $em->flush($certificate);
+        if ($newValue !== $certificate->isDisabled()) {
+            $certificate->setDisabled($newValue);
+            $em->flush($certificate);
+        }
 
-        return $rf->json($certificate->isDisabled());
+        return $this->app->make(ResponseFactoryInterface::class)->json($newValue);
     }
 
     private function getCSS()
