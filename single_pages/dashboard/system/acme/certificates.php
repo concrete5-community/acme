@@ -29,7 +29,13 @@ $numServers = count($servers);
 ?>
 <div class="ccm-dashboard-header-buttons col-md-4 acme-hide-loading hide">
     <div class="input-group">
-        <input type="search" id="acme-filter" placeholder="<?= t('Search') ?>" class="form-control" />
+        <?php
+        if ($certificates !== []) {
+            ?>
+            <input type="search" id="acme-filter" placeholder="<?= t('Search') ?>" class="form-control" />
+            <?php
+        }
+        ?>
         <div class="input-group-btn">
             <?php
             if ($numAccounts === 1) {
@@ -100,6 +106,11 @@ if ($certificates === []) {
     <div class="alert alert-info">
         <?= t('No certificate has been defined.') ?>
     </div>
+    <script>
+    $(document).ready(function() {
+        $('.acme-hide-loading').removeClass('hide');
+    });
+    </script>
     <?php
     return;
 }
