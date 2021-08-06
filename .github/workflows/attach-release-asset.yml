@@ -1,0 +1,31 @@
+name: Attach release asset
+
+on:
+  release:
+    types:
+      - created
+
+jobs:
+  attach_release_asset:
+    name: Attach release asset
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '5.5'
+          tools: composer:v1
+          coverage: none
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Create release asset
+        run: ./.github/workflows/create-release-asset.sh
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./YOUR_PACKAGE_HANDLE.zip
+          asset_name: YOUR_PACKAGE_HANDLE.zip
+          asset_content_type: application/zip

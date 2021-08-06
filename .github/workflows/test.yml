@@ -17,8 +17,6 @@ jobs:
       - name: Fetching Docker image
         run: docker pull mlocati/docker5:${{ matrix.c5_version }}
       - name: Checkout
-        uses: actions/checkout@v1
-        with:
-          fetch-depth: 1
+        uses: actions/checkout@v2
       - name: Running PHPUnit
         run: docker run --rm -v "$(pwd):/app/packages/acme" --entrypoint='' mlocati/docker5:${{ matrix.c5_version }} /app/packages/acme/test/start
