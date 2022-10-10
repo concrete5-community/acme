@@ -25,7 +25,7 @@ class Controller extends Package implements ProviderAggregateInterface
 
     protected $pkgHandle = 'acme';
 
-    protected $pkgVersion = '4.3.2';
+    protected $pkgVersion = '4.3.3';
 
     /**
      * {@inheritdoc}
