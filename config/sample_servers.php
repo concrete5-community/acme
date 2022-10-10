@@ -5,13 +5,13 @@ return [
         'letsencrypt' => [
             'name' => 'LetsEncrypt',
             'directoryUrl' => 'https://acme-v02.api.letsencrypt.org/directory',
-            'authorizationPorts' => [80],
+            'authorizationPorts' => [80, 443],
             'allowUnsafeConnections' => false,
         ],
         'letsencrypt_v1' => [
             'name' => 'LetsEncrypt (V1)',
             'directoryUrl' => 'https://acme-v01.api.letsencrypt.org/directory',
-            'authorizationPorts' => [80],
+            'authorizationPorts' => [80, 443],
             'allowUnsafeConnections' => false,
         ],
     ],
@@ -19,13 +19,13 @@ return [
         'letsencrypt_staging' => [
             'name' => 'LetsEncrypt STAGING',
             'directoryUrl' => 'https://acme-staging-v02.api.letsencrypt.org/directory',
-            'authorizationPorts' => [80],
+            'authorizationPorts' => [80, 443],
             'allowUnsafeConnections' => false,
         ],
         'letsencrypt_staging_v1' => [
             'name' => 'LetsEncrypt STAGING (V1)',
             'directoryUrl' => 'https://acme-staging.api.letsencrypt.org/directory',
-            'authorizationPorts' => [80],
+            'authorizationPorts' => [80, 443],
             'allowUnsafeConnections' => false,
         ],
     ],

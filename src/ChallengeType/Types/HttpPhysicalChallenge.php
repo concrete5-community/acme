@@ -122,26 +122,46 @@ class HttpPhysicalChallenge extends HttpChallenge
             $reason = '';
             $httpClient = $this->httpClientFactory->getAcmeServerLikeClient();
             foreach ($domain->getAccount()->getServer()->getAuthorizationPorts() as $port) {
-                $url = 'http://' . $domain->getPunycode();
-                if ($port !== 80) {
-                    $url .= ':' . $port;
-                }
-                $url .= '/' . $writer->getRelativeTokenFilename($sampleToken);
-                $urls[] = $url;
-                try {
-                    $response = $httpClient->setMethod('GET')->setUri($url)->send();
-                } catch (ZendClientRuntimeException $x) {
-                    $reason = $reason ?: $x->getMessage();
-                    $response = null;
-                }
-                if ($response !== null) {
-                    if (!$response->isOk()) {
-                        $reason = t('Response code: %s (%s)', $response->getStatusCode(), $response->getReasonPhrase());
-                    } elseif ($response->getBody() !== $sampleContents) {
-                        $reason = t('The returned content is wrong');
-                    } else {
-                        $found = true;
+                switch ($port) {
+                    case 443:
+                        $protocols = ['https', 'http'];
                         break;
+                    case 80:
+                    default:
+                        $protocols = ['http', 'https'];
+                        break;
+                }
+                foreach ($protocols as $protocol) {
+                    $url = $protocol . '://' . $domain->getPunycode();
+                    switch ($protocol) {
+                        case 'http':
+                            if ($port !== 80) {
+                                $url .= ':' . $port;
+                            }
+                            break;
+                        case 'https':
+                            if ($port !== 443) {
+                                $url .= ':' . $port;
+                            }
+                            break;
+                    }
+                    $url .= '/' . $writer->getRelativeTokenFilename($sampleToken);
+                    $urls[] = $url;
+                    try {
+                        $response = $httpClient->setMethod('GET')->setUri($url)->send();
+                    } catch (ZendClientRuntimeException $x) {
+                        $reason = $reason ?: $x->getMessage();
+                        $response = null;
+                    }
+                    if ($response !== null) {
+                        if (!$response->isOk()) {
+                            $reason = t('Response code: %s (%s)', $response->getStatusCode(), $response->getReasonPhrase());
+                        } elseif ($response->getBody() !== $sampleContents) {
+                            $reason = t('The returned content is wrong');
+                        } else {
+                            $found = true;
+                            break;
+                        }
                     }
                 }
             }

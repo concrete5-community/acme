@@ -93,26 +93,46 @@ class HttpInterceptChallenge extends HttpChallenge
         $found = false;
         $httpClient = $this->httpClientFactory->getAcmeServerLikeClient();
         foreach ($domain->getAccount()->getServer()->getAuthorizationPorts() as $port) {
-            $url = 'http://' . $domain->getPunycode();
-            if ($port !== 80) {
-                $url .= ':' . $port;
-            }
-            $url .= AuthorizationMiddleware::ACME_CHALLENGE_PREFIX . AuthorizationMiddleware::ACME_CHALLENGE_TOKEN_TESTINTERCEPT;
-            $urls[] = $url;
-            try {
-                $response = $httpClient->reset()->setMethod('GET')->setUri($url)->send();
-            } catch (ZendClientRuntimeException $x) {
-                $reason = $reason ?: $x->getMessage();
-                $response = null;
-            }
-            if ($response !== null) {
-                if (!$response->isOk()) {
-                    $reason = t('Response code: %s (%s)', $response->getStatusCode(), $response->getReasonPhrase());
-                } elseif ($response->getBody() !== $wantedContents) {
-                    $reason = t("The returned content is wrong (maybe it's another concrete5 installation?)");
-                } else {
-                    $found = true;
+            switch ($port) {
+                case 443:
+                    $protocols = ['https', 'http'];
                     break;
+                case 80:
+                default:
+                    $protocols = ['http', 'https'];
+                    break;
+            }
+            foreach ($protocols as $protocol) {
+                $url = $protocol . '://' . $domain->getPunycode();
+                switch ($protocol) {
+                    case 'http':
+                        if ($port !== 80) {
+                            $url .= ':' . $port;
+                        }
+                        break;
+                    case 'https':
+                        if ($port !== 443) {
+                            $url .= ':' . $port;
+                        }
+                        break;
+                }
+                $url .= AuthorizationMiddleware::ACME_CHALLENGE_PREFIX . AuthorizationMiddleware::ACME_CHALLENGE_TOKEN_TESTINTERCEPT;
+                $urls[] = $url;
+                try {
+                    $response = $httpClient->reset()->setMethod('GET')->setUri($url)->send();
+                } catch (ZendClientRuntimeException $x) {
+                    $reason = $reason ?: $x->getMessage();
+                    $response = null;
+                }
+                if ($response !== null) {
+                    if (!$response->isOk()) {
+                        $reason = t('Response code: %s (%s)', $response->getStatusCode(), $response->getReasonPhrase());
+                    } elseif ($response->getBody() !== $wantedContents) {
+                        $reason = t("The returned content is wrong (maybe it's another concrete5 installation?)");
+                    } else {
+                        $found = true;
+                        break;
+                    }
                 }
             }
         }
