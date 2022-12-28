@@ -107,7 +107,7 @@ class HttpPhysicalChallenge extends HttpChallenge
         try {
             $writer = $this->createTokenWriter($challengeConfiguration);
             $sampleContents = 'Physical/' . mt_rand() . '/' . time();
-            for (; ;) {
+            for (;;) {
                 $sampleToken = 'testPhysical_' . str_replace(['0.', ' '], ['', 's'], microtime(false)) . '_' . mt_rand();
                 if (!$writer->getDriver()->isFile($writer->getAbsoluteTokenFilename($sampleToken))) {
                     break;

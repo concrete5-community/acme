@@ -9,7 +9,9 @@ define('DIR_BASE', '/app');
 chdir(DIR_BASE);
 
 if (strpos(file_get_contents('/app/application/bootstrap/app.php'), '$console->setAutoExit(false);') === false) {
-    file_put_contents('/app/application/bootstrap/app.php', <<<'EOT'
+    file_put_contents(
+        '/app/application/bootstrap/app.php',
+        <<<'EOT'
 
 if (isset($console)) {
     $console->setAutoExit(false);

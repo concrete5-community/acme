@@ -535,7 +535,7 @@ class Certificate
     public function setDisabled($value)
     {
         $this->disabled = (bool) $value;
-        
+
         return $this;
     }
 

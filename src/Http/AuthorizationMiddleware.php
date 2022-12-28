@@ -71,16 +71,16 @@ class AuthorizationMiddleware implements MiddlewareInterface
         if ($challengeToken !== '') {
             $qb = $this->em->createQueryBuilder();
             $qb
-                    ->select('ac.challengeAuthorizationKey')
-                    ->from(AuthorizationChallenge::class, 'ac')
-                    ->andWhere($qb->expr()->eq('ac.challengeStarted', ':true'))
-                    ->andWhere($qb->expr()->eq('ac.challengeToken', ':challengeToken'))
-                    ->setMaxResults(1)
-                    ->setParameters(new ArrayCollection([
-                        new Parameter('true', true),
-                        new Parameter('challengeToken', $challengeToken),
-                    ]))
-                ;
+                ->select('ac.challengeAuthorizationKey')
+                ->from(AuthorizationChallenge::class, 'ac')
+                ->andWhere($qb->expr()->eq('ac.challengeStarted', ':true'))
+                ->andWhere($qb->expr()->eq('ac.challengeToken', ':challengeToken'))
+                ->setMaxResults(1)
+                ->setParameters(new ArrayCollection([
+                    new Parameter('true', true),
+                    new Parameter('challengeToken', $challengeToken),
+                ]))
+            ;
             $rows = $qb->getQuery()->getScalarResult();
             if ($rows !== []) {
                 return $this->buildChallengeAuthorizationKeyResponse($rows[0]['challengeAuthorizationKey']);

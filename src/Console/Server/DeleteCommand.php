@@ -66,11 +66,11 @@ EOT
         foreach ($em->getRepository(Server::class)->findAll() as $server) {
             $deleted = $this->deleteServer($server, $serverEditor);
             if ($deleted === true) {
-                ++$numDeleted;
+                $numDeleted++;
             } elseif ($deleted === false) {
-                ++$numNotDeleted;
+                $numNotDeleted++;
             } else {
-                ++$numSkipped;
+                $numSkipped++;
             }
         }
 

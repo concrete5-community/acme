@@ -74,7 +74,7 @@ class Communicator
         $count = 0;
         $maxBadNonces = 5;
         do {
-            ++$count;
+            $count++;
             $request = $this->createRequest($account, $method, $url, $payload);
             $rawResponse = $request->send();
 

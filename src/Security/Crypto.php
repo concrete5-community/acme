@@ -350,8 +350,8 @@ class Crypto
         $contents = implode("\n", [
             '# minimalist openssl.cnf file for use with phpseclib, by ACME package',
             '',
-            'HOME			= ' . $tempFolder,
-            'RANDFILE		= ' . $tempFolder . '/.' . md5($uniqueInstallationID) . '-acme.openssl.rnd',
+            'HOME     = ' . $tempFolder,
+            'RANDFILE = ' . $tempFolder . '/.' . md5($uniqueInstallationID) . '-acme.openssl.rnd',
             '',
             '[ v3_ca ]',
             '',

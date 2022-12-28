@@ -3,13 +3,13 @@
 namespace Concrete\Package\Acme\Controller\SinglePage\Dashboard\System\Acme\Certificates;
 
 use Acme\Entity\Certificate;
+use Acme\Entity\RevokedCertificate;
+use Acme\Exception\FileDownloaderException;
+use Acme\Security\FileDownloader;
 use Concrete\Core\Http\ResponseFactoryInterface;
 use Concrete\Core\Page\Controller\DashboardPageController;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
 use Doctrine\ORM\EntityManagerInterface;
-use Acme\Entity\RevokedCertificate;
-use Acme\Security\FileDownloader;
-use Acme\Exception\FileDownloaderException;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
@@ -75,7 +75,7 @@ class Revoked extends DashboardPageController
                 $this->request->request->get('format'),
                 [
                     FileDownloader::WHAT_CERTIFICATE => $revokedCertificate->getCertificate(),
-                    FileDownloader::WHAT_ISSUERCERTIFICATE =>$revokedCertificate->getIssuerCertificate(),
+                    FileDownloader::WHAT_ISSUERCERTIFICATE => $revokedCertificate->getIssuerCertificate(),
                 ],
                 t('Key for revoked certificate with ID %s', $revokedCertificate->getID())
             );
@@ -98,6 +98,7 @@ class Revoked extends DashboardPageController
         }
         if (!$this->token->validate('acme-certificate-clear_history-' . ($certificate === null ? 'unlinked' : $certificate->getID()))) {
             $this->error->add($this->token->getErrorMessage());
+
             return $this->view($certificateID);
         }
         $em = $this->app->make(EntityManagerInterface::class);
@@ -124,8 +125,8 @@ class Revoked extends DashboardPageController
         );
     }
 
-    /***
-     * @param mixed $certificateID
+    /**
+     * @param int|string $certificateID
      * @param bool $flashOnNotFound
      *
      * @return \Acme\Entity\Certificate|null

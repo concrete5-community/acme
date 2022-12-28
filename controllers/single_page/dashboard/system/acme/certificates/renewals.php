@@ -59,8 +59,8 @@ class Renewals extends DashboardPageController
         );
     }
 
-    /***
-     * @param mixed $certificateID
+    /**
+     * @param int|string $certificateID
      * @param bool $flashOnNotFound
      *
      * @return \Acme\Entity\Certificate|null

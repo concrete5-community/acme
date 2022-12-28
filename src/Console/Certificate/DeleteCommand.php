@@ -115,11 +115,11 @@ EOT
         foreach ($qb->getQuery()->execute() as $certificate) {
             $deleted = $this->deleteCertificate($certificate, $certificateEditor);
             if ($deleted === true) {
-                ++$numDeleted;
+                $numDeleted++;
             } elseif ($deleted === false) {
-                ++$numDeleted;
+                $numNotDeleted++;
             } else {
-                ++$numSkipped;
+                $numSkipped++;
             }
         }
 

@@ -9,7 +9,6 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var bool $isInstalledInWebroot
  * @var bool $isPrettyUrlEnabled
  * @var string $seoUrlsPage
- *
  * @var string $fieldsPrefix
  * @var Concrete\Core\Form\Service\Form $formService
  */

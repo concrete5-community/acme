@@ -58,9 +58,8 @@ class Add extends DashboardPageController
         return $this->buildReturnRedirectResponse();
     }
 
-    /***
-     * @param mixed $id
-     *
+    /**
+     * @param int|string $id
      * @param bool $flashOnNotFound
      *
      * @return \Acme\Entity\Server|null

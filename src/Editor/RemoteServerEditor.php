@@ -49,15 +49,15 @@ class RemoteServerEditor
      *
      * @param array $data Keys: '', 'password', 'privateKey', 'sshAgentSocket'
      * @param array $data Keys:<br />
-     * - string <code><b>name</b></code> the mnemonic name of the remote server [required]<br />
-     * - string <code><b>hostname</b></code> the host name/IP address of the remote server [required]<br />
-     * - int|string|null <code><b>port</b></code> the port to be used to connect to the server [optional, if not specified we'll use the default one]<br />
-     * - int|string|null <code><b>connectionTimeout</b></code> the connection timeout, in seconds [optional, if not specified we'll use the default one]<br />
-     * - string <code><b>driver</b></code> the handle of the driver [required]<br />
-     * - string <code><b>username</b></code> the username to be used to connect to the remote server [optional]<br />
-     * - string <code><b>password</b></code> the password to be used to connect to the remote server [optional]<br />
-     * - string <code><b>privateKey</b></code> the private key (in RSA format) to be used to connect to the remote server [optional]<br />
-     * - string <code><b>sshAgentSocket</b></code> the name of the SSH Agent socket to be used to connect to the remote server [optional]
+     *                    - string <code><b>name</b></code> the mnemonic name of the remote server [required]<br />
+     *                    - string <code><b>hostname</b></code> the host name/IP address of the remote server [required]<br />
+     *                    - int|string|null <code><b>port</b></code> the port to be used to connect to the server [optional, if not specified we'll use the default one]<br />
+     *                    - int|string|null <code><b>connectionTimeout</b></code> the connection timeout, in seconds [optional, if not specified we'll use the default one]<br />
+     *                    - string <code><b>driver</b></code> the handle of the driver [required]<br />
+     *                    - string <code><b>username</b></code> the username to be used to connect to the remote server [optional]<br />
+     *                    - string <code><b>password</b></code> the password to be used to connect to the remote server [optional]<br />
+     *                    - string <code><b>privateKey</b></code> the private key (in RSA format) to be used to connect to the remote server [optional]<br />
+     *                    - string <code><b>sshAgentSocket</b></code> the name of the SSH Agent socket to be used to connect to the remote server [optional]
      * @param \ArrayAccess $errors Errors will be added here
      *
      * @return \Acme\Entity\RemoteServer|null NULL in case of errors
@@ -81,15 +81,15 @@ class RemoteServerEditor
      *
      * @param \Acme\Entity\RemoteServer $remoteServer
      * @param array $data Keys:<br />
-     * - string <code><b>name</b></code> the mnemonic name of the remote server [required]<br />
-     * - string <code><b>hostname</b></code> the host name/IP address of the remote server [required]<br />
-     * - int|string|null <code><b>port</b></code> the port to be used to connect to the server [optional, if not specified we'll use the default one]<br />
-     * - int|string|null <code><b>connectionTimeout</b></code> the connection timeout, in seconds [optional, if not specified we'll use the default one]<br />
-     * - string <code><b>driver</b></code> the handle of the driver [required]<br />
-     * - string <code><b>username</b></code> the username to be used to connect to the remote server [optional]<br />
-     * - string <code><b>password</b></code> the password to be used to connect to the remote server [optional]<br />
-     * - string <code><b>privateKey</b></code> the private key (in RSA format) to be used to connect to the remote server [optional]<br />
-     * - string <code><b>sshAgentSocket</b></code> the name of the SSH Agent socket to be used to connect to the remote server [optional]
+     *                    - string <code><b>name</b></code> the mnemonic name of the remote server [required]<br />
+     *                    - string <code><b>hostname</b></code> the host name/IP address of the remote server [required]<br />
+     *                    - int|string|null <code><b>port</b></code> the port to be used to connect to the server [optional, if not specified we'll use the default one]<br />
+     *                    - int|string|null <code><b>connectionTimeout</b></code> the connection timeout, in seconds [optional, if not specified we'll use the default one]<br />
+     *                    - string <code><b>driver</b></code> the handle of the driver [required]<br />
+     *                    - string <code><b>username</b></code> the username to be used to connect to the remote server [optional]<br />
+     *                    - string <code><b>password</b></code> the password to be used to connect to the remote server [optional]<br />
+     *                    - string <code><b>privateKey</b></code> the private key (in RSA format) to be used to connect to the remote server [optional]<br />
+     *                    - string <code><b>sshAgentSocket</b></code> the name of the SSH Agent socket to be used to connect to the remote server [optional]
      * @param \ArrayAccess $errors Errors will be added here
      *
      * @return bool FALSE in case of errors

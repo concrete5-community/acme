@@ -135,9 +135,9 @@ class Edit extends DashboardPageController
         return $this->buildReturnRedirectResponse();
     }
 
-    /***
-     * @param mixed $domainID
-     * @param mixed $accountID (used when $domainID === 'new')
+    /**
+     * @param int|string $domainID
+     * @param int|string|null $accountID (used when $domainID === 'new')
      * @param bool $flashOnNotFound
      *
      * @return \Acme\Entity\Domain|null

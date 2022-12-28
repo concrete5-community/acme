@@ -27,7 +27,8 @@ class Actions extends DashboardPageController
         $this->set('remoteServers', $this->app->make(EntityManagerInterface::class)->getRepository(RemoteServer::class)->findBy([], ['name' => 'ASC']));
         $this->set('resolverManager', $this->app->make(ResolverManagerInterface::class));
         $this->requireAsset('javascript', 'vue');
-        $this->addHeaderItem(<<<'EOT'
+        $this->addHeaderItem(
+            <<<'EOT'
 <style>
 #acme-certificate-actions tbody>tr>td:first-child {
     width: 1px;
@@ -54,8 +55,8 @@ EOT
         $t = $this->token;
         unset($data[$t::DEFAULT_TOKEN_NAME]);
         $actionID = (int) array_get($data, 'id');
-        unset($data['id']);
-        unset($data['certificate']);
+        unset($data['id'], $data['certificate']);
+
         $editor = $this->app->make(CertificateActionEditor::class);
         if ($actionID === 0) {
             $action = $editor->create($certificate, $data, $this->error);
@@ -97,8 +98,8 @@ EOT
         return $this->app->make(ResponseFactoryInterface::class)->json(true);
     }
 
-    /***
-     * @param mixed $certificateID
+    /**
+     * @param int|string $certificateID
      * @param bool $flashOnNotFound
      *
      * @return \Acme\Entity\Certificate|null

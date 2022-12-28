@@ -33,7 +33,8 @@ class Edit extends DashboardPageController
         $this->set('defaultKeySize', (int) $config->get('acme::security.key_size.default'));
         $this->set('minimumKeySize', (int) $config->get('acme::security.key_size.min'));
         $this->set('pageTitle', $certificate->getID() === null ? t('Add HTTPS certificate') : t('Edit HTTPS certificate'));
-        $this->addHeaderItem(<<<'EOT'
+        $this->addHeaderItem(
+            <<<'EOT'
 <style>
 table#acme-certificate-domains>tbody>tr.domain-selected-0>td>label {
     font-weight: normal;
@@ -141,9 +142,9 @@ EOT
         return $this->buildReturnRedirectResponse();
     }
 
-    /***
-     * @param mixed $certificateID
-     * @param mixed $accountID (used when $certificateID === 'new')
+    /**
+     * @param iny|string $certificateID
+     * @param int|string|null $accountID (used when $certificateID === 'new')
      * @param bool $flashOnNotFound
      *
      * @return \Acme\Entity\Certificate|null

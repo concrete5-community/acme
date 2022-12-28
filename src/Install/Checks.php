@@ -296,7 +296,7 @@ class Checks
         preg_match_all('#OpenSSL (Header|Library) Version(.*)#im', $phpInfo, $matches);
         $versions = [];
         if (!empty($matches[1])) {
-            for ($i = 0; $i < count($matches[1]); ++$i) {
+            for ($i = 0; $i < count($matches[1]); $i++) {
                 $fullVersion = trim(str_replace('=>', '', strip_tags($matches[2][$i])));
                 // Remove letter part in OpenSSL version
                 if (!preg_match('/(\d+\.\d+\.\d+)/i', $fullVersion, $m)) {

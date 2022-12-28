@@ -46,8 +46,10 @@ defined('C5_EXECUTE') or die('Access Denied.');
                         <div class="small text-muted">
                             <?= t(
                                 'Useful for %1$s (%2$s directive) and %3$s (%4$s directive)',
-                                '<strong>Apache</strong>', '<code>SSLCertificateKeyFile</code>',
-                                '<strong>Nginx</strong>', '<code>ssl_certificate_key</code>'
+                                '<strong>Apache</strong>',
+                                '<code>SSLCertificateKeyFile</code>',
+                                '<strong>Nginx</strong>',
+                                '<code>ssl_certificate_key</code>'
                             ) ?>
                         </div>
                     </td>
@@ -59,7 +61,8 @@ defined('C5_EXECUTE') or die('Access Denied.');
                         <div class="small text-muted">
                             <?= t(
                                 'Useful for %1$s (%2$s directive)',
-                                '<strong>Apache &lt; 2.4.8</strong>', '<code>SSLCertificateFile</code>'
+                                '<strong>Apache &lt; 2.4.8</strong>',
+                                '<code>SSLCertificateFile</code>'
                             ) ?>
                         </div>
                     </td>
@@ -71,8 +74,10 @@ defined('C5_EXECUTE') or die('Access Denied.');
                         <div class="small text-muted">
                             <?= t(
                                 'Useful for %1$s (%2$s directive) and %3$s (%4$s directive)',
-                                '<strong>Apache &lt; 2.4.8</strong>', '<code>SSLCertificateChainFile</code>',
-                                '<strong>Nginx &ge; 1.3.7</strong>', '<code>ssl_trusted_certificate</code>'
+                                '<strong>Apache &lt; 2.4.8</strong>',
+                                '<code>SSLCertificateChainFile</code>',
+                                '<strong>Nginx &ge; 1.3.7</strong>',
+                                '<code>ssl_trusted_certificate</code>'
                             ) ?>
                         </div>
                     </td>
@@ -84,8 +89,10 @@ defined('C5_EXECUTE') or die('Access Denied.');
                         <div class="small text-muted">
                             <?= t(
                                 'Useful for %1$s (%2$s directive) and %3$s (%4$s directive)',
-                                '<strong>Apache &ge; 2.4.8</strong>', '<code>SSLCertificateFile</code>',
-                                '<strong>Nginx</strong>', '<code>ssl_certificate</code>'
+                                '<strong>Apache &ge; 2.4.8</strong>',
+                                '<code>SSLCertificateFile</code>',
+                                '<strong>Nginx</strong>',
+                                '<code>ssl_certificate</code>'
                             ) ?>
                         </div>
                     </td>

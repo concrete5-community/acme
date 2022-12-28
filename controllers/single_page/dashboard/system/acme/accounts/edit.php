@@ -101,15 +101,15 @@ class Edit extends DashboardPageController
         return $this->buildReturnRedirectResponse();
     }
 
-    /***
-     * @param mixed $id
-     *
+    /**
+     * @param int|string $id
      * @param bool $flashOnNotFound
      *
      * @return \Acme\Entity\Account|null
      */
     private function getAccount($id, $flashOnNotFound = true)
     {
+        $id = (int) $id;
         $account = $id === 0 ? null : $this->app->make(EntityManagerInterface::class)->find(Account::class, $id);
         if ($account !== null) {
             return $account;

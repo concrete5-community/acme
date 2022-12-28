@@ -61,7 +61,6 @@ interface ChallengeTypeInterface
      * @param \Acme\Entity\Domain $domain
      * @param array $challengeConfiguration the challenge configuration as specified by the user
      * @param \ArrayAccess $errors add detected errors here
-
      *
      * @return array|null The normalized $challengeConfiguration, or NULL in case of errors
      */

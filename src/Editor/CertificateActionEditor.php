@@ -214,8 +214,8 @@ class CertificateActionEditor
      * Extract 'remoteServer'.
      *
      * @param \Acme\Editor\DataState $state
-     * @param null|CertificateAction $certificateAction
-     * @param null|Certificate $certificate
+     * @param CertificateAction|null $certificateAction
+     * @param Certificate|null $certificate
      *
      * @return int|null
      */

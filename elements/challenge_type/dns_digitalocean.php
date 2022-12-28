@@ -20,10 +20,10 @@ defined('C5_EXECUTE') or die('Access Denied.');
         ]
     ) ?>
     <div class="small text-muted">
-    	<?= t(
-    	    'You can generate API tokens %shere%s.',
-    	    '<a href="https://cloud.digitalocean.com/account/api/tokens" target="_blank" rel="noreferrer noopener">',
-    	    '</a>'
-    	) ?>
+        <?= t(
+            'You can generate API tokens %shere%s.',
+            '<a href="https://cloud.digitalocean.com/account/api/tokens" target="_blank" rel="noreferrer noopener">',
+            '</a>'
+        ) ?>
     </div>
 </div>

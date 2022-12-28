@@ -151,7 +151,7 @@ class OrderUnserializer
     /**
      * @param \Acme\Entity\Order $order
      * @param \Acme\Protocol\Response[] $childResponses
-     * @param null|array $authorizationUrls
+     * @param array|null $authorizationUrls
      *
      * @throws \Acme\Exception\Exception
      */

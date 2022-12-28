@@ -12,12 +12,12 @@ use ArrayAccess;
 use Concrete\Core\Filesystem\ElementManager;
 use Concrete\Core\Page\Page;
 use Exception;
+use phpseclib\Crypt\Hash;
 use Throwable;
 use Zend\Http\Exception\RuntimeException as HttpClientRuntimeException;
 use Zend\Http\Header\Authorization;
 use Zend\Http\Header\ContentType;
 use Zend\Http\Response;
-use phpseclib\Crypt\Hash;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
@@ -131,7 +131,7 @@ class DigitalOceanDnsChallenge implements ChallengeTypeInterface
         if (!$failed) {
             $recordID = null;
             try {
-                [$digitalOceanDomain, $recordSuffix] = $this->getDigitalOceanDomain($domain, $result['apiToken']);
+                list($digitalOceanDomain, $recordSuffix) = $this->getDigitalOceanDomain($domain, $result['apiToken']);
                 $result['digitalOceanDomain'] = $digitalOceanDomain;
                 $result['recordSuffix'] = $recordSuffix;
                 $recordID = $this->createDnsRecord(
@@ -270,6 +270,7 @@ class DigitalOceanDnsChallenge implements ChallengeTypeInterface
                     if (!is_array($data)) {
                         throw new RuntimeException(t('Unexpected response'));
                     }
+
                     return [$tryMe, $chunks === [] ? '' : ('.' . implode('.', $chunks))];
                 default:
                     throw new RuntimeException($this->describeErrorResponse($response));
@@ -315,6 +316,7 @@ class DigitalOceanDnsChallenge implements ChallengeTypeInterface
         if (!is_numeric($recordID)) {
             throw new RuntimeException(t('Unexpected response'));
         }
+
         return $recordID;
     }
 
@@ -382,7 +384,7 @@ class DigitalOceanDnsChallenge implements ChallengeTypeInterface
     {
         $hasher = new Hash('sha256');
         $digest = $hasher->hash($authorizationChallenge->getChallengeAuthorizationKey());
-     
+
         return $this->crypto->toBase64($digest);
     }
 }

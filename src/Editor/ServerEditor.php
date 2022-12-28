@@ -58,11 +58,11 @@ class ServerEditor
      * Create a new Server instance.
      *
      * @param array $data Keys:<br />
-     * - string <code><b>name</b></code> the mnemonic name of the server [required]<br />
-     * - string <code><b>directoryUrl</b></code> the directory URL of the server [required]<br />
-     * - boolean|mixed <code><b>default</b></code> should the server be the default one? [optional, default: false]<br />
-     * - int[]|string[]|string <code><b>authorizationPorts</b></code> list of HTTP authorization ports; if string, it'll be splitted at non-numeric characters [required]<br />
-     * - boolean|mixed <code><b>allowUnsafeConnections</b></code> should we allow unsafe connections to the server? [optional, default: false]
+     *                    - string <code><b>name</b></code> the mnemonic name of the server [required]<br />
+     *                    - string <code><b>directoryUrl</b></code> the directory URL of the server [required]<br />
+     *                    - boolean|mixed <code><b>default</b></code> should the server be the default one? [optional, default: false]<br />
+     *                    - int[]|string[]|string <code><b>authorizationPorts</b></code> list of HTTP authorization ports; if string, it'll be splitted at non-numeric characters [required]<br />
+     *                    - boolean|mixed <code><b>allowUnsafeConnections</b></code> should we allow unsafe connections to the server? [optional, default: false]
      * @param \ArrayAccess $errors Errors will be added here
      *
      * @return \Acme\Entity\Server|null NULL in case of errors
@@ -96,11 +96,11 @@ class ServerEditor
      *
      * @param \Acme\Entity\Server $server
      * @param array $data Keys:<br />
-     * - string <code><b>name</b></code> the mnemonic name of the server [required]<br />
-     * - string <code><b>directoryUrl</b></code> the directory URL of the server [required]<br />
-     * - boolean|mixed <code><b>default</b></code> should the server be the default one? [optional, default: false]<br />
-     * - int[]|string[]|string <code><b>authorizationPorts</b></code> list of HTTP authorization ports; if string, it'll be splitted at non-numeric characters [required]<br />
-     * - boolean|mixed <code><b>allowUnsafeConnections</b></code> should we allow unsafe connections to the server? [optional, default: false]
+     *                    - string <code><b>name</b></code> the mnemonic name of the server [required]<br />
+     *                    - string <code><b>directoryUrl</b></code> the directory URL of the server [required]<br />
+     *                    - boolean|mixed <code><b>default</b></code> should the server be the default one? [optional, default: false]<br />
+     *                    - int[]|string[]|string <code><b>authorizationPorts</b></code> list of HTTP authorization ports; if string, it'll be splitted at non-numeric characters [required]<br />
+     *                    - boolean|mixed <code><b>allowUnsafeConnections</b></code> should we allow unsafe connections to the server? [optional, default: false]
      * @param \ArrayAccess $errors Errors will be added here
      *
      * @return bool FALSE in case of errors

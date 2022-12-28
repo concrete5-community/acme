@@ -117,9 +117,9 @@ class ActionRunner
             $rc = $driver->executeCommand($command, $output);
             if ($rc === 0) {
                 return $logger->info(t("The command completed succesfully. Its output is:\n%s", $output));
-            } else {
-                return $logger->critical(t("The command returned a non-zero value (%1\$s). Its output is:\n%2\$s", $rc, $output));
             }
+
+            return $logger->critical(t("The command returned a non-zero value (%1\$s). Its output is:\n%2\$s", $rc, $output));
         } catch (FilesystemException $x) {
             return $logger->critical(t('Failed to execute the command: %s', $x->getMessage()));
         }

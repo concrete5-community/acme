@@ -76,7 +76,8 @@ EOT
         $qb = $em->createQueryBuilder();
         $qb
             ->from(Account::class, 'a')
-            ->select('a');
+            ->select('a')
+        ;
 
         if ($server !== null) {
             $qb->andWhere($qb->expr()->eq('a.server', ':server'))->setParameter('server', $server);
@@ -87,11 +88,11 @@ EOT
         foreach ($qb->getQuery()->execute() as $account) {
             $deleted = $this->deleteAccount($account, $accountEditor);
             if ($deleted === true) {
-                ++$numDeleted;
+                $numDeleted++;
             } elseif ($deleted === false) {
-                ++$numDeleted;
+                $numNotDeleted++;
             } else {
-                ++$numSkipped;
+                $numSkipped++;
             }
         }
 

@@ -69,13 +69,13 @@ class AccountEditor
      *
      * @param \Acme\Entity\Server $server the associated server
      * @param array $data Keys:<br />
-     * - string <code><b>name</b></code> the mnemonic name of the account [required]<br />
-     * - string <code><b>email</b></code> the account email address [required]<br />
-     * - boolean|mixed <code><b>default</b></code> should the account be the default one? [optional, default: false]<br />
-     * - string|boolean <code><b>acceptedTermsOfService</b></code> the URL of the terms of service accepted, or a boolean stating that the user accepted them [optional if the server does not require it]<br />
-     * - boolean|string <code><b>useExisting</b></code> set to true (or 'yes', 'y', '1', ...) to use an existing account [optional, default: false]<br />
-     * - int <code><b>privateKeyBits</b></code> the number of bits of the private key to be created when useExisting is falsy [optional]<br />
-     * - string <code><b>privateKey</b></code> the private key of the existing user [if and only if useExisting is true]
+     *                    - string <code><b>name</b></code> the mnemonic name of the account [required]<br />
+     *                    - string <code><b>email</b></code> the account email address [required]<br />
+     *                    - boolean|mixed <code><b>default</b></code> should the account be the default one? [optional, default: false]<br />
+     *                    - string|boolean <code><b>acceptedTermsOfService</b></code> the URL of the terms of service accepted, or a boolean stating that the user accepted them [optional if the server does not require it]<br />
+     *                    - boolean|string <code><b>useExisting</b></code> set to true (or 'yes', 'y', '1', ...) to use an existing account [optional, default: false]<br />
+     *                    - int <code><b>privateKeyBits</b></code> the number of bits of the private key to be created when useExisting is falsy [optional]<br />
+     *                    - string <code><b>privateKey</b></code> the private key of the existing user [if and only if useExisting is true]
      * @param \ArrayAccess $errors Errors will be added here
      *
      * @throws \Acme\Exception\UnrecognizedProtocolVersionException when the ACME Protocol version is not recognized
@@ -119,8 +119,8 @@ class AccountEditor
      *
      * @param \Acme\Entity\Account $account
      * @param array $data Keys:<br />
-     * - string <code><b>name</b></code> the mnemonic name of the account [required]<br />
-     * - boolean|mixed <code><b>default</b></code> should the account be the default one? [optional, default: false]
+     *                    - string <code><b>name</b></code> the mnemonic name of the account [required]<br />
+     *                    - boolean|mixed <code><b>default</b></code> should the account be the default one? [optional, default: false]
      * @param \ArrayAccess $errors Errors will be added here
      *
      * @return bool FALSE in case of errors

@@ -63,11 +63,9 @@ class Controller extends Package implements ProviderAggregateInterface
      */
     public function getEntityManagerProvider()
     {
-        $provider = new StandardPackageProvider($this->app, $this, [
+        return new StandardPackageProvider($this->app, $this, [
             'src/Entity' => 'Acme\Entity',
         ]);
-
-        return $provider;
     }
 
     /**

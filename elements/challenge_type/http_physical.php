@@ -11,7 +11,6 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var string $webroot
  * @var bool $nocheck
  * @var string $remoteServersPage
- *
  * @var string $fieldsPrefix
  * @var Concrete\Core\Form\Service\Form $formService
  */

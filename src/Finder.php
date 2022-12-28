@@ -121,7 +121,7 @@ class Finder
      *
      * @param \Acme\Entity\Domain|string|int|mixed $criteria
      * @param \Acme\Entity\Account|null limit the search to a specific account
-     * @param null|Account $account
+     * @param Account|null $account
      *
      * @throws \Acme\Exception\EntityNotFoundException
      *

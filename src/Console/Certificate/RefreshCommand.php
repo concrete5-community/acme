@@ -240,7 +240,7 @@ EOT
             ->setForceActionsExecution($this->input->getOption('rerun-actions'))
             ->setCheckRevocation($this->input->getOption('check-revocation'))
         ;
-        for (; ;) {
+        for (;;) {
             $renewState = $renewer->nextStep($certificate, $options);
             $options = null;
             $this->consoleLog->logLogger($renewState);

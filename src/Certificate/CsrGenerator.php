@@ -93,14 +93,14 @@ class CsrGenerator
         }
 
         $altNames = [];
-        for (; ;) {
+        for (;;) {
             $altNames[] = ['dNSName' => $domain->getPunycodeDisplayName()];
             if (empty($domains)) {
                 break;
             }
             $domain = array_shift($domains);
         }
-        /**
+        /*
         while (!empty($domains)) {
             $altNames[] = ['dNSName' => array_shift($domains)->getPunycodeDisplayName()];
         }

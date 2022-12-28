@@ -25,6 +25,7 @@ class Operate extends DashboardPageController
         }
         if ($certificate->isDisabled()) {
             $this->flash('error', t('The certificate is disabled.'));
+
             return $this->buildReturnRedirectResponse();
         }
         $this->set('certificate', $certificate);
@@ -103,8 +104,8 @@ class Operate extends DashboardPageController
         ]);
     }
 
-    /***
-     * @param mixed $certificateID
+    /**
+     * @param int|string $certificateID
      * @param bool $flashOnNotFound
      *
      * @return \Acme\Entity\Certificate|null

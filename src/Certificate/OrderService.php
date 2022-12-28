@@ -291,7 +291,7 @@ class OrderService
             default:
                 throw UnrecognizedProtocolVersionException::create($account->getServer()->getProtocolVersion());
         }
-        for ($retry = 0; $retry < 2; ++$retry) {
+        for ($retry = 0; $retry < 2; $retry++) {
             $response = $this->communicator->send(
                 $account,
                 $method,

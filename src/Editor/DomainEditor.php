@@ -45,9 +45,9 @@ class DomainEditor
      *
      * @param \Acme\Entity\Account $account the associated Account
      * @param array $data Keys:<br />
-     * - string <code><b>hostname</b></code> the host name (or its punycode) of the domain [required]<br />
-     * - string <code><b>challengetype</b></code> the handle of the challenge type [required]<br />
-     * - any other options supported by the specific challenge type
+     *                    - string <code><b>hostname</b></code> the host name (or its punycode) of the domain [required]<br />
+     *                    - string <code><b>challengetype</b></code> the handle of the challenge type [required]<br />
+     *                    - any other options supported by the specific challenge type
      * @param \ArrayAccess $errors Errors will be added here
      * @param array $data
      *
@@ -72,9 +72,9 @@ class DomainEditor
      *
      * @param \Acme\Entity\Domain $domain
      * @param array $data Keys:<br />
-     * - string <code><b>hostname</b></code> the host name (or its punycode) of the domain [required]<br />
-     * - string <code><b>challengetype</b></code> the handle of the challenge type [required]<br />
-     * - any other options supported by the specific challenge type
+     *                    - string <code><b>hostname</b></code> the host name (or its punycode) of the domain [required]<br />
+     *                    - string <code><b>challengetype</b></code> the handle of the challenge type [required]<br />
+     *                    - any other options supported by the specific challenge type
      * @param \ArrayAccess $errors Errors will be added here
      *
      * @return bool FALSE in case of errors

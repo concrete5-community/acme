@@ -81,7 +81,7 @@ class ArrayLogger extends StateAwareLogger
     {
         $result = '';
         $maxLevelNum = null;
-        for ($i = $index, $count = $this->getEntriesCount(); $i < $count; ++$i) {
+        for ($i = $index, $count = $this->getEntriesCount(); $i < $count; $i++) {
             $entry = $this->getEntry($i);
             $entryLevelNum = $this->getComparableLevelNumber($entry->getLevel());
             if ($maxLevelNum === null || $entryLevelNum > $maxLevelNum) {

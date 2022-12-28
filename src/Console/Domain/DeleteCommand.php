@@ -111,11 +111,11 @@ EOT
         foreach ($qb->getQuery()->execute() as $domain) {
             $deleted = $this->deleteDomain($domain, $domainEditor);
             if ($deleted === true) {
-                ++$numDeleted;
+                $numDeleted++;
             } elseif ($deleted === false) {
-                ++$numDeleted;
+                $numNotDeleted++;
             } else {
-                ++$numSkipped;
+                $numSkipped++;
             }
         }
 

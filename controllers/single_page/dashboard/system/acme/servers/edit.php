@@ -80,9 +80,8 @@ class Edit extends DashboardPageController
         return $this->buildReturnRedirectResponse();
     }
 
-    /***
-     * @param mixed $id
-     *
+    /**
+     * @param int|string $id
      * @param bool $allowNew
      * @param bool $flashOnNotFound
      *

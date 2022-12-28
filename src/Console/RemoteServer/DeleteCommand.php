@@ -65,11 +65,11 @@ EOT
         foreach ($em->getRepository(RemoteServer::class)->findAll() as $remoteServer) {
             $deleted = $this->deleteRemoteServer($remoteServer, $remoteServerEditor);
             if ($deleted === true) {
-                ++$numDeleted;
+                $numDeleted++;
             } elseif ($deleted === false) {
-                ++$numDeleted;
+                $numNotDeleted++;
             } else {
-                ++$numSkipped;
+                $numSkipped++;
             }
         }
 

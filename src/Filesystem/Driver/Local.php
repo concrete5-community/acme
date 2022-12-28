@@ -156,7 +156,7 @@ class Local implements DriverInterface, WritableAwareDriverInterface, Executable
     public function createDirectory($path, $mode = 0777)
     {
         $this->ignoringWarnings(function () use ($path, $mode) {
-            for ($i = 0; $i < 3; ++$i) {
+            for ($i = 0; $i < 3; $i++) {
                 if (mkdir($path, $mode)) {
                     return true;
                 }
@@ -176,7 +176,7 @@ class Local implements DriverInterface, WritableAwareDriverInterface, Executable
             $paths = is_array($paths) ? array_values($paths) : [$paths];
             $failed = [];
             foreach ($paths as $path) {
-                for ($i = 0; $i < 3; ++$i) {
+                for ($i = 0; $i < 3; $i++) {
                     if (unlink($path)) {
                         break;
                     }
@@ -204,7 +204,7 @@ class Local implements DriverInterface, WritableAwareDriverInterface, Executable
     public function deleteEmptyDirectory($path)
     {
         $this->ignoringWarnings(function () use ($path) {
-            for ($i = 0; $i < 3; ++$i) {
+            for ($i = 0; $i < 3; $i++) {
                 if (rmdir($path)) {
                     return;
                 }

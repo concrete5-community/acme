@@ -68,9 +68,9 @@ class CertificateEditor
      *
      * @param \Acme\Entity\Account $account the associated account
      * @param array $data Keys:<br />
-     * - string|int|\Acme\Entity\Domain <code><b>primaryDomain</b></code> the primary domain of the certificate [optional if domains is not empty]<br />
-     * - string|string[]|int|int[]|\Acme\Entity\Domain[] <code><b>domains</b></code> the domains of the certificate (if a string, separate domains with spaces or commas) [optional if domains is not empty]<br />
-     * - int|string|null <code><b>privateKeyBits</b></code> the number of bits of the private key to be created [optional]
+     *                    - string|int|\Acme\Entity\Domain <code><b>primaryDomain</b></code> the primary domain of the certificate [optional if domains is not empty]<br />
+     *                    - string|string[]|int|int[]|\Acme\Entity\Domain[] <code><b>domains</b></code> the domains of the certificate (if a string, separate domains with spaces or commas) [optional if domains is not empty]<br />
+     *                    - int|string|null <code><b>privateKeyBits</b></code> the number of bits of the private key to be created [optional]
      * @param \ArrayAccess $errors Errors will be added here
      *
      * @return \Acme\Entity\Certificate|null NULL in case of errors
@@ -94,11 +94,11 @@ class CertificateEditor
      *
      * @param \Acme\Entity\Certificate $certificate
      * @param array $data Keys:<br />
-     * - string|int|\Acme\Entity\Domain <code><b>primaryDomain</b></code> the primary domain of the certificate [optional]<br />
-     * - string|string[]|int|int[]|\Acme\Entity\Domain[] <code><b>domains</b></code> the domains of the certificate (if a string, separate domains with spaces or commas) [optional]<br />
-     * - string|string[]|int|int[]|\Acme\Entity\Domain[] <code><b>addDomains</b></code> alter the existing domain list - don't use with the 'domains' option [optional]<br />
-     * - string|string[]|int|int[]|\Acme\Entity\Domain[] <code><b>removeDomains</b></code> alter the existing domain list - don't use with the 'domains' option [optional]<br />
-     * - bool|string|int <code><b>disabled</b></code> alter the existing disabled state [optional]<br />
+     *                    - string|int|\Acme\Entity\Domain <code><b>primaryDomain</b></code> the primary domain of the certificate [optional]<br />
+     *                    - string|string[]|int|int[]|\Acme\Entity\Domain[] <code><b>domains</b></code> the domains of the certificate (if a string, separate domains with spaces or commas) [optional]<br />
+     *                    - string|string[]|int|int[]|\Acme\Entity\Domain[] <code><b>addDomains</b></code> alter the existing domain list - don't use with the 'domains' option [optional]<br />
+     *                    - string|string[]|int|int[]|\Acme\Entity\Domain[] <code><b>removeDomains</b></code> alter the existing domain list - don't use with the 'domains' option [optional]<br />
+     *                    - bool|string|int <code><b>disabled</b></code> alter the existing disabled state [optional]<br />
      * @param \ArrayAccess $errors Errors will be added here
      *
      * @return bool FALSE in case of errors
