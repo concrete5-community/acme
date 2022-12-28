@@ -16,5 +16,8 @@ return [
             'class' => Types\DnsChallTestSrvChallenge::class,
             'default_management_address' => 'http://localhost:8055',
         ],
+        'dns_digitalocean' => [
+            'class' => Types\DigitalOceanDnsChallenge::class,
+        ],
     ],
 ];
