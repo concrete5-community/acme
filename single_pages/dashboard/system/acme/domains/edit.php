@@ -63,7 +63,7 @@ $numCertificates = $domain->getCertificates()->count();
     <div class="form-group">
         <?= $form->label('hostname', t('Domain name')) ?>
         <div class="input-group">
-            <?= $form->text('hostname', $domain->getHostname(), ['maxlength' => '255', 'required' => 'required'] + ($numCertificates === 0 ? [] : ['readonly' => 'readonly'])) ?>
+            <?= $form->text('hostname', $domain->getHostDisplayName(), ['maxlength' => '255', 'required' => 'required'] + ($numCertificates === 0 ? [] : ['readonly' => 'readonly'])) ?>
             <span class="input-group-addon"><i class="fa fa-asterisk"></i></span>
         </div>
         <div class="text-muted small">
