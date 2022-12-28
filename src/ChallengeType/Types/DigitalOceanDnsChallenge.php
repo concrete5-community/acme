@@ -12,7 +12,6 @@ use ArrayAccess;
 use Concrete\Core\Filesystem\ElementManager;
 use Concrete\Core\Page\Page;
 use Exception;
-use phpseclib\Crypt\Hash;
 use Throwable;
 use Zend\Http\Exception\RuntimeException as HttpClientRuntimeException;
 use Zend\Http\Header\Authorization;
@@ -195,7 +194,7 @@ class DigitalOceanDnsChallenge implements ChallengeTypeInterface
         $configuration = $authorizationChallenge->getDomain()->getChallengeTypeConfiguration();
         $this->createDnsRecord(
             '_acme-challenge' . $configuration['recordSuffix'],
-            $this->getRecordValue($authorizationChallenge),
+            $this->crypto->generateDnsRecordValue($authorizationChallenge->getChallengeAuthorizationKey()),
             $configuration['digitalOceanDomain'],
             $configuration['apiToken']
         );
@@ -225,7 +224,7 @@ class DigitalOceanDnsChallenge implements ChallengeTypeInterface
                 if (is_array($data) && isset($data['domain_records'])) {
                     $records = $data['domain_records'];
                     if (is_array($records)) {
-                        $recordData = $this->getRecordValue($authorizationChallenge);
+                        $recordData = $this->crypto->generateDnsRecordValue($authorizationChallenge->getChallengeAuthorizationKey());
                         foreach ($records as $record) {
                             if (isset($record['data']) && $record['data'] === $recordData) {
                                 if (isset($record['id']) && is_numeric($record['id'])) {
@@ -375,16 +374,5 @@ class DigitalOceanDnsChallenge implements ChallengeTypeInterface
         }
 
         return $response->getStatusCode() . ' (' . $response->getReasonPhrase() . ')';
-    }
-
-    /**
-     * @return string
-     */
-    protected function getRecordValue(AuthorizationChallenge $authorizationChallenge)
-    {
-        $hasher = new Hash('sha256');
-        $digest = $hasher->hash($authorizationChallenge->getChallengeAuthorizationKey());
-
-        return $this->crypto->toBase64($digest);
     }
 }

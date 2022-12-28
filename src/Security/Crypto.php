@@ -308,6 +308,21 @@ class Crypto
     }
 
     /**
+     * Generate the value to be saved in DNS records for dns-01 challenge types.
+     *
+     * @param string $authorizationKey
+     *
+     * @return string
+     */
+    public function generateDnsRecordValue($authorizationKey)
+    {
+        $hasher = new Hash('sha256');
+        $digest = $hasher->hash($authorizationKey);
+
+        return $this->crypto->toBase64($digest);
+    }
+
+    /**
      * Get the thumbprint of a private key.
      *
      * @param string $privateKey

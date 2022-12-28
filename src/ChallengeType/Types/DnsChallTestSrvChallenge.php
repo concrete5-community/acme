@@ -211,7 +211,7 @@ class DnsChallTestSrvChallenge implements ChallengeTypeInterface
         $this->post(
             [
                 'host' => '_acme-challenge.' . $domain->getPunycode() . '.',
-                'value' => $this->crypto->toBase64(hash('sha256', $authorizationKey, true)),
+                'value' => $this->crypto->generateDnsRecordValue($authorizationKey),
             ],
             $managementAddress,
             'set-txt'
