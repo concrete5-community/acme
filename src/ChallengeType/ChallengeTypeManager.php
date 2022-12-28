@@ -38,7 +38,10 @@ class ChallengeTypeManager
     {
         $list = [];
         foreach (array_keys($this->config->get('acme::challenge.types')) as $handle) {
-            $list[] = $this->getChallengeByHandle($handle);
+            $challenge = $this->getChallengeByHandle($handle);
+            if ($challenge !== null) {
+                $list[] = $challenge;
+            }
         }
 
         return $list;
