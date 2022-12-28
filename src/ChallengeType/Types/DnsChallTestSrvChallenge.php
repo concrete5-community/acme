@@ -193,8 +193,8 @@ class DnsChallTestSrvChallenge implements ChallengeTypeInterface
 
     /**
      * @param \Acme\Entity\Domain $domain
+     * @param string $authorizationKey
      * @param string $managementAddress
-     * @param mixed $authorizationKey
      *
      * @throws \Acme\Exception\RuntimeException
      */
