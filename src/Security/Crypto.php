@@ -319,7 +319,7 @@ class Crypto
         $hasher = new Hash('sha256');
         $digest = $hasher->hash($authorizationKey);
 
-        return $this->crypto->toBase64($digest);
+        return $this->toBase64($digest);
     }
 
     /**
