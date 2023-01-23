@@ -7,30 +7,30 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * Options for the Renewer::nextStep() method.
  */
-class RenewerOptions
+final class RenewerOptions
 {
     /**
      * Should the certificate be renewed also if not needed?
      *
      * @var bool
      */
-    protected $forceCertificateRenewal;
+    private $forceCertificateRenewal;
 
     /**
      * Should the certificate actions be executed also if not needed?
      *
      * @var bool
      */
-    protected $forceActionsExecution;
+    private $forceActionsExecution;
 
     /**
      * Should we check if the certificate has been revoked?
      *
      * @var bool
      */
-    protected $checkRevocation;
+    private $checkRevocation;
 
-    protected function __construct()
+    private function __construct()
     {
     }
 

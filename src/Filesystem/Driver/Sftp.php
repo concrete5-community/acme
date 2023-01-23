@@ -2,13 +2,18 @@
 
 namespace Acme\Filesystem\Driver;
 
+use Acme\Crypto\Engine;
 use Acme\Entity\RemoteServer;
 use Acme\Exception\FilesystemException;
+use Acme\Exception\RuntimeException;
 use Acme\Filesystem\DriverInterface;
 use Acme\Filesystem\ExecutableDriverInterface;
 use Acme\Filesystem\RemoteDriverInterface;
 use Concrete\Core\Foundation\Environment\FunctionInspector;
-use phpseclib\Net\SFTP as phpseclibSftp;
+use Exception;
+use phpseclib\Net\SFTP as phpseclibSftp2;
+use phpseclib3\Net\SFTP as phpseclibSftp3;
+use Throwable;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
@@ -38,25 +43,29 @@ abstract class Sftp implements DriverInterface, ExecutableDriverInterface, Remot
     protected $defaultConnectionTimeout;
 
     /**
-     * @var \phpseclib\Net\SFTP|null
+     * @var \phpseclib\Net\SFTP|\phpseclib3\Net\SFTP|null
      */
-    protected $connection;
+    protected $connectionResource;
+
+    /**
+     * @var int
+     */
+    protected $engineID;
 
     /**
      * @param string $handle
      * @param int $defaultPort
      * @param int $defaultConnectionTimeout
+     * @param int|null $engineID The value of one of the Acme\Crypto\Engine constants
      */
-    protected function __construct($handle, $defaultPort, $defaultConnectionTimeout)
+    protected function __construct($handle, $defaultPort, $defaultConnectionTimeout, $engineID = null)
     {
         $this->handle = $handle;
         $this->defaultPort = $defaultPort;
         $this->defaultConnectionTimeout = $defaultConnectionTimeout;
+        $this->engineID = $engineID === null ? Engine::get() : $engineID;
     }
 
-    /**
-     * Destruct the instance.
-     */
     public function __destruct()
     {
         $this->disconnect();
@@ -129,8 +138,13 @@ abstract class Sftp implements DriverInterface, ExecutableDriverInterface, Remot
     public function isFile($path)
     {
         $this->connect();
-
-        return $this->connection->is_file($path);
+        switch ($this->engineID) {
+            case Engine::PHPSECLIB2:
+            case Engine::PHPSECLIB3:
+                return $this->connectionResource->is_file($path);
+            default:
+                throw new RuntimeException('Not implemented');
+        }
     }
 
     /**
@@ -141,8 +155,13 @@ abstract class Sftp implements DriverInterface, ExecutableDriverInterface, Remot
     public function isDirectory($path)
     {
         $this->connect();
-
-        return $this->connection->is_dir($path);
+        switch (Engine::get()) {
+            case Engine::PHPSECLIB2:
+            case Engine::PHPSECLIB3:
+                return $this->connectionResource->is_dir($path);
+            default:
+                throw new RuntimeException('Not implemented');
+        }
     }
 
     /**
@@ -153,12 +172,18 @@ abstract class Sftp implements DriverInterface, ExecutableDriverInterface, Remot
     public function getFileContents($path)
     {
         $this->connect();
-        $result = $this->connection->get($path);
-        if ($result === false) {
-            throw FilesystemException::create(FilesystemException::ERROR_READING_FILE, t('Failed to download file %s via SFTP', $path), $path);
-        }
+        switch ($this->engineID) {
+            case Engine::PHPSECLIB2:
+            case Engine::PHPSECLIB3:
+                $result = $this->connectionResource->get($path);
+                if ($result === false) {
+                    throw FilesystemException::create(FilesystemException::ERROR_READING_FILE, t('Failed to download file %s via SFTP', $path), $path);
+                }
 
-        return $result;
+                return $result;
+            default:
+                throw new RuntimeException('Not implemented');
+        }
     }
 
     /**
@@ -169,8 +194,15 @@ abstract class Sftp implements DriverInterface, ExecutableDriverInterface, Remot
     public function setFileContents($path, $contents)
     {
         $this->connect();
-        if (!$this->connection->put($path, $contents)) {
-            throw FilesystemException::create(FilesystemException::ERROR_WRITING_FILE, t('Failed to upload file %s via SFTP', $path), $path);
+        switch ($this->engineID) {
+            case Engine::PHPSECLIB2:
+            case Engine::PHPSECLIB3:
+                if (!$this->connectionResource->put($path, $contents)) {
+                    throw FilesystemException::create(FilesystemException::ERROR_WRITING_FILE, t('Failed to upload file %s via SFTP', $path), $path);
+                }
+                break;
+            default:
+                throw new RuntimeException('Not implemented');
         }
     }
 
@@ -182,8 +214,15 @@ abstract class Sftp implements DriverInterface, ExecutableDriverInterface, Remot
     public function chmod($path, $mode)
     {
         $this->connect();
-        if (!$this->connection->chmod($mode, $path)) {
-            throw FilesystemException::create(FilesystemException::ERROR_SETTING_PERMISSIONS, t('Failed to set the permissions of %s via SFTP', $path), $path);
+        switch ($this->engineID) {
+            case Engine::PHPSECLIB2:
+            case Engine::PHPSECLIB3:
+                if (!$this->connectionResource->chmod($mode, $path)) {
+                    throw FilesystemException::create(FilesystemException::ERROR_SETTING_PERMISSIONS, t('Failed to set the permissions of %s via SFTP', $path), $path);
+                }
+                break;
+            default:
+                throw new RuntimeException('Not implemented');
         }
     }
 
@@ -195,8 +234,15 @@ abstract class Sftp implements DriverInterface, ExecutableDriverInterface, Remot
     public function createDirectory($path, $mode = 0777)
     {
         $this->connect();
-        if (!$this->connection->mkdir($path, $mode)) {
-            throw FilesystemException::create(FilesystemException::ERROR_CREATING_DIRECTORY, t('Failed to create the directory %s via SFTP', $path), $path);
+        switch ($this->engineID) {
+            case Engine::PHPSECLIB2:
+            case Engine::PHPSECLIB3:
+                if (!$this->connectionResource->mkdir($path, $mode)) {
+                    throw FilesystemException::create(FilesystemException::ERROR_CREATING_DIRECTORY, t('Failed to create the directory %s via SFTP', $path), $path);
+                }
+                break;
+            default:
+                throw new RuntimeException('Not implemented');
         }
     }
 
@@ -212,8 +258,15 @@ abstract class Sftp implements DriverInterface, ExecutableDriverInterface, Remot
         $paths = is_array($paths) ? array_values($paths) : [$paths];
         $failed = [];
         foreach ($paths as $path) {
-            if (!$this->connection->delete($path, false)) {
-                $failed[] = $path;
+            switch ($this->engineID) {
+                case Engine::PHPSECLIB2:
+                case Engine::PHPSECLIB3:
+                    if (!$this->connectionResource->delete($path, false)) {
+                        $failed[] = $path;
+                    }
+                    break;
+                default:
+                    throw new RuntimeException('Not implemented');
             }
         }
         switch (count($failed)) {
@@ -234,8 +287,15 @@ abstract class Sftp implements DriverInterface, ExecutableDriverInterface, Remot
     public function deleteEmptyDirectory($path)
     {
         $this->connect();
-        if (!$this->connection->rmdir($path)) {
-            throw FilesystemException::create(FilesystemException::ERROR_DELETING_DIRECTORY, t('Failed to delete the directory %s via SFTP', $path), $path);
+        switch ($this->engineID) {
+            case Engine::PHPSECLIB2:
+            case Engine::PHPSECLIB3:
+                if (!$this->connectionResource->rmdir($path)) {
+                    throw FilesystemException::create(FilesystemException::ERROR_DELETING_DIRECTORY, t('Failed to delete the directory %s via SFTP', $path), $path);
+                }
+                break;
+            default:
+                throw new RuntimeException('Not implemented');
         }
     }
 
@@ -247,8 +307,13 @@ abstract class Sftp implements DriverInterface, ExecutableDriverInterface, Remot
     public function deleteDirectoryIfEmpty($path)
     {
         $this->connect();
-
-        return (bool) $this->connection->rmdir($path);
+        switch ($this->engineID) {
+            case Engine::PHPSECLIB2:
+            case Engine::PHPSECLIB3:
+                return (bool) $this->connectionResource->rmdir($path);
+            default:
+                throw new RuntimeException('Not implemented');
+        }
     }
 
     /**
@@ -259,81 +324,111 @@ abstract class Sftp implements DriverInterface, ExecutableDriverInterface, Remot
     public function executeCommand($command, &$output = '')
     {
         $output = '';
-        $outputParts = [];
+        $rc = null;
         $this->connect();
+        switch ($this->engineID) {
+            case Engine::PHPSECLIB2:
+            case Engine::PHPSECLIB3:
+                $outputParts = [];
+                $oldQuietMode = $this->connectionResource->isQuietModeEnabled();
+                $this->connectionResource->enableQuietMode();
+                try {
+                    $execResult = $this->connectionResource->exec($command);
+                } finally {
+                    if (!$oldQuietMode) {
+                        @$this->connectionResource->disableQuietMode();
+                    }
+                }
+                if ($execResult === false) {
+                    return -1;
+                }
+                if (is_string($execResult)) {
+                    $execResult = trim($execResult);
+                    if ($execResult !== '') {
+                        $outputParts[] = $execResult;
+                    }
+                }
+                $se = $this->connectionResource->getStdError();
+                if (is_string($se)) {
+                    $se = trim($se);
+                    if ($se !== '') {
+                        $outputParts[] = $se;
+                    }
+                }
+                $output = implode("\n", $outputParts);
+                $rc = $this->connectionResource->getExitStatus();
+                break;
+            default:
+                throw new RuntimeException('Not implemented');
+        }
 
-        $oldQuietMode = $this->connection->isQuietModeEnabled();
-        $this->connection->enableQuietMode();
-        $execResult = $this->connection->exec($command);
-        if (!$oldQuietMode) {
-            @$this->connection->disableQuietMode();
-        }
-        if ($execResult === false) {
-            return -1;
-        }
-        if (is_string($execResult)) {
-            $execResult = trim($execResult);
-            if ($execResult !== '') {
-                $outputParts[] = $execResult;
-            }
-        }
-        $se = $this->connection->getStdError();
-        if (is_string($se)) {
-            $se = trim($se);
-            if ($se !== '') {
-                $outputParts[] = $se;
-            }
-        }
-        $output = implode("\n", $outputParts);
-        $rc = $this->connection->getExitStatus();
-
-        return is_numeric($rc) ? $rc : -1;
+        return is_numeric($rc) ? (int) $rc : -1;
     }
 
     /**
      * Open the connection (if not already open).
      *
      * @throws \Acme\Exception\Exception
-     *
-     * @return \phpseclib\Net\SFTP
      */
     protected function connect()
     {
         if ($this->remoteServer === null) {
             throw FilesystemException::create(FilesystemException::ERROR_CONNECTING_NOSERVER, t('The remote server has not been specified'));
         }
-        if ($this->connection !== null) {
-            if ($this->connection->isConnected()) {
-                return;
+        if ($this->connectionResource !== null) {
+            switch ($this->engineID) {
+                case Engine::PHPSECLIB2:
+                case Engine::PHPSECLIB3:
+                    if ($this->connectionResource->isConnected()) {
+                        return;
+                    }
+                    break;
+                default:
+                    throw new RuntimeException('Not implemented');
             }
             $this->disconnect();
         }
-        $connection = new phpseclibSftp(
-            $this->remoteServer->getHostname(),
-            $this->remoteServer->getPort() ?: $this->defaultPort,
-            $this->remoteServer->getConnectionTimeout() ?: $this->defaultConnectionTimeout
-        );
-        $loggedIn = false;
-        $error = null;
-        try {
-            $loggedIn = $connection->login($this->remoteServer->getUsername(), $this->getLoginParameter());
-        } catch (\Exception $x) {
-            $error = $x;
-        } catch (\Throwable $x) {
-            $error = $x;
+        switch ($this->engineID) {
+            case Engine::PHPSECLIB2:
+                $connectionResource = new phpseclibSftp2(
+                    $this->remoteServer->getHostname(),
+                    $this->remoteServer->getPort() ?: $this->defaultPort,
+                    $this->remoteServer->getConnectionTimeout() ?: $this->defaultConnectionTimeout
+                );
+                break;
+            case Engine::PHPSECLIB3:
+                $connectionResource = new phpseclibSftp3(
+                    $this->remoteServer->getHostname(),
+                    $this->remoteServer->getPort() ?: $this->defaultPort,
+                    $this->remoteServer->getConnectionTimeout() ?: $this->defaultConnectionTimeout
+                );
+                break;
+            default:
+                throw new RuntimeException('Not implemented');
         }
-        if (!$loggedIn) {
-            try {
-                $connection->disconnect();
-            } catch (\Exception $foo) {
-            } catch (\Throwable $foo) {
-            }
-            if ($error instanceof FilesystemException) {
-                throw $error;
-            }
-            throw FilesystemException::create(FilesystemException::ERROR_CONNECTING, t('Failed to access to the SSH2 server with the specified login options'));
+        switch ($this->engineID) {
+            case Engine::PHPSECLIB2:
+            case Engine::PHPSECLIB3:
+                try {
+                    $loggedIn = $connectionResource->login($this->remoteServer->getUsername(), $this->getLoginParameter());
+                } catch (Exception $x) {
+                    $loggedIn = false;
+                } catch (Throwable $x) {
+                    $loggedIn = false;
+                }
+                if (!$loggedIn) {
+                    try {
+                        $connectionResource->disconnect();
+                    } catch (Exception $foo) {
+                    } catch (Throwable $foo) {
+                    }
+                    throw FilesystemException::create(FilesystemException::ERROR_CONNECTING, t('Failed to access to the SSH2 server with the specified login options'));
+                }
+                break;
+            default:
+                throw new RuntimeException('Not implemented');
         }
-        $this->connection = $connection;
+        $this->connectionResource = $connectionResource;
     }
 
     /**
@@ -350,10 +445,18 @@ abstract class Sftp implements DriverInterface, ExecutableDriverInterface, Remot
      */
     protected function disconnect()
     {
-        $connection = $this->connection;
-        $this->connection = null;
-        if ($connection !== null) {
-            $connection->disconnect();
+        if ($this->connectionResource === null) {
+            return;
+        }
+        switch ($this->engineID) {
+            case Engine::PHPSECLIB2:
+            case Engine::PHPSECLIB3:
+                $connectionResource = $this->connectionResource;
+                $this->connectionResource = null;
+                $connectionResource->disconnect();
+                break;
+            default:
+                throw new RuntimeException('Not implemented');
         }
     }
 }

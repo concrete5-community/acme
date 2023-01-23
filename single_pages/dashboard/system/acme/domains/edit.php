@@ -13,18 +13,18 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var Concrete\Core\Validation\CSRF\Token $token
  * @var Concrete\Core\Form\Service\Form $form
  * @var Concrete\Core\Page\View\PageView $view
+ * @var Acme\Service\UI $ui
  */
 
 if ($domain->getID() !== null) {
     ?>
-    <form method="POST" action="<?= h($view->action('delete', $domain->getID())) ?>" id="acme-domain-delete" class="hide">
+    <form method="POST" action="<?= h($view->action('delete', $domain->getID())) ?>" id="acme-domain-delete" class="<?= $ui->displayNone ?>">
         <?php $token->output('acme-domain-delete-' . $domain->getID()) ?>
     </form>
     <?php
 }
 $numCertificates = $domain->getCertificates()->count();
 ?>
-
 <form method="POST" action="<?= h($view->action('submit', $domain->getID() ?: 'new', $domain->getAccount()->getID())) ?>">
     <?php
     $token->output('acme-domain-edit-' . ($domain->getID() ?: 'new') . '-' . $domain->getAccount()->getID());
@@ -64,7 +64,7 @@ $numCertificates = $domain->getCertificates()->count();
         <?= $form->label('hostname', t('Domain name')) ?>
         <div class="input-group">
             <?= $form->text('hostname', $domain->getHostDisplayName(), ['maxlength' => '255', 'required' => 'required'] + ($numCertificates === 0 ? [] : ['readonly' => 'readonly'])) ?>
-            <span class="input-group-addon"><i class="fa fa-asterisk"></i></span>
+            <span class="<?= $ui->inputGroupAddon ?>"><i class="<?= $ui->faAsterisk ?>"></i></span>
         </div>
         <div class="text-muted small">
             <?php
@@ -85,7 +85,7 @@ $numCertificates = $domain->getCertificates()->count();
         </div>
     </div>
 
-    <div class="form-group" id="acme-domainedit-deviation">
+    <div class="form-group" id="acme-domainedit-deviation" v-cloak>
         <?= $form->label('', t('Deviation')) ?>
         <div class="form-control">
             <template v-if="ready">
@@ -107,6 +107,9 @@ $numCertificates = $domain->getCertificates()->count();
                     ) ?>
                 </template>
             </template>
+            <template v-else>
+                &nbsp;
+            </template>
         </div>
     </div>
 
@@ -123,7 +126,7 @@ $numCertificates = $domain->getCertificates()->count();
             }
             ?>
             <?= $form->select('challengetype', $challengeTypeOptions, $domain->getChallengeTypeHandle(), ['required' => 'required']) ?>
-            <span class="input-group-addon"><i class="fa fa-asterisk"></i></span>
+            <span class="<?= $ui->inputGroupAddon ?>"><i class="<?= $ui->faAsterisk ?>"></i></span>
         </div>
     </div>
 
@@ -144,8 +147,8 @@ $numCertificates = $domain->getCertificates()->count();
 
     <div class="ccm-dashboard-form-actions-wrapper">
         <div class="ccm-dashboard-form-actions">
-            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/domains'])) ?>" class="btn btn-default pull-left"><?= t('Cancel') ?></a>
-            <div class="pull-right">
+            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/domains'])) ?>" class="btn <?= $ui->defaultButton ?> <?= $ui->floatStart ?>"><?= t('Cancel') ?></a>
+            <div class="<?= $ui->floatEnd ?>">
                 <?php
                 if ($domain->getID() !== null) {
                     ?>

@@ -7,25 +7,22 @@ use Acme\Exception\RuntimeException;
 use Acme\Http\ClientFactory;
 use Acme\Protocol\Version;
 use Acme\Service\NotificationSilencerTrait;
-use Zend\Http\Client\Exception\RuntimeException as ZendClientRuntimeException;
+use Exception;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
 /**
  * Class to generate DirectoryInfo instances, extracting data from the contents of an ACME server directory URL.
  */
-class DirectoryInfoService
+final class DirectoryInfoService
 {
     use NotificationSilencerTrait;
 
     /**
      * @var \Acme\Http\ClientFactory
      */
-    protected $httpClientFactory;
+    private $httpClientFactory;
 
-    /**
-     * @param \Acme\Http\ClientFactory $httpClientFactory
-     */
     public function __construct(ClientFactory $httpClientFactory)
     {
         $this->httpClientFactory = $httpClientFactory;
@@ -33,8 +30,6 @@ class DirectoryInfoService
 
     /**
      * Get a DirectoryInfo instance reading the directory URL of an ACME server instance.
-     *
-     * @param \Acme\Entity\Server $server
      *
      * @throws \Acme\Exception\Exception
      *
@@ -59,15 +54,15 @@ class DirectoryInfoService
     {
         $httpClient = $this->httpClientFactory->getClient($allowUnsafeConnections);
         try {
-            $response = $httpClient->setMethod('GET')->setUri($directoryUrl)->send();
-        } catch (ZendClientRuntimeException $x) {
+            $response = $httpClient->get($directoryUrl);
+        } catch (Exception $x) {
             throw new RuntimeException(t('Failed to retrieve the contents of the ACME Server directory URL: %s', $x->getMessage()));
         }
-        if (!$response->isOk()) {
-            throw new RuntimeException(t('Failed to retrieve the contents of the ACME Server directory URL: %s', $response->getReasonPhrase() . '(' . $response->getStatusCode() . ')'));
+        if ($response->statusCode !== 200) {
+            throw new RuntimeException(t('Failed to retrieve the contents of the ACME Server directory URL: %s', "{$response->reasonPhrase} ({$response->reasonPhrase})"));
         }
-        $data = $this->ignoringWarnings(function () use ($response) {
-            return json_decode($response->getBody(), true);
+        $data = $this->ignoringWarnings(static function () use ($response) {
+            return json_decode($response->body, true);
         });
         if (!is_array($data)) {
             throw new RuntimeException(t("The directory URL of the ACME Server doesn't seems correct (it doesn't contain an array in JSON format)."));
@@ -86,7 +81,7 @@ class DirectoryInfoService
      *
      * @return \Acme\Server\DirectoryInfo
      */
-    protected function getInfoFromArray($directoryUrl, array $data)
+    private function getInfoFromArray($directoryUrl, array $data)
     {
         if (true
             && $this->nonEmptyString(array_get($data, 'newNonce'))
@@ -113,11 +108,10 @@ class DirectoryInfoService
      * Generate a DirectoryInfo instance for the contents of an ACME v2 directory URL.
      *
      * @param string $directoryUrl
-     * @param array $data
      *
      * @return \Acme\Server\DirectoryInfo
      */
-    protected function getInfoForAcme02($directoryUrl, array $data)
+    private function getInfoForAcme02($directoryUrl, array $data)
     {
         return DirectoryInfo::create()
             ->setProtocolVersion(Version::ACME_02)
@@ -135,11 +129,10 @@ class DirectoryInfoService
      * Generate a DirectoryInfo instance for the contents of an ACME v2 directory URL.
      *
      * @param string $directoryUrl
-     * @param array $data
      *
      * @return \Acme\Server\DirectoryInfo
      */
-    protected function getInfoForAcme01($directoryUrl, array $data)
+    private function getInfoForAcme01($directoryUrl, array $data)
     {
         return DirectoryInfo::create()
             ->setProtocolVersion(Version::ACME_01)
@@ -156,11 +149,11 @@ class DirectoryInfoService
     /**
      * Check if variable contains a non empty string.
      *
-     * @param mixed $value
+     * @param string|mixed $value
      *
      * @return bool
      */
-    protected function nonEmptyString($value)
+    private function nonEmptyString($value)
     {
         return is_string($value) && $value !== '';
     }

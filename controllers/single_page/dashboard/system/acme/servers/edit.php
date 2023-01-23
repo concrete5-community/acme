@@ -4,6 +4,7 @@ namespace Concrete\Package\Acme\Controller\SinglePage\Dashboard\System\Acme\Serv
 
 use Acme\Editor\ServerEditor;
 use Acme\Entity\Server;
+use Acme\Service\UI;
 use Concrete\Core\Http\ResponseFactoryInterface;
 use Concrete\Core\Page\Controller\DashboardPageController;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
@@ -11,7 +12,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Edit extends DashboardPageController
+final class Edit extends DashboardPageController
 {
     public function view($id = '')
     {
@@ -25,6 +26,7 @@ class Edit extends DashboardPageController
         $this->set('pageTitle', $server->getID() ? t('Edit ACME server') : t('Add ACME server'));
         $this->set('resolverManager', $this->app->make(ResolverManagerInterface::class));
         $this->set('dateHelper', $this->app->make('date'));
+        $this->set('ui', $this->app->make(UI::class));
     }
 
     public function submit($id = '')
@@ -109,8 +111,6 @@ class Edit extends DashboardPageController
     }
 
     /**
-     * @param \Acme\Entity\Server $server
-     *
      * @return bool
      */
     private function otherServersExists(Server $server)

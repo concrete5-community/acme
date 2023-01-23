@@ -20,7 +20,7 @@ use Throwable;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class RefreshCommand extends Command
+final class RefreshCommand extends Command
 {
     /**
      * {@inheritdoc}
@@ -49,37 +49,31 @@ EOT
     /**
      * @var string[]
      */
-    protected $emailRecipients = [];
+    private $emailRecipients = [];
 
     /**
      * @var string
      */
-    protected $emailLogLevel = '';
+    private $emailLogLevel = '';
 
     /**
      * The logger that contains both the consoleLog and the notificationLog.
      *
      * @var \Acme\Log\CombinedLogger
      */
-    protected $combinedLog;
+    private $combinedLog;
 
     /**
      * @var \Acme\Log\ConsoleLogger
      */
-    protected $consoleLog;
+    private $consoleLog;
 
     /**
      * @var \Acme\Log\ArrayLogger
      */
-    protected $notificationLog;
+    private $notificationLog;
 
     /**
-     * @param \Doctrine\ORM\EntityManagerInterface $em
-     * @param \Acme\Certificate\Renewer $renewer
-     * @param \Concrete\Core\Validator\String\EmailValidator $emailValidator
-     * @param \Concrete\Core\Mail\Service $emailService
-     * @param \Concrete\Core\Site\Service $siteService
-     *
      * @return int
      */
     public function handle(EntityManagerInterface $em, Renewer $renewer, EmailValidator $emailValidator, EmailService $emailService, SiteService $siteService)
@@ -107,9 +101,22 @@ EOT
     }
 
     /**
+     * {@inheritdoc}
+     *
+     * @see \Symfony\Component\Console\Command\Command::configure()
+     */
+    protected function configure()
+    {
+        $help = 'Valid values for the --email-if option are (in decreasing order of problems):';
+        $help .= "\n  " . implode("\n  ", $this->getAllLogLevels());
+        $help .= "\n\nIf omitted, we'll always send the log of the operations to the specified email address(es).";
+        $this->setHelp($help);
+    }
+
+    /**
      * @return string[]
      */
-    protected function getAllLogLevels()
+    private function getAllLogLevels()
     {
         return [
             LogLevel::EMERGENCY,
@@ -124,24 +131,9 @@ EOT
     }
 
     /**
-     * {@inheritdoc}
-     *
-     * @see \Symfony\Component\Console\Command\Command::configure()
-     */
-    protected function configure()
-    {
-        $help = 'Valid values for the --email-if option are (in decreasing order of problems):';
-        $help .= "\n  " . implode("\n  ", $this->getAllLogLevels());
-        $help .= "\n\nIf omitted, we'll always send the log of the operations to the specified email address(es).";
-        $this->setHelp($help);
-    }
-
-    /**
-     * @param \Concrete\Core\Validator\String\EmailValidator $emailValidator
-     *
      * @return bool
      */
-    protected function parseEmailNotificationArguments(EmailValidator $emailValidator)
+    private function parseEmailNotificationArguments(EmailValidator $emailValidator)
     {
         $this->emailRecipients = [];
         $this->emailLogLevel = '';
@@ -185,11 +177,7 @@ EOT
         return true;
     }
 
-    /**
-     * @param \Doctrine\ORM\EntityManagerInterface $em
-     * @param \Acme\Certificate\Renewer $renewer
-     */
-    protected function process(EntityManagerInterface $em, Renewer $renewer)
+    private function process(EntityManagerInterface $em, Renewer $renewer)
     {
         $id = $this->input->getArgument('certificate');
         if ($id !== null) {
@@ -226,11 +214,7 @@ EOT
         }
     }
 
-    /**
-     * @param \Acme\Entity\Certificate $certificate
-     * @param \Acme\Certificate\Renewer $renewer
-     */
-    protected function processCertificate(Certificate $certificate, Renewer $renewer)
+    private function processCertificate(Certificate $certificate, Renewer $renewer)
     {
         $domainNames = $certificate->getDomainHostDisplayNames();
         $sectionTitle = 'Processing certificate with id ' . $certificate->getID() . ' for ' . implode(', ', $domainNames);
@@ -262,12 +246,9 @@ EOT
     }
 
     /**
-     * @param \Concrete\Core\Mail\Service $emailService
-     * @param \Concrete\Core\Site\Service $siteService
-     *
      * @return bool
      */
-    protected function sendEmailNotification(EmailService $emailService, SiteService $siteService)
+    private function sendEmailNotification(EmailService $emailService, SiteService $siteService)
     {
         if (!$this->shouldNotifyLog($this->notificationLog)) {
             return true;
@@ -309,11 +290,9 @@ EOT
     }
 
     /**
-     * @param \Acme\Log\StateAwareLogger $logger
-     *
      * @return bool
      */
-    protected function shouldNotifyLog(StateAwareLogger $logger)
+    private function shouldNotifyLog(StateAwareLogger $logger)
     {
         if ($this->emailRecipients === []) {
             return false;

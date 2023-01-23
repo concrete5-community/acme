@@ -1,6 +1,7 @@
 <?php
 
 use Acme\Install\Checks;
+use Acme\Service\UI;
 use Concrete\Core\Package\PackageService;
 use Concrete\Core\Support\Facade\Application;
 use Concrete\Package\Acme\Controller;
@@ -18,18 +19,21 @@ $packageController->setupAutoloader();
 $app->make('config')->package($packageController);
 
 $checks = $app->make(Checks::class);
+$ui = $app->make(UI::class);
 
-$greenIcon = '<i class="fa fa-check" style="color: green"></i>';
-$orangeIcon = '<i class="fa fa-exclamation-triangle" style="color: orange"></i>';
-$redIcon = '<i class="fa fa-exclamation-circle" style="color: red"></i>';
+$greenIcon = "<i class=\"{$ui->faCheck}\" style=\"color: green\"></i>";
+$orangeIcon = "<i class=\"{$ui->faExclamationTriangle}\" style=\"color: orange\"></i>";
+$redIcon = "<i class=\"{$ui->faExclamationCircle}\" style=\"color: red\"></i>";
 
 ?>
-<div class="ccm-dashboard-header-buttons">
-    <a href="#" class="btn btn-primary" onclick="window.location.reload(); return false"><?= t('Repeat checks') ?></a>
+<div style="display: none">
+    <div class="ccm-dashboard-header-buttons">
+        <a href="#" class="btn btn-primary" onclick="window.location.reload(); return false"><?= t('Repeat checks') ?></a>
+    </div>
 </div>
 <table class="table table-striped">
-    <col>
-    <col width="100%">
+    <col />
+    <col width="100%" />
     <tbody>
         <tr>
             <td><?= $checks->isOpenSslInstalled() ? $greenIcon : $orangeIcon ?></td>
@@ -37,7 +41,7 @@ $redIcon = '<i class="fa fa-exclamation-circle" style="color: red"></i>';
             <td>
                 <?php
                 if (!$checks->isOpenSslInstalled()) {
-                    ?><i class="fa fa-question-circle launch-tooltip" data-html="true" title="<?= h(t('For faster execution, you should enable the %s PHP extension', '<code>openssl</code>')) ?>"></i><?php
+                    ?><i class="<?= $ui->faQuestionCircle ?> launch-tooltip" data-html="true" title="<?= h(t('For faster execution, you should enable the %s PHP extension', '<code>openssl</code>')) ?>"></i><?php
                 }
                 ?>
             </td>
@@ -51,7 +55,7 @@ $redIcon = '<i class="fa fa-exclamation-circle" style="color: red"></i>';
                 <td>
                     <?php
                     if ($checks->isOpenSslMisconfigured()) {
-                        ?><i class="fa fa-question-circle launch-tooltip" title="<?= h($checks->getOpenSslMisconfigurationProblems()) ?>"></i><?php
+                        ?><i class="<?= $ui->faQuestionCircle ?> launch-tooltip" title="<?= h($checks->getOpenSslMisconfigurationProblems()) ?>"></i><?php
                     }
                     ?>
                 </td>
@@ -65,7 +69,7 @@ $redIcon = '<i class="fa fa-exclamation-circle" style="color: red"></i>';
             <td>
                 <?php
                 if (!$checks->isFastBigIntegerAvailable()) {
-                    ?><i class="fa fa-question-circle launch-tooltip" data-html="true" title="<?= h(t('For faster execution, you should enable the %s and/or the %s PHP extension', '<code>gmp</code>', '<code>bcmath</code>')) ?>"></i><?php
+                    ?><i class="<?= $ui->faQuestionCircle ?> launch-tooltip" data-html="true" title="<?= h(t('For faster execution, you should enable the %s and/or the %s PHP extension', '<code>gmp</code>', '<code>bcmath</code>')) ?>"></i><?php
                 }
                 ?>
             </td>
@@ -76,7 +80,7 @@ $redIcon = '<i class="fa fa-exclamation-circle" style="color: red"></i>';
             <td>
                 <?php
                 if (!$checks->isHttpClientWorking()) {
-                    ?><i class="fa fa-question-circle launch-tooltip" title="<?= h($checks->getHttpClientError()) ?>"></i><?php
+                    ?><i class="<?= $ui->faQuestionCircle ?> launch-tooltip" title="<?= h($checks->getHttpClientError()) ?>"></i><?php
                 }
                 ?>
             </td>
@@ -87,7 +91,7 @@ $redIcon = '<i class="fa fa-exclamation-circle" style="color: red"></i>';
             <td>
                 <?php
                 if ($checks->getFtpExtensionState() === $checks::FTPEXTENSION_UNAVAILABLE) {
-                    ?><i class="fa fa-question-circle launch-tooltip" data-html="true" title="<?= h(t('To enable uploading certificates to remote servers with FTP or SSH, you should enable the %s PHP extension', '<code>ftp</code>')) ?>"></i><?php
+                    ?><i class="<?= $ui->faQuestionCircle ?> launch-tooltip" data-html="true" title="<?= h(t('To enable uploading certificates to remote servers with FTP or SSH, you should enable the %s PHP extension', '<code>ftp</code>')) ?>"></i><?php
                 }
                 ?>
             </td>
@@ -101,7 +105,7 @@ $redIcon = '<i class="fa fa-exclamation-circle" style="color: red"></i>';
                 <td>
                     <?php
                     if ($checks->getFtpExtensionState() !== $checks::FTPEXTENSION_OK) {
-                        ?><i class="fa fa-question-circle launch-tooltip" data-html="true" title="<?= h(t('To enable uploading certificates to remote servers with FTP or SSH, you should enable the %s PHP extension', '<code>ftp</code>')) ?>"></i><?php
+                        ?><i class="<?= $ui->faQuestionCircle ?> launch-tooltip" data-html="true" title="<?= h(t('To enable uploading certificates to remote servers with FTP or SSH, you should enable the %s PHP extension', '<code>ftp</code>')) ?>"></i><?php
                     }
                     ?>
                 </td>

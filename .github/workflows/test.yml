@@ -11,12 +11,21 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        c5_version: ["8.5.2-full", "develop-full"]
-    name: Test with concrete5 ${{ matrix.c5_version }}
+        include:
+          - c5-version: 8.5.2
+            php-version: "5.6"
+            composer-version: "1"
+          - c5-version: 9.1.2
+            php-version: "8.1"
+            composer-version: "2"
+          - c5-version: develop
+            php-version: "8.1"
+            composer-version: "2"
+    name: Test with Concrete ${{ matrix.c5-version }} PHP ${{ matrix.php-version }}
     steps:
       - name: Fetching Docker image
-        run: docker pull mlocati/docker5:${{ matrix.c5_version }}
+        run: docker pull ghcr.io/concrete5-community/docker5:${{ matrix.c5-version }}
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Running PHPUnit
-        run: docker run --rm -v "$(pwd):/app/packages/acme" --entrypoint='' mlocati/docker5:${{ matrix.c5_version }} /app/packages/acme/test/start
+        run: docker run --rm -v "$(pwd):/app/packages/acme" --entrypoint='' ghcr.io/concrete5-community/docker5:${{ matrix.c5-version }} /app/packages/acme/test/start ${{ matrix.php-version }} ${{ matrix.composer-version }}

@@ -46,18 +46,12 @@ class CertificateDomain
      */
     protected $isPrimary;
 
-    /**
-     * Initialize the instance.
-     */
     protected function __construct()
     {
     }
 
     /**
      * Create a new instance.
-     *
-     * @param \Acme\Entity\Certificate $certificate
-     * @param \Acme\Entity\Domain $domain
      *
      * @return static
      */

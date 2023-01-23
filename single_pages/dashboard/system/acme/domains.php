@@ -10,6 +10,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var Acme\DomainService $domainService
  * @var Concrete\Core\Localization\Service\Date $dateHelper
  * @var Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface $resolverManager
+ * @var Acme\Service\UI $ui
  */
 
 $numServers = count($servers);
@@ -32,50 +33,30 @@ if ($numAccounts === 0) {
     return;
 }
 ?>
-
-<div class="ccm-dashboard-header-buttons col-md-4 acme-hide-loading hide">
-    <div class="input-group">
-        <input type="search" id="acme-filter" placeholder="<?= t('Search') ?>" class="form-control" />
-        <div class="input-group-btn">
-            <?php
-            if ($numAccounts === 1) {
-                $account = $serversWithAccounts[0]->getAccounts()->first();
-                ?>
-                <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/domains/edit', 'new', $account->getID()])) ?>" class="btn btn-primary"><?= t('Add domain') ?></a>
+<div class="ccm-dashboard-header-buttons acme-hide-loading <?= $ui->displayNone ?><?= $ui->majorVersion <= 8 ? ' col-md-4' : '' ?>">
+    <div>
+        <div class="input-group">
+            <input type="search" id="acme-filter" placeholder="<?= t('Search') ?>" class="form-control" />
+            <div class="input-group-btn">
                 <?php
-            } else {
-                ?>
-                <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
-                    <?= t('Add domain') ?>
-                    <span class="caret"></span>
-                </button>
-                <ul class="dropdown-menu">
+                if ($numAccounts === 1) {
+                    $account = $serversWithAccounts[0]->getAccounts()->first();
+                    ?>
+                    <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/domains/edit', 'new', $account->getID()])) ?>" class="btn btn-primary"><?= t('Add domain') ?></a>
                     <?php
-                    if (count($serversWithAccounts) === 1) {
-                        foreach ($serversWithAccounts[0]->getAccounts() as $account) {
-                            ?>
-                            <li>
-                                <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/domains/edit', 'new', $account->getID()])) ?>">
-                                    <?php
-                                    if ($account->isDefault()) {
-                                        echo '<strong>', h($account->getName()), '</strong>';
-                                    } else {
-                                        echo h($account->getName());
-                                    }
-                                    ?>
-                                </a>
-                            </li>
-                            <?php
-                        }
-                    } else {
-                        foreach ($serversWithAccounts as $server) {
-                            ?>
-                            <li class="dropdown-header"><?= h($server->getName())?></li>
-                            <?php
-                            foreach ($server->getAccounts() as $account) {
+                } else {
+                    ?>
+                    <button class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" data-toggle="dropdown">
+                        <?= t('Add domain') ?>
+                        <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <?php
+                        if (count($serversWithAccounts) === 1) {
+                            foreach ($serversWithAccounts[0]->getAccounts() as $account) {
                                 ?>
                                 <li>
-                                    <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/domains/edit', 'new', $account->getID()])) ?>">
+                                    <a class="dropdown-item" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/domains/edit', 'new', $account->getID()])) ?>">
                                         <?php
                                         if ($account->isDefault()) {
                                             echo '<strong>', h($account->getName()), '</strong>';
@@ -87,98 +68,121 @@ if ($numAccounts === 0) {
                                 </li>
                                 <?php
                             }
+                        } else {
+                            foreach ($serversWithAccounts as $server) {
+                                ?>
+                                <li><span class="dropdown-header"><?= h($server->getName())?></span></li>
+                                <?php
+                                foreach ($server->getAccounts() as $account) {
+                                    ?>
+                                    <li>
+                                        <a class="dropdown-item" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/domains/edit', 'new', $account->getID()])) ?>">
+                                            <?php
+                                            if ($account->isDefault()) {
+                                                echo '<strong>', h($account->getName()), '</strong>';
+                                            } else {
+                                                echo h($account->getName());
+                                            }
+                                            ?>
+                                        </a>
+                                    </li>
+                                    <?php
+                                }
+                            }
                         }
-                    }
-                    ?>
-                </ul>
-                <?php
-            }
-            ?>
+                        ?>
+                    </ul>
+                    <?php
+                }
+                ?>
+            </div>
         </div>
     </div>
 </div>
-<?php
-if ($domains === []) {
-    ?>
-    <div class="alert alert-info">
-        <?= t('No domain has been defined.') ?>
-    </div>
+<div>
     <?php
-} else {
-    $showPunycode = false;
-    foreach ($domains as $domain) {
-        if ($domain->getHostname() !== $domain->getPunycode()) {
-            $showPunycode = true;
-            break;
+    if ($domains === []) {
+        ?>
+        <div class="alert alert-info">
+            <?= t('No domain has been defined.') ?>
+        </div>
+        <?php
+    } else {
+        $showPunycode = false;
+        foreach ($domains as $domain) {
+            if ($domain->getHostname() !== $domain->getPunycode()) {
+                $showPunycode = true;
+                break;
+            }
         }
-    }
-    ?>
-    <table class="table table-striped table-condensed acme-hide-loading hide" id="acme-list">
-        <col width="1" />
-        <thead>
-            <tr>
-                <th></th>
-                <th><?= t('Domain') ?></th>
-                <?php
-                if ($showPunycode) {
-                    ?>
-                    <th><?= t('Punycode') ?></th>
-                    <?php
-                }
-                ?>
-                <th><?= t('Used in certificates') ?></th>
-                <?php
-                if ($numServers > 1) {
-                    ?><th><?= t('Server') ?></th><?php
-                }
-                if ($numAccounts > 1) {
-                    ?><th><?= t('Account') ?></th><?php
-                }
-                ?>
-                <th><?= t('Created on') ?></th>
-                <th><?= t('Authorization method') ?></th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php
-            foreach ($domains as $domain) {
-                ?>
-                <tr data-acme-domain-name="<?= h(mb_strtolower($domain->getHostDisplayName())) ?>">
-                    <td style="white-space: nowrap">
-                        <a class="btn btn-xs btn-primary" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/domains/edit', $domain->getID()])) ?>"><?= t('Edit') ?></a>
-                    </td>
-                    <td><?= h($domain->getHostDisplayName()) ?></td>
+        ?>
+        <table class="table table-striped table-condensed acme-hide-loading <?= $ui->displayNone ?>" id="acme-list">
+            <col width="1" />
+            <thead>
+                <tr>
+                    <th></th>
+                    <th><?= t('Domain') ?></th>
                     <?php
                     if ($showPunycode) {
                         ?>
-                        <td><?= h($domain->getPunycode()) ?></td>
+                        <th><?= t('Punycode') ?></th>
                         <?php
                     }
                     ?>
-                    <td><?= $domain->getCertificates()->count() ?></td>
+                    <th><?= t('Used in certificates') ?></th>
                     <?php
                     if ($numServers > 1) {
-                        ?>
-                        <td><?= h($domain->getAccount()->getServer()->getName()) ?></td>
-                        <?php
+                        ?><th><?= t('Server') ?></th><?php
                     }
                     if ($numAccounts > 1) {
-                        ?>
-                        <td><?= h($domain->getAccount()->getName()) ?></td>
-                        <?php
+                        ?><th><?= t('Account') ?></th><?php
                     }
                     ?>
-                    <td><?= h($dateHelper->formatDateTime($domain->getCreatedOn(), true, true)) ?></td>
-                    <td><?= h($domainService->describeChallengeType($domain)) ?></td>
+                    <th><?= t('Created on') ?></th>
+                    <th><?= t('Authorization method') ?></th>
                 </tr>
+            </thead>
+            <tbody>
                 <?php
-                }
-            ?>
-        </tbody>
-    </table>
-    <?php
-}
-?>
+                foreach ($domains as $domain) {
+                    ?>
+                    <tr data-acme-domain-name="<?= h(mb_strtolower($domain->getHostDisplayName())) ?>">
+                        <td style="white-space: nowrap">
+                            <a class="btn btn-sm btn-primary" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/domains/edit', $domain->getID()])) ?>"><?= t('Edit') ?></a>
+                        </td>
+                        <td><?= h($domain->getHostDisplayName()) ?></td>
+                        <?php
+                        if ($showPunycode) {
+                            ?>
+                            <td><?= h($domain->getPunycode()) ?></td>
+                            <?php
+                        }
+                        ?>
+                        <td><?= $domain->getCertificates()->count() ?></td>
+                        <?php
+                        if ($numServers > 1) {
+                            ?>
+                            <td><?= h($domain->getAccount()->getServer()->getName()) ?></td>
+                            <?php
+                        }
+                        if ($numAccounts > 1) {
+                            ?>
+                            <td><?= h($domain->getAccount()->getName()) ?></td>
+                            <?php
+                        }
+                        ?>
+                        <td><?= h($dateHelper->formatDateTime($domain->getCreatedOn(), true, true)) ?></td>
+                        <td><?= h($domainService->describeChallengeType($domain)) ?></td>
+                    </tr>
+                    <?php
+                    }
+                ?>
+            </tbody>
+        </table>
+        <?php
+    }
+    ?>
+</div>
 <script>
 $(document).ready(function() {
     var $search = $('#acme-filter'),
@@ -239,7 +243,7 @@ $(document).ready(function() {
                         }
                     });
                 }
-                $row.toggleClass('hide', hide);
+                $row.toggleClass(<?= json_encode($ui->displayNone) ?>, hide);
             });
         };
     })();
@@ -248,12 +252,12 @@ $(document).ready(function() {
 
     $search
         .on('input', function() {
-           applyFilter($search.val());
+            applyFilter($search.val());
         })
         .val(persistentSearch.get());
     ;
 
-    $('.acme-hide-loading').removeClass('hide');
+    $('.acme-hide-loading').removeClass(<?= json_encode($ui->displayNone) ?>);
 
     if ($search.val().length > 0) {
         $search.focus();

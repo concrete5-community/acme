@@ -6,6 +6,7 @@ use Acme\Certificate\Renewer;
 use Acme\Entity\Account;
 use Acme\Entity\Certificate;
 use Acme\Entity\Server;
+use Acme\Service\UI;
 use Concrete\Core\Error\UserMessageException;
 use Concrete\Core\Http\ResponseFactoryInterface;
 use Concrete\Core\Page\Controller\DashboardPageController;
@@ -15,7 +16,7 @@ use Punic\Comparer;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Certificates extends DashboardPageController
+final class Certificates extends DashboardPageController
 {
     public function view()
     {
@@ -31,7 +32,7 @@ class Certificates extends DashboardPageController
         $accounts = $qb->getQuery()->getResult();
         usort(
             $accounts,
-            function (Account $a, Account $b) use ($cmp) {
+            static function (Account $a, Account $b) use ($cmp) {
                 return $cmp->compare($a->getName(), $b->getName());
             }
         );
@@ -44,7 +45,7 @@ class Certificates extends DashboardPageController
         }
         usort(
             $servers,
-            function (Server $a, Server $b) use ($cmp) {
+            static function (Server $a, Server $b) use ($cmp) {
                 return $cmp->compare($a->getName(), $b->getName());
             }
         );
@@ -54,7 +55,22 @@ class Certificates extends DashboardPageController
         $this->set('resolverManager', $this->app->make(ResolverManagerInterface::class));
         $this->set('dateHelper', $this->app->make('date'));
         $this->set('renewer', $this->app->make(Renewer::class));
-        $this->addHeaderItem($this->getCSS());
+        $this->set('ui', $this->app->make(UI::class));
+        $this->addHeaderItem(
+            <<<'EOT'
+<style>
+tr.certificate-disabled .disable-certificate {
+    display: none;
+}
+tr.certificate-disabled .certificate-operation {
+    display: none;
+}
+tr.certificate-enabled .enable-certificate {
+    display: none;
+}
+</style>
+EOT
+        );
     }
 
     public function set_certificate_disabled()
@@ -85,24 +101,5 @@ class Certificates extends DashboardPageController
         }
 
         return $this->app->make(ResponseFactoryInterface::class)->json($newValue);
-    }
-
-    private function getCSS()
-    {
-        return <<<'EOT'
-<style>
-tr.certificate-disabled .disable-certificate {
-    display: none;
-}
-tr.certificate-disabled .certificate-operation {
-    display: none;
-}
-
-tr.certificate-enabled .enable-certificate {
-    display: none;
-}
-</style>
-EOT
-        ;
     }
 }

@@ -8,12 +8,12 @@ use DateTimeInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class DateTimeParser
+final class DateTimeParser
 {
     use NotificationSilencerTrait;
 
     /**
-     * @param string|\DateTimeInterface $value
+     * @param string|int|\DateTimeInterface|mixed $value
      *
      * @throws \Acme\Exception\Exception
      *
@@ -38,7 +38,7 @@ class DateTimeParser
      *
      * @return int|null
      */
-    protected function toTimestamp($value)
+    private function toTimestamp($value)
     {
         if (empty($value)) {
             return null;
@@ -52,7 +52,7 @@ class DateTimeParser
         if (!is_string($value)) {
             throw new RuntimeException(t('Unrecognized type for a date/time value: %s', gettype($value)));
         }
-        $timestamp = (int) $this->ignoringWarnings(function () use ($value) {
+        $timestamp = (int) $this->ignoringWarnings(static function () use ($value) {
             return strtotime($value);
         });
         if ($timestamp !== 0) {
@@ -60,7 +60,7 @@ class DateTimeParser
         }
         $m = null;
         if (preg_match('/^(\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d)\.\d*(\D.*)?$/', $value, $m)) {
-            $timestamp = (int) $this->ignoringWarnings(function () use ($m) {
+            $timestamp = (int) $this->ignoringWarnings(static function () use ($m) {
                 return strtotime($m[1] . $m[2]);
             });
             if ($timestamp !== 0) {

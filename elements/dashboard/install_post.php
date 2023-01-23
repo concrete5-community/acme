@@ -2,6 +2,7 @@
 
 use Acme\Entity\Account;
 use Acme\Entity\Server;
+use Acme\Service\UI;
 use Concrete\Core\Form\Service\Form;
 use Concrete\Core\Support\Facade\Application;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
@@ -23,6 +24,7 @@ $user = $app->make(User::class);
 $userInfo = $user->isRegistered() ? $user->getUserInfoObject() : null;
 $config = $app->make('config');
 $em = $app->make(EntityManagerInterface::class);
+$ui = $app->make(UI::class);
 $resolverManager = $app->make(ResolverManagerInterface::class);
 
 $serverName = '';
@@ -60,47 +62,37 @@ switch (count($servers)) {
         ?>
         <div v-if="step === steps.SERVER">
             <p><?= t('You have to choose a service provider that will generate the HTTPS certificates for you.') ?></p>
-            <div id="acme-installpost-servercategories" class="panel-group" role="tablist">
+            <?= $ui->startAccordion('acme-installpost-servercategories') ?>
                 <?php
                 $sampleServersCategoryNames = [
                     'production' => t('Production Servers'),
                     'staging' => t('Staging Servers'),
                     'test' => t('Test Servers'),
                 ];
-                $class = ' in';
+                $tabExpanded = true;
                 foreach ($sampleServersList as $sampleServersCategory => $sampleServers) {
                     if (empty($sampleServers)) {
                         continue;
                     }
-                    ?>
-                    <div class="panel panel-default">
-                        <div class="panel-heading" role="tab" id="acme-installpost-servercategory-<?= $sampleServersCategory ?>-header" v-on:click="preventDefaultIfBusy">
-                            <h4 class="panel-title">
-                                <a role="button" data-toggle="collapse" data-parent="#acme-installpost-servercategories" href="#acme-installpost-servercategory-<?= $sampleServersCategory ?>-body">
-                                    <?= h(isset($sampleServersCategoryNames[$sampleServersCategory]) ? $sampleServersCategoryNames[$sampleServersCategory] : $sampleServersCategory) ?>
-                                </a>
-                            </h4>
-                        </div>
-                        <div id="acme-installpost-servercategory-<?= $sampleServersCategory ?>-body" class="panel-collapse collapse<?= $class ?>" role="tabpanel">
-                            <div class="panel-body">
-                                <?php
-                                foreach ($sampleServers as $sampleServerHandle => $sampleServerData) {
-                                    ?>
-                                    <button class="btn btn-primary btn-sm" v-bind:disabled="busy" v-on:click.prevent="<?= h('createServer(' . json_encode($sampleServersCategory) . ', ' . json_encode($sampleServerHandle) . ')') ?>">
-                                        <?= h($sampleServerData['name']) ?>
-                                    </button>
-                                    <?php
-                                }
-                                ?>
-                            </div>
-                        </div>
-                    </div>
-                    <?php
-                    $class = '';
+                    echo $ui->startAccordionTab(
+                        'acme-installpost-servercategories',
+                        "acme-installpost-servercategory-{$sampleServersCategory}",
+                        h(isset($sampleServersCategoryNames[$sampleServersCategory]) ? $sampleServersCategoryNames[$sampleServersCategory] : $sampleServersCategory),
+                        $tabExpanded
+                    );
+                    foreach ($sampleServers as $sampleServerHandle => $sampleServerData) {
+                        ?>
+                        <button class="btn btn-primary btn-sm" v-bind:disabled="busy" v-on:click.prevent="<?= h('createServer(' . json_encode($sampleServersCategory) . ', ' . json_encode($sampleServerHandle) . ')') ?>">
+                            <?= h($sampleServerData['name']) ?>
+                        </button>
+                        <?php
+                    }
+                    echo $ui->endAccordionTab();
+                    $tabExpanded = false;
                 }
                 ?>
-            </div>
-            <a href="#" v-bind:disabled="busy" v-on:click.prevent="if (!busy) step = steps.READY" class="btn btn-sm btn-default"><?= t('Skip') ?></a>
+            <?= $ui->endAccordion() ?>
+            <a href="#" v-bind:disabled="busy" v-on:click.prevent="if (!busy) step = steps.READY" class="btn btn-sm <?= $ui->defaultButton ?>"><?= t('Skip') ?></a>
         </div>
         <?php
     }
@@ -115,14 +107,14 @@ switch (count($servers)) {
                 <?= $form->label('accountName', t('Account name')) ?>
                 <div class="input-group">
                     <input type="text" id="accountName" v-model.trim="accountName" class="form-control ccm-input-text" v-bind:disabled="busy" />
-                    <span class="input-group-addon"><i class="fa fa-asterisk"></i></span>
+                    <span class="<?= $ui->inputGroupAddon ?>"><i class="<?= $ui->faAsterisk ?>"></i></span>
                 </div>
             </div>
             <div class="form-group">
                 <?= $form->label('accountEmail', t('Email address')) ?>
                 <div class="input-group">
                     <input type="email" id="accountEmail" v-model.trim="accountEmail" class="form-control ccm-input-text" v-bind:disabled="busy" />
-                    <span class="input-group-addon"><i class="fa fa-asterisk"></i></span>
+                    <span class="<?= $ui->inputGroupAddon ?>"><i class="<?= $ui->faAsterisk ?>"></i></span>
                 </div>
             </div>
             <div class="form-group" v-if="serverTermsOfServiceUrl">
@@ -135,10 +127,10 @@ switch (count($servers)) {
                 </div>
             </div>
             <div>
-                <div class="pull-left">
-                    <a href="#" v-bind:disabled="busy" v-on:click.prevent="if (!busy) step = steps.READY" class="btn btn-sm btn-default"><?= t('Skip') ?></a>
+                <div class="<?= $ui->floatStart ?>">
+                    <a href="#" v-bind:disabled="busy" v-on:click.prevent="if (!busy) step = steps.READY" class="btn btn-sm <?= $ui->defaultButton ?>"><?= t('Skip') ?></a>
                 </div>
-                <div class="pull-right">
+                <div class="<?= $ui->floatEnd ?>">
                     <a href="#" v-bind:disabled="busy" v-on:click.prevent="createAccount()" class="btn btn-sm btn-primary"><?= t('Create account') ?></a>
                 </div>
             </div>

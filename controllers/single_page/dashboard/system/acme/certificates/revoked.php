@@ -2,10 +2,11 @@
 
 namespace Concrete\Package\Acme\Controller\SinglePage\Dashboard\System\Acme\Certificates;
 
+use Acme\Crypto\FileDownloader;
 use Acme\Entity\Certificate;
 use Acme\Entity\RevokedCertificate;
 use Acme\Exception\FileDownloaderException;
-use Acme\Security\FileDownloader;
+use Acme\Service\UI;
 use Concrete\Core\Http\ResponseFactoryInterface;
 use Concrete\Core\Page\Controller\DashboardPageController;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
@@ -13,7 +14,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Revoked extends DashboardPageController
+final class Revoked extends DashboardPageController
 {
     public function view($certificateID = '')
     {
@@ -44,6 +45,7 @@ class Revoked extends DashboardPageController
         $this->set('revokedCertificates', $revokedCertificates);
         $this->set('resolverManager', $this->app->make(ResolverManagerInterface::class));
         $this->set('dateHelper', $this->app->make('date'));
+        $this->set('ui', $this->app->make(UI::class));
     }
 
     public function download_key($certificateID = '', $revokedCertificateID = '')

@@ -8,7 +8,9 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var Concrete\Core\Localization\Service\Date $dateHelper
  * @var Concrete\Core\Validation\CSRF\Token $token
  * @var Concrete\Core\Page\View\PageView $view
+ * @var Acme\Service\UI $ui
  */
+
 if ($certificate->getOrders()->isEmpty()) {
     ?>
     <div class="alert alert-info">
@@ -34,7 +36,7 @@ if ($certificate->getOrders()->isEmpty()) {
                     <td>
                         <?php
                         if ($order === $certificate->getOngoingOrder()) {
-                            echo '<i class="fa fa-cog fa-spin fa-fw"></i> ';
+                            echo "<i class=\"{$ui->faCogSpinning}\"></i> ";
                         }
                         echo h($dateHelper->formatPrettyDateTime($order->getCreatedOn()));
                         ?>
@@ -73,14 +75,13 @@ if ($certificate->getOrders()->isEmpty()) {
     </table>
     <?php
 }
-
 ?>
 <div class="ccm-dashboard-form-actions-wrapper">
     <div class="ccm-dashboard-form-actions">
-        <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', $certificate->getID()])) ?>" class="btn btn-default pull-left">
+        <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', $certificate->getID()])) ?>" class="btn <?= $ui->defaultButton ?> <?= $ui->floatStart ?>">
             <?= t('Back') ?>
         </a>
-        <div class="pull-right">
+        <div class="<?= $ui->floatEnd ?>">
             <?php
             if ($certificate->getOrders()->isEmpty()) {
                 ?>
@@ -99,7 +100,7 @@ if ($certificate->getOrders()->isEmpty()) {
 <?php
 if (!$certificate->getOrders()->isEmpty()) {
     ?>
-    <form id="acme-certificate-clearhistory-do" method="POST" action="<?= h($view->action('clear_history', $certificate->getID())) ?>" class="hide">
+    <form id="acme-certificate-clearhistory-do" method="POST" action="<?= h($view->action('clear_history', $certificate->getID())) ?>" class="<?= $ui->displayNone ?>">
         <?php $token->output('acme-certificate-clear_history-' . $certificate->getID()) ?>
     </form>
     <script>
@@ -114,4 +115,3 @@ if (!$certificate->getOrders()->isEmpty()) {
     </script>
     <?php
 }
-?>

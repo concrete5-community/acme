@@ -10,7 +10,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class EditCommand extends Command
+final class EditCommand extends Command
 {
     /**
      * {@inheritdoc}

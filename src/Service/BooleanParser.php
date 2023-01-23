@@ -4,12 +4,12 @@ namespace Acme\Service;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class BooleanParser
+final class BooleanParser
 {
     /**
      * Convert a value to a boolean.
      *
-     * @param mixed $value
+     * @param bool|int|float|string|mixed $value
      * @param bool $allowNull
      *
      * @return bool|null NULL if $allowNull is true

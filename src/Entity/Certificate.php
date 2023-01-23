@@ -3,7 +3,7 @@
 namespace Acme\Entity;
 
 use Acme\Certificate\CertificateInfo;
-use Acme\Security\KeyPair;
+use Acme\Crypto\KeyPair;
 use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 
@@ -242,7 +242,7 @@ class Certificate
     /**
      * The private/public key pair.
      *
-     * @var \Acme\Security\KeyPair|null
+     * @var \Acme\Crypto\KeyPair|null
      */
     private $keyPair;
 
@@ -253,9 +253,6 @@ class Certificate
      */
     private $certificateInfo;
 
-    /**
-     * Initialize the instance.
-     */
     protected function __construct()
     {
     }
@@ -340,7 +337,7 @@ class Certificate
     /**
      * Get the certificate private/public key pair (in PKCS#1 PEM format).
      *
-     * @return \Acme\Security\KeyPair|null
+     * @return \Acme\Crypto\KeyPair|null
      */
     public function getKeyPair()
     {
@@ -353,7 +350,7 @@ class Certificate
             if ($publicKey === '') {
                 return null;
             }
-            $this->keyPair = KeyPair::create($privateKey, $publicKey);
+            $this->keyPair = new KeyPair($privateKey, $publicKey);
         }
 
         return $this->keyPair;
@@ -361,8 +358,6 @@ class Certificate
 
     /**
      * Set the certificate private/public key pair (in PKCS#1 PEM format).
-     *
-     * @param \Acme\Security\KeyPair|null $value
      *
      * @return $this
      */
@@ -388,7 +383,7 @@ class Certificate
     /**
      * Get the currently running order/set of authorizations.
      *
-     * @param \Acme\Entity\Order|null $value
+     * @return $this
      */
     public function setOngoingOrder(Order $value = null)
     {
@@ -448,8 +443,6 @@ class Certificate
 
     /**
      * Set the info about the certificate.
-     *
-     * @param \Acme\Certificate\CertificateInfo|null $value
      *
      * @return $this
      */

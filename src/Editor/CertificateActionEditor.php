@@ -16,28 +16,23 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * Helper class to create/edit/delete CertificateAction entities.
  */
-class CertificateActionEditor
+final class CertificateActionEditor
 {
     /**
      * @var \Doctrine\ORM\EntityManagerInterface
      */
-    protected $em;
+    private $em;
 
     /**
      * @var \Acme\Filesystem\DriverManager
      */
-    protected $filesystemDriverManager;
+    private $filesystemDriverManager;
 
     /**
      * @var \Acme\Service\BooleanParser
      */
-    protected $booleanParser;
+    private $booleanParser;
 
-    /**
-     * @param \Doctrine\ORM\EntityManagerInterface $em
-     * @param \Acme\Filesystem\DriverManager $filesystemDriverManager
-     * @param \Acme\Service\BooleanParser $booleanParser
-     */
     public function __construct(EntityManagerInterface $em, DriverManager $filesystemDriverManager, BooleanParser $booleanParser)
     {
         $this->em = $em;
@@ -75,7 +70,6 @@ class CertificateActionEditor
     /**
      * Edit an existing CertificateAction instance.
      *
-     * @param \Acme\Entity\CertificateAction $certificateAction
      * @param array $data Keys: 'position', 'remoteServer', 'savePrivateKey', 'savePrivateKeyTo', 'saveCertificate', 'saveCertificateTo', 'saveIssuerCertificate', 'saveIssuerCertificateTo', 'saveCertificateWithIssuer', 'saveCertificateWithIssuerTo', 'executeCommand', 'commandToExecute'
      * @param \ArrayAccess $errors Errors will be added here
      *
@@ -101,8 +95,7 @@ class CertificateActionEditor
     /**
      * Delete a CertificateAction instance.
      *
-     * @param \Acme\Entity\CertificateAction $certificateAction
-     * @param \ArrayAccess $errors
+     * @param \ArrayAccess $errors Errors will be added here
      *
      * @return bool FALSE in case of errors
      */
@@ -129,14 +122,13 @@ class CertificateActionEditor
     /**
      * Extract/normalize the data received.
      *
-     * @param array $data
-     * @param \ArrayAccess $errors
+     * @param \ArrayAccess $errors Errors will be added here
      * @param \Acme\Entity\CertificateAction|null $certificateAction NULL if and only if creating a new instance
      * @param \Acme\Entity\Certificate|null $certificate NULL if and only if editing an existing instance
      *
      * @return array|null Return NULL in case of errors
      */
-    protected function normalizeData(array $data, ArrayAccess $errors, CertificateAction $certificateAction = null, Certificate $certificate = null)
+    private function normalizeData(array $data, ArrayAccess $errors, CertificateAction $certificateAction = null, Certificate $certificate = null)
     {
         $state = new DataState($data, $errors);
         $normalizedData =
@@ -164,11 +156,8 @@ class CertificateActionEditor
 
     /**
      * Apply to a CertificateAction instance the data extracted from the normalizeData() method.
-     *
-     * @param \Acme\Entity\CertificateAction $certificateAction
-     * @param array $normalizedData
      */
-    protected function applyNormalizedData(CertificateAction $certificateAction, array $normalizedData)
+    private function applyNormalizedData(CertificateAction $certificateAction, array $normalizedData)
     {
         $certificateAction
             ->setPosition($normalizedData['position'])
@@ -184,13 +173,12 @@ class CertificateActionEditor
     /**
      * Extract 'position', checking that it's valid and that's not already used.
      *
-     * @param \Acme\Editor\DataState $state
      * @param \Acme\Entity\CertificateAction|null $certificateAction NULL if and only if creating a new instance
      * @param \Acme\Entity\Certificate|null $certificate NULL if and only if editing an existing instance
      *
      * @return int|null
      */
-    protected function extractPosition(DataState $state, CertificateAction $certificateAction = null, Certificate $certificate = null)
+    private function extractPosition(DataState $state, CertificateAction $certificateAction = null, Certificate $certificate = null)
     {
         $value = (int) $state->popValue('position');
         if ($certificateAction !== null && $certificateAction->getPosition() === $value) {
@@ -213,13 +201,9 @@ class CertificateActionEditor
     /**
      * Extract 'remoteServer'.
      *
-     * @param \Acme\Editor\DataState $state
-     * @param CertificateAction|null $certificateAction
-     * @param Certificate|null $certificate
-     *
      * @return int|null
      */
-    protected function extractRemoteServer(DataState $state, CertificateAction $certificateAction = null, Certificate $certificate = null)
+    private function extractRemoteServer(DataState $state, CertificateAction $certificateAction = null, Certificate $certificate = null)
     {
         $value = $state->popValue('remoteServer');
         if ($value instanceof RemoteServer) {
@@ -243,13 +227,12 @@ class CertificateActionEditor
     /**
      * Extract a boolean flag and its associated string.
      *
-     * @param \Acme\Editor\DataState $state
      * @param string $boolKey
      * @param string $stringKey
      *
      * @return array
      */
-    protected function extractBoolString(DataState $state, $boolKey, $stringKey)
+    private function extractBoolString(DataState $state, $boolKey, $stringKey)
     {
         $boolValue = $this->booleanParser->toBoolean($state->popValue($boolKey));
         $stringValue = trim((string) $state->popValue($stringKey));
@@ -265,11 +248,8 @@ class CertificateActionEditor
 
     /**
      * Check if the remote server can execute commands.
-     *
-     * @param \Acme\Editor\DataState $state
-     * @param array $normalizedData
      */
-    protected function checkExecuteCommand(DataState $state, array $normalizedData)
+    private function checkExecuteCommand(DataState $state, array $normalizedData)
     {
         $remoteServer = $normalizedData['remoteServer'];
         if ($remoteServer === null) {

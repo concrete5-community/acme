@@ -2,50 +2,35 @@
 
 namespace Acme\ChallengeType\Types;
 
-use Acme\ChallengeType\ChallengeTypeInterface;
 use Acme\Entity\AuthorizationChallenge;
 use Acme\Entity\Domain;
 use Acme\Exception\RuntimeException;
 use Acme\Http\ClientFactory as HttpClientFactory;
-use Acme\Security\Crypto;
 use ArrayAccess;
 use Concrete\Core\Filesystem\ElementManager;
 use Concrete\Core\Page\Page;
-use Zend\Http\Exception\RuntimeException as HttpClientRuntimeException;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class DnsChallTestSrvChallenge implements ChallengeTypeInterface
+final class DnsChallTestSrvChallenge extends DnsChallenge
 {
-    /**
-     * @var \Acme\Security\Crypto
-     */
-    protected $crypto;
-
     /**
      * @var \Acme\Http\ClientFactory
      */
-    protected $httpClientFactory;
+    private $httpClientFactory;
 
     /**
      * @var string
      */
-    protected $handle;
+    private $handle;
 
     /**
      * @var string
      */
-    protected $defaultManagementAddress;
+    private $defaultManagementAddress;
 
-    /**
-     * Initialize the instance.
-     *
-     * @param HttpClientFactory $httpClientFactory
-     * @param Crypto $crypto
-     */
-    public function __construct(Crypto $crypto, HttpClientFactory $httpClientFactory)
+    public function __construct(HttpClientFactory $httpClientFactory)
     {
-        $this->crypto = $crypto;
         $this->httpClientFactory = $httpClientFactory;
     }
 
@@ -110,7 +95,7 @@ class DnsChallTestSrvChallenge implements ChallengeTypeInterface
      *
      * @see \Acme\ChallengeType\ChallengeTypeInterface::checkConfiguration()
      */
-    public function checkConfiguration(Domain $domain, array $challengeConfiguration, ArrayAccess $errors)
+    public function checkConfiguration(Domain $domain, array $challengeConfiguration, array $previousChallengeConfiguration, ArrayAccess $errors)
     {
         $failed = false;
         $result = [
@@ -192,13 +177,12 @@ class DnsChallTestSrvChallenge implements ChallengeTypeInterface
     }
 
     /**
-     * @param \Acme\Entity\Domain $domain
      * @param string $authorizationKey
      * @param string $managementAddress
      *
      * @throws \Acme\Exception\RuntimeException
      */
-    protected function createDnsTokenTxt(Domain $domain, $authorizationKey, $managementAddress)
+    private function createDnsTokenTxt(Domain $domain, $authorizationKey, $managementAddress)
     {
         $this->post(
             [
@@ -211,7 +195,7 @@ class DnsChallTestSrvChallenge implements ChallengeTypeInterface
         $this->post(
             [
                 'host' => '_acme-challenge.' . $domain->getPunycode() . '.',
-                'value' => $this->crypto->generateDnsRecordValue($authorizationKey),
+                'value' => $this->generateDnsRecordValue($authorizationKey),
             ],
             $managementAddress,
             'set-txt'
@@ -219,12 +203,11 @@ class DnsChallTestSrvChallenge implements ChallengeTypeInterface
     }
 
     /**
-     * @param \Acme\Entity\Domain $domain
      * @param string $managementAddress
      *
      * @throws \Acme\Exception\RuntimeException
      */
-    protected function clearDnsTokenTxt(Domain $domain, $managementAddress)
+    private function clearDnsTokenTxt(Domain $domain, $managementAddress)
     {
         $this->post(
             [
@@ -242,25 +225,15 @@ class DnsChallTestSrvChallenge implements ChallengeTypeInterface
      *
      * @throws \Acme\Exception\RuntimeException
      */
-    protected function post(array $data, $managementAddress, $path)
+    private function post(array $data, $managementAddress, $path)
     {
         $client = $this->httpClientFactory->getClient(true);
-        try {
-            $response = $client
-                ->setUri($managementAddress . '/' . ltrim($path, '/'))
-                ->setMethod('POST')
-                ->setRawBody(json_encode($data, JSON_UNESCAPED_SLASHES))
-                ->setOptions([
-                    'connectiontimeout' => 2,
-                    'timeout' => 10,
-                ])
-                ->send()
-            ;
-        } catch (HttpClientRuntimeException $x) {
-            throw new RuntimeException(t('Failed to communicate with the fake DNS Server: %s', $x->getMessage()), null, $x);
-        }
-        if (!$response->isOk()) {
-            throw new RuntimeException(t('Error thrown by the fake DNS Server: %s', $response->getStatusCode() . ' (' . $response->getReasonPhrase() . ')'));
+        $response = $client->post(
+            $managementAddress . '/' . ltrim($path, '/'),
+            json_encode($data, JSON_UNESCAPED_SLASHES)
+        );
+        if ($response->statusCode !== 200) {
+            throw new RuntimeException(t('Error thrown by the fake DNS Server: %s', "{$response->statusCode} ({$response->reasonPhrase})"));
         }
     }
 }

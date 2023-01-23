@@ -18,22 +18,18 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * Helper class to create/edit/delete Domain entities.
  */
-class DomainEditor
+final class DomainEditor
 {
     /**
      * @var \Doctrine\ORM\EntityManagerInterface
      */
-    protected $em;
+    private $em;
 
     /**
      * @var \Acme\ChallengeType\ChallengeTypeManager
      */
-    protected $challengeTypeManager;
+    private $challengeTypeManager;
 
-    /**
-     * @param \Doctrine\ORM\EntityManagerInterface $em
-     * @param \Acme\ChallengeType\ChallengeTypeManager $challengeTypeManager
-     */
     public function __construct(EntityManagerInterface $em, ChallengeTypeManager $challengeTypeManager)
     {
         $this->em = $em;
@@ -70,7 +66,6 @@ class DomainEditor
     /**
      * Edit an existing Domain instance.
      *
-     * @param \Acme\Entity\Domain $domain
      * @param array $data Keys:<br />
      *                    - string <code><b>hostname</b></code> the host name (or its punycode) of the domain [required]<br />
      *                    - string <code><b>challengetype</b></code> the handle of the challenge type [required]<br />
@@ -94,8 +89,7 @@ class DomainEditor
     /**
      * Delete a Domain instance.
      *
-     * @param \Acme\Entity\Domain $domain
-     * @param \ArrayAccess $errors
+     * @param \ArrayAccess $errors Errors will be added here
      *
      * @return bool FALSE in case of errors
      */
@@ -126,14 +120,12 @@ class DomainEditor
     /**
      * Extract/normalize the data received.
      *
-     * @param array $data
-     * @param \ArrayAccess $errors
      * @param \Acme\Entity\Domain|null $domain NULL if (and only if) creating a new domain
      * @param \Acme\Entity\Account|null $account NULL if (and only if) editing an existing domain
      *
      * @return array|null Return NULL in case of errors
      */
-    protected function normalizeData(array $data, ArrayAccess $errors, Domain $domain = null, Account $account = null)
+    private function normalizeData(array $data, ArrayAccess $errors, Domain $domain = null, Account $account = null)
     {
         $state = new DataState($data, $errors);
         $normalizedData = $this->extractHostname($state, $domain, $account) + $this->extractChallengeType($state, $domain);
@@ -157,13 +149,12 @@ class DomainEditor
     /**
      * Extract 'hostname', checking that it's valid and that's not already used.
      *
-     * @param \Acme\Editor\DataState $state
      * @param \Acme\Entity\Domain|null $domain NULL if (and only if) creating a new domain
      * @param \Acme\Entity\Account $account NULL if (and only if) editing an existing domain
      *
      * @return array
      */
-    protected function extractHostname(DataState $state, Domain $domain = null, Account $account = null)
+    private function extractHostname(DataState $state, Domain $domain = null, Account $account = null)
     {
         $result = [
             'hostname' => '',
@@ -271,12 +262,11 @@ class DomainEditor
     /**
      * Extract 'challengetype', plus any other options supported by the specific challenge type.
      *
-     * @param \Acme\Editor\DataState $state
      * @param \Acme\Entity\Domain|null $domain NULL if (and only if) creating a new domain
      *
      * @return array
      */
-    protected function extractChallengeType(DataState $state, Domain $domain = null)
+    private function extractChallengeType(DataState $state, Domain $domain = null)
     {
         $result = [
             'challengeType' => null,
@@ -310,13 +300,7 @@ class DomainEditor
         return $result;
     }
 
-    /**
-     * @param \Acme\Editor\DataState $state
-     * @param array $normalizedData
-     * @param \Acme\Entity\Domain $domain
-     * @param \Acme\Entity\Account|null $account NULL if (and only if) editing an existing domain
-     */
-    protected function checkDomainNameChange(DataState $state, array $normalizedData, Domain $domain)
+    private function checkDomainNameChange(DataState $state, array $normalizedData, Domain $domain)
     {
         if (true
             && $domain->getHostname() === $normalizedData['hostname']
@@ -344,17 +328,21 @@ class DomainEditor
     }
 
     /**
-     * @param \Acme\Editor\DataState $state
-     * @param array $normalizedData
      * @param \Acme\Entity\Domain|null $domain NULL if (and only if) creating a new domain
      * @param \Acme\Entity\Account|null $account NULL if (and only if) editing an existing domain
      */
-    protected function checkChallengeType(DataState $state, array &$normalizedData, Domain $domain = null, Account $account = null)
+    private function checkChallengeType(DataState $state, array &$normalizedData, Domain $domain = null, Account $account = null)
     {
         $challengeType = $normalizedData['challengeType'];
+        /** @var \Acme\ChallengeType\ChallengeTypeInterface $challengeType */
+        if ($domain !== null && $domain->getChallengeTypeHandle() === $challengeType->getHandle()) {
+            $previousChallengeConfiguration = $domain->getChallengeTypeConfiguration();
+        } else {
+            $previousChallengeConfiguration = [];
+        }
         $testDomain = Domain::create($account === null ? $domain->getAccount() : $account);
         $this->applyNormalizedData($testDomain, $normalizedData);
-        $challengeTypeConfiguration = $challengeType->checkConfiguration($testDomain, $normalizedData['challengeTypeConfiguration'], $state->getErrors());
+        $challengeTypeConfiguration = $challengeType->checkConfiguration($testDomain, $normalizedData['challengeTypeConfiguration'], $previousChallengeConfiguration, $state->getErrors());
         if ($challengeTypeConfiguration === null) {
             $state->setFailed();
         } else {
@@ -364,11 +352,8 @@ class DomainEditor
 
     /**
      * Apply to a Domain instance the data extracted from the normalizeData() method.
-     *
-     * @param \Acme\Entity\Domain $domain
-     * @param array $normalizedData
      */
-    protected function applyNormalizedData(Domain $domain, array $normalizedData)
+    private function applyNormalizedData(Domain $domain, array $normalizedData)
     {
         $domain
             ->setHostname($normalizedData['hostname'])

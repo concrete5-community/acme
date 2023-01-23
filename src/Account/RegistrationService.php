@@ -10,16 +10,13 @@ use DateTime;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class RegistrationService
+final class RegistrationService
 {
     /**
      * @var \Acme\Protocol\Communicator
      */
-    protected $communicator;
+    private $communicator;
 
-    /**
-     * @param \Acme\Protocol\Communicator $communicator
-     */
     public function __construct(Communicator $communicator)
     {
         $this->communicator = $communicator;
@@ -28,7 +25,7 @@ class RegistrationService
     /**
      * Register an account.
      *
-     * @param \Acme\Entity\Account $account
+     * @param \Acme\Entity\Account $account the account to be registered
      * @param string $acceptedTermsOfService the URL of the accepted terms of service (see the getTermsOfServiceUrl() method of the Server instance)
      * @param bool $allowExistingAccount
      *
@@ -53,14 +50,13 @@ class RegistrationService
     /**
      * Get the payload to be sent to the ACME server when registering an account.
      *
-     * @param \Acme\Entity\Account $account the account to be registered
-     * @param string $acceptedTermsOfService the URL of the accepted terms of service (see the getTermsOfServiceUrl() method of the Server instance)
+     * @param string $acceptedTermsOfService
      *
      * @throws \Acme\Exception\UnrecognizedProtocolVersionException when the ACME Protocol version is not recognized
      *
      * @return array
      */
-    protected function getRegistrationPayload(Account $account, $acceptedTermsOfService = '')
+    private function getRegistrationPayload(Account $account, $acceptedTermsOfService = '')
     {
         $server = $account->getServer();
         if ($server->getTermsOfServiceUrl() === '') {

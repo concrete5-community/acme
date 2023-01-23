@@ -7,6 +7,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var Acme\Protocol\Version $protocolVersion
  * @var Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface $resolverManager
  * @var Concrete\Core\Localization\Service\Date $dateHelper
+ * @var Acme\Service\UI $ui
  */
 ?>
 <div class="ccm-dashboard-header-buttons">
@@ -40,8 +41,8 @@ if (empty($servers)) {
             foreach ($servers as $server) {
                 ?>
                 <tr>
-                    <td><a class="btn btn-xs btn-primary" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/servers/edit', $server->getID()])) ?>"><?= t('Edit') ?></a></td>
-                    <td class="text-center"><?= $server->isDefault() ? '<i class="fa fa-check-square-o"></i>' : '<i class="fa fa-square-o"></i>' ?></td>
+                    <td><a class="btn btn-sm btn-primary" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/servers/edit', $server->getID()])) ?>"><?= t('Edit') ?></a></td>
+                    <td class="text-center"><?= $server->isDefault() ? "<i class=\"{$ui->faCheckboxChecked}\"></i>" : "<i class=\"{$ui->faCheckboxUnchecked}\"></i>" ?></td>
                     <td>
                         <?php
                         if ($server->getWebsite() !== '') {
@@ -59,7 +60,7 @@ if (empty($servers)) {
                     <td>
                         <?php
                         if ($server->isAllowUnsafeConnections()) {
-                            ?><div><span class="label label-danger"><?= t('Unsafe connections allowed')?></span></div><?php
+                            ?><div><span class="<?= $ui->badgeDanger ?>"><?= t('Unsafe connections allowed')?></span></div><?php
                         }
                         ?>
                         <a href="<?= h($server->getDirectoryUrl()) ?>" rel="noopener noreferrer" target="_blank"><?= h($server->getDirectoryUrl()) ?></a>

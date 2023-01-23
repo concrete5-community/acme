@@ -2,39 +2,44 @@
 
 namespace Acme\Protocol;
 
+use Acme\Crypto\Engine;
+use Acme\Crypto\PrivateKey;
 use Acme\Entity\Account;
 use Acme\Exception\Codec\Exception as CodecException;
 use Acme\Exception\KeyPair\SigningException;
 use Acme\Exception\RuntimeException;
 use Acme\Exception\UnrecognizedProtocolVersionException;
-use Acme\Security\Crypto;
-use phpseclib\Crypt\RSA;
+use Acme\Service\Base64EncoderTrait;
+use Acme\Service\JsonEncoderTrait;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
 /**
  * Helper class to build the body of calls to ACME servers.
  */
-class RequestBuilder
+final class RequestBuilder
 {
+    use Base64EncoderTrait;
+
+    use JsonEncoderTrait;
+
     /**
      * @var \Acme\Protocol\NonceManager
      */
-    protected $nonceManager;
+    private $nonceManager;
 
     /**
-     * @var \Acme\Security\Crypto
+     * @var int
      */
-    protected $crypto;
+    private $engineID;
 
     /**
-     * @param \Acme\Protocol\NonceManager $nonceManager
-     * @param Crypto $crypto
+     * @param int|null $engineID The value of one of the Acme\Crypto\Engine constants
      */
-    public function __construct(NonceManager $nonceManager, Crypto $crypto)
+    public function __construct(NonceManager $nonceManager, $engineID = null)
     {
         $this->nonceManager = $nonceManager;
-        $this->crypto = $crypto;
+        $this->engineID = $engineID === null ? Engine::get() : $engineID;
     }
 
     /**
@@ -50,14 +55,14 @@ class RequestBuilder
      */
     public function buildBody(Account $account, $url, array $payload = null)
     {
-        $rsa = $this->getRSA($account);
-        $header = $this->buildHeader($account, $rsa);
+        $privateKey = $this->getPrivateKey($account);
+        $header = $this->buildHeader($account, $privateKey);
         $protected = $this->buildProtected($account, $url, $header);
-        $signature = $this->sign($rsa, $protected, $payload);
+        $signature = $this->sign($privateKey, $protected, $payload);
         $result = [
-            'protected' => $this->crypto->toJsonBase64($protected),
-            'payload' => $payload === null ? '' : $this->crypto->toJsonBase64($payload),
-            'signature' => $this->crypto->toBase64($signature),
+            'protected' => $this->toJsonBase64UrlSafe($protected),
+            'payload' => $payload === null ? '' : $this->toJsonBase64UrlSafe($payload),
+            'signature' => $this->toBase64UrlSafe($signature),
         ];
         switch ($account->getServer()->getProtocolVersion()) {
             case Version::ACME_01:
@@ -68,50 +73,39 @@ class RequestBuilder
                 break;
         }
 
-        return $this->crypto->toJson($result);
+        return $this->toJson($result);
     }
 
     /**
-     * Get an RSA instance associated to the private key of an ACME account.
-     *
-     * @param \Acme\Entity\Account $account
+     * Get a private key instance associated to the private key of an ACME account.
      *
      * @throws \Acme\Exception\Exception
      *
-     * @return \phpseclib\Crypt\RSA
+     * @return \Acme\Crypto\PrivateKey
      */
-    protected function getRSA(Account $account)
+    private function getPrivateKey(Account $account)
     {
-        $privateKey = $account->getPrivateKey();
-        if ($privateKey === '') {
+        $privateKeyString = $account->getPrivateKey();
+        if ($privateKeyString === '') {
             throw new RuntimeException(t('The ACME account does not contain a private key.'));
         }
-        $rsa = new RSA();
-        if ($rsa->loadKey($privateKey) === false) {
+        try {
+            $privateKey = PrivateKey::fromString($privateKeyString, $this->engineID);
+        } catch (RuntimeException $x) {
             throw new RuntimeException(t('The ACME account has an invalid private key.'));
         }
-        if ($rsa->getPrivateKey() === false) {
-            throw new RuntimeException(t('The ACME account has an invalid private key.'));
-        }
-        if ($rsa->sLen === null) {
-            $rsa->sLen = false;
-        }
-        $rsa->setHash('sha256');
-        $rsa->setMGFHash('sha256');
-        $rsa->setSignatureMode(RSA::SIGNATURE_PKCS1);
 
-        return $rsa;
+        return $privateKey->prepareForSigningRequests();
     }
 
     /**
      * Build the header section of the request body.
      *
-     * @param \Acme\Entity\Account $account
-     * @param \phpseclib\Crypt\RSA $rsa the account private key
+     * @param \Acme\Crypto\PrivateKey $privateKey the account private key
      *
      * @return array|null
      */
-    protected function buildHeader(Account $account, RSA $rsa)
+    private function buildHeader(Account $account, PrivateKey $privateKey)
     {
         $common = [
             'alg' => 'RS256',
@@ -120,19 +114,18 @@ class RequestBuilder
             return $common;
         }
 
-        return $common + ['jwk' => $this->crypto->getJwk($rsa)];
+        return $common + ['jwk' => $privateKey->getJwk()];
     }
 
     /**
      * Build the protected section of the request body.
      *
-     * @param \Acme\Entity\Account $account
      * @param string $url the URL to be called
      * @param array $header the header built by the buildHeader() method
      *
      * @return array
      */
-    protected function buildProtected(Account $account, $url, array $header)
+    private function buildProtected(Account $account, $url, array $header)
     {
         $server = $account->getServer();
         $nonce = $this->nonceManager->getNonceForRequest($server);
@@ -160,26 +153,39 @@ class RequestBuilder
     /**
      * Generate the signature for the protected + payload data.
      *
-     * @param \phpseclib\Crypt\RSA $rsa the account private key
-     * @param array $protected
-     * @param array|null $payload
+     * @param \Acme\Crypto\PrivateKey $privateKey the account private key
      *
      * @throws \Acme\Exception\KeyPair\SigningException
      *
      * @return string
      */
-    protected function sign(RSA $rsa, array $protected, array $payload = null)
+    private function sign(PrivateKey $privateKey, array $protected, array $payload = null)
     {
         try {
-            $toBeSigned = $this->crypto->toJsonBase64($protected) . '.' . ($payload === null ? '' : $this->crypto->toJsonBase64($payload));
+            $toBeSigned = $this->toJsonBase64UrlSafe($protected) . '.' . ($payload === null ? '' : $this->toJsonBase64UrlSafe($payload));
         } catch (CodecException $x) {
             throw SigningException::create(t('Failed to build the data to be signed: %s', $x->getMessage()));
         }
-        $signature = $rsa->sign($toBeSigned);
+        $signature = $privateKey->sign($toBeSigned);
         if ($signature === false) {
             throw SigningException::create(t('Failed to sign the data to be sent to the ACME server'));
         }
 
         return $signature;
+    }
+
+    /**
+     * Render some data in JSON format, and encodes it in base64.
+     *
+     * @param array|string|mixed $data
+     *
+     * @throws \Acme\Exception\Codec\JsonEncodingException when we couldn't get the JSON represetation
+     * @throws \Acme\Exception\Codec\Base64EncodingException when we couldn't convert to base-64
+     *
+     * @return string
+     */
+    private function toJsonBase64UrlSafe($data)
+    {
+        return $this->toBase64UrlSafe($this->toJson($data));
     }
 }

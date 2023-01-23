@@ -128,9 +128,6 @@ class RemoteServer
      */
     protected $certificateActions;
 
-    /**
-     * Initialize the instance.
-     */
     protected function __construct()
     {
     }

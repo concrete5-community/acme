@@ -6,30 +6,30 @@ use JsonSerializable;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class LogEntry implements JsonSerializable
+final class LogEntry implements JsonSerializable
 {
     /**
      * The level of the log entry (the value of the LogLevel::... constants).
      *
      * @var string
      */
-    protected $level;
+    private $level;
 
     /**
      * The log entry message.
      *
      * @var string
      */
-    protected $message;
+    private $message;
 
     /**
      * The context of the log entry.
      *
      * @var array
      */
-    protected $context;
+    private $context;
 
-    protected function __construct()
+    private function __construct()
     {
     }
 

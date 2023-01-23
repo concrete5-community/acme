@@ -4,7 +4,6 @@ namespace Acme\ChallengeType\Types;
 
 use Acme\ChallengeType\ChallengeTypeInterface;
 use Acme\Entity\Domain;
-use Acme\Security\Crypto;
 use ArrayAccess;
 use Concrete\Core\Filesystem\ElementManager;
 use Concrete\Core\Page\Page;
@@ -14,22 +13,9 @@ defined('C5_EXECUTE') or die('Access Denied.');
 abstract class HttpChallenge implements ChallengeTypeInterface
 {
     /**
-     * @var \Acme\Security\Crypto
-     */
-    protected $crypto;
-
-    /**
      * @var string
      */
     protected $handle;
-
-    /**
-     * @param \Acme\Security\Crypto $crypto
-     */
-    public function __construct(Crypto $crypto)
-    {
-        $this->crypto = $crypto;
-    }
 
     /**
      * {@inheritdoc}
@@ -81,7 +67,7 @@ abstract class HttpChallenge implements ChallengeTypeInterface
      *
      * @see \Acme\ChallengeType\ChallengeTypeInterface::checkConfiguration()
      */
-    public function checkConfiguration(Domain $domain, array $challengeConfiguration, ArrayAccess $errors)
+    public function checkConfiguration(Domain $domain, array $challengeConfiguration, array $previousChallengeConfiguration, ArrayAccess $errors)
     {
         if ($domain->isWildcard()) {
             $errors[] = t("HTTP challenges can't be performed on wildcard domains.");
@@ -94,8 +80,6 @@ abstract class HttpChallenge implements ChallengeTypeInterface
 
     /**
      * Get extra data for the the element to be displayed in the web interface when configuring a domain.
-     *
-     * @param Domain $domain
      *
      * @return array
      */

@@ -14,25 +14,25 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * Driver to work with local filesystems.
  */
-class Local implements DriverInterface, WritableAwareDriverInterface, ExecutableDriverInterface
+final class Local implements DriverInterface, WritableAwareDriverInterface, ExecutableDriverInterface
 {
     use NotificationSilencerTrait;
 
     /**
      * @var string
      */
-    protected $handle;
+    private $handle;
 
     /**
      * @var bool
      */
-    protected $enableExec;
+    private $enableExec;
 
     /**
      * @param string $handle
      * @param bool $enableExec
      */
-    protected function __construct($handle, $enableExec)
+    private function __construct($handle, $enableExec)
     {
         $this->handle = $handle;
         $this->enableExec = $enableExec;
@@ -85,7 +85,7 @@ class Local implements DriverInterface, WritableAwareDriverInterface, Executable
      */
     public function isFile($path)
     {
-        return $this->ignoringWarnings(function () use ($path) {
+        return $this->ignoringWarnings(static function () use ($path) {
             return is_file($path);
         });
     }
@@ -97,7 +97,7 @@ class Local implements DriverInterface, WritableAwareDriverInterface, Executable
      */
     public function isDirectory($path)
     {
-        return $this->ignoringWarnings(function () use ($path) {
+        return $this->ignoringWarnings(static function () use ($path) {
             return is_dir($path);
         });
     }
@@ -109,7 +109,7 @@ class Local implements DriverInterface, WritableAwareDriverInterface, Executable
      */
     public function getFileContents($path)
     {
-        $contents = $this->ignoringWarnings(function () use ($path) {
+        $contents = $this->ignoringWarnings(static function () use ($path) {
             return file_get_contents($path);
         });
         if ($contents === false) {
@@ -126,7 +126,7 @@ class Local implements DriverInterface, WritableAwareDriverInterface, Executable
      */
     public function setFileContents($path, $contents)
     {
-        $written = $this->ignoringWarnings(function () use ($path, &$contents) {
+        $written = $this->ignoringWarnings(static function () use ($path, &$contents) {
             return file_put_contents($path, $contents);
         });
         if ($written !== strlen($contents)) {
@@ -141,7 +141,7 @@ class Local implements DriverInterface, WritableAwareDriverInterface, Executable
      */
     public function chmod($path, $mode)
     {
-        $this->ignoringWarnings(function () use ($path, $mode) {
+        $this->ignoringWarnings(static function () use ($path, $mode) {
             if (chmod($path, $mode) === false) {
                 throw FilesystemException::create(FilesystemException::ERROR_SETTING_PERMISSIONS, t('Failed to set the permissions of %s', $path), $path);
             }
@@ -155,7 +155,7 @@ class Local implements DriverInterface, WritableAwareDriverInterface, Executable
      */
     public function createDirectory($path, $mode = 0777)
     {
-        $this->ignoringWarnings(function () use ($path, $mode) {
+        $this->ignoringWarnings(static function () use ($path, $mode) {
             for ($i = 0; $i < 3; $i++) {
                 if (mkdir($path, $mode)) {
                     return true;
@@ -172,7 +172,7 @@ class Local implements DriverInterface, WritableAwareDriverInterface, Executable
      */
     public function deleteFile($paths)
     {
-        $this->ignoringWarnings(function () use ($paths) {
+        $this->ignoringWarnings(static function () use ($paths) {
             $paths = is_array($paths) ? array_values($paths) : [$paths];
             $failed = [];
             foreach ($paths as $path) {
@@ -203,7 +203,7 @@ class Local implements DriverInterface, WritableAwareDriverInterface, Executable
      */
     public function deleteEmptyDirectory($path)
     {
-        $this->ignoringWarnings(function () use ($path) {
+        $this->ignoringWarnings(static function () use ($path) {
             for ($i = 0; $i < 3; $i++) {
                 if (rmdir($path)) {
                     return;
@@ -245,7 +245,7 @@ class Local implements DriverInterface, WritableAwareDriverInterface, Executable
             throw FilesystemException::create(FilesystemException::ERROR_EXEC_DISABLED, t('The execution of commands in the local server is disabled in the configuration'));
         }
 
-        return $this->ignoringWarnings(function () use ($command, &$output) {
+        return $this->ignoringWarnings(static function () use ($command, &$output) {
             $rc = -1;
             $lines = [];
             exec($command, $lines, $rc);
@@ -262,7 +262,7 @@ class Local implements DriverInterface, WritableAwareDriverInterface, Executable
      */
     public function isWritable($path)
     {
-        return $this->ignoringWarnings(function () use ($path) {
+        return $this->ignoringWarnings(static function () use ($path) {
             return is_writable($path);
         });
     }

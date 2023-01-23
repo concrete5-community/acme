@@ -179,9 +179,6 @@ class Server
      */
     protected $accounts;
 
-    /**
-     * Initializes the instance.
-     */
     protected function __construct()
     {
     }

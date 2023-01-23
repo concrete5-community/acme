@@ -14,7 +14,7 @@ use Concrete\Core\Utility\Service\Identifier;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Controller extends Package implements ProviderAggregateInterface
+final class Controller extends Package implements ProviderAggregateInterface
 {
     /**
      * {@inheritdoc}
@@ -25,7 +25,7 @@ class Controller extends Package implements ProviderAggregateInterface
 
     protected $pkgHandle = 'acme';
 
-    protected $pkgVersion = '4.4.1';
+    protected $pkgVersion = '5.0.0';
 
     /**
      * {@inheritdoc}

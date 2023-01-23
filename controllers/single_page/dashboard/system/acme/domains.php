@@ -6,13 +6,14 @@ use Acme\DomainService;
 use Acme\Entity\Account;
 use Acme\Entity\Domain;
 use Acme\Entity\Server;
+use Acme\Service\UI;
 use Concrete\Core\Page\Controller\DashboardPageController;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Domains extends DashboardPageController
+final class Domains extends DashboardPageController
 {
     public function view()
     {
@@ -36,7 +37,7 @@ class Domains extends DashboardPageController
             $serversWithAcconts = array_values(
                 array_filter(
                     $servers,
-                    function (Server $server) {
+                    static function (Server $server) {
                         return $server->getAccounts()->count() > 0;
                     }
                 )
@@ -48,5 +49,6 @@ class Domains extends DashboardPageController
         $this->set('domainService', $this->app->make(DomainService::class));
         $this->set('dateHelper', $this->app->make('date'));
         $this->set('resolverManager', $this->app->make(ResolverManagerInterface::class));
+        $this->set('ui', $this->app->make(UI::class));
     }
 }

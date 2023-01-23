@@ -7,7 +7,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * Represents the data presented in an ACME server directory URL.
  */
-class DirectoryInfo
+final class DirectoryInfo
 {
     use DirectoryInfoTrait;
 
@@ -76,7 +76,7 @@ class DirectoryInfo
      */
     private $website;
 
-    protected function __construct()
+    private function __construct()
     {
     }
 

@@ -11,7 +11,7 @@ use Concrete\Core\Error\ErrorList\ErrorList;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class EditCommand extends Command
+final class EditCommand extends Command
 {
     /**
      * {@inheritdoc}
@@ -105,7 +105,7 @@ EOT
         $this->setHelp($this->describeDriverOption());
     }
 
-    protected function getOptionValue($optionName, $remoteServerValue)
+    private function getOptionValue($optionName, $remoteServerValue)
     {
         $result = $this->input->getOption($optionName);
 

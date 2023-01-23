@@ -1,6 +1,6 @@
 <?php
 
-use Acme\Security\FileDownloader;
+use Acme\Crypto\FileDownloader;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
@@ -12,12 +12,13 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var Concrete\Core\Page\View\PageView $view
  * @var Acme\DomainService $domainService
  * @var Concrete\Core\Localization\Service\Date $dateHelper
+ * @var Acme\Service\UI $ui
  */
 
 $domains = $account->getDomains();
 ?>
 
-<form method="POST" action="<?= $view->action('delete', $account->getID()) ?>" id="acme-account-delete" class="hide">
+<form method="POST" action="<?= $view->action('delete', $account->getID()) ?>" id="acme-account-delete" class="<?= $ui->displayNone ?>">
     <?php $token->output('acme-account-delete-' . $account->getID()) ?>
 </form>
 
@@ -43,7 +44,7 @@ $domains = $account->getDomains();
         <?= $form->label('name', t('Name')) ?>
         <div class="input-group">
             <?= $form->text('name', $account->getName(), ['required' => 'required', 'maxlength' => '190', 'placeholder' => t('Give this account a name of your choice')]) ?>
-            <span class="input-group-addon"><i class="fa fa-asterisk"></i></span>
+            <span class="<?= $ui->inputGroupAddon ?>"><i class="<?= $ui->faAsterisk ?>"></i></span>
         </div>
     </div>
 
@@ -114,6 +115,7 @@ $domains = $account->getDomains();
                 'downloadTokenValue' => $token->generate('acme-account-download_key-' . $account->getID()),
                 'what' => FileDownloader::WHAT_PRIVATEKEY | FileDownloader::WHAT_PUBLICKEY,
                 'form' => $form,
+                'ui' => $ui,
             ],
             'acme'
         );
@@ -123,8 +125,8 @@ $domains = $account->getDomains();
 
     <div class="ccm-dashboard-form-actions-wrapper">
         <div class="ccm-dashboard-form-actions">
-            <a href="<?= URL::to('/dashboard/system/acme/accounts') ?>" class="btn btn-default pull-left"><?= t('Cancel') ?></a>
-            <div class="pull-right">
+            <a href="<?= URL::to('/dashboard/system/acme/accounts') ?>" class="btn <?= $ui->defaultButton ?> <?= $ui->floatStart ?>"><?= t('Cancel') ?></a>
+            <div class="<?= $ui->floatEnd ?>">
                 <a href="#" id="acme-btn-delete" class="btn btn-danger"><?= t('Delete') ?></a>
                 <input type="submit" class="btn btn-primary ccm-input-submit" value="<?= t('Save') ?>">
             </div>

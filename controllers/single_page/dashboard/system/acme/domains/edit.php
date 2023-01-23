@@ -7,6 +7,7 @@ use Acme\DomainService;
 use Acme\Editor\DomainEditor;
 use Acme\Entity\Account;
 use Acme\Entity\Domain;
+use Acme\Service\UI;
 use Concrete\Core\Error\UserMessageException;
 use Concrete\Core\Filesystem\ElementManager;
 use Concrete\Core\Http\ResponseFactoryInterface;
@@ -18,7 +19,7 @@ use MLocati\IDNA\Exception\Exception as IDNAException;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Edit extends DashboardPageController
+final class Edit extends DashboardPageController
 {
     public function view($domainID = '', $accountID = '')
     {
@@ -54,6 +55,7 @@ class Edit extends DashboardPageController
         $this->set('elementManager', $this->app->make(ElementManager::class));
         $this->set('page', $this->getPageObject());
         $this->set('pageTitle', $domain->getID() === null ? t('Add domain') : t('Edit domain'));
+        $this->set('ui', $this->app->make(UI::class));
         $this->requireAsset('javascript', 'vue');
     }
 

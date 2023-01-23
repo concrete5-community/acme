@@ -10,19 +10,17 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * A logger that forward logs to other loggers.
  */
-class CombinedLogger extends StateAwareLogger
+final class CombinedLogger extends StateAwareLogger
 {
     /**
      * The loggers that will receive the new entries.
      *
      * @var \Psr\Log\LoggerInterface[]
      */
-    protected $loggers = [];
+    private $loggers = [];
 
     /**
      * Add a new logger to the loggers that will receive the new entries.
-     *
-     * @param \Psr\Log\LoggerInterface $logger
      *
      * @return $this
      */

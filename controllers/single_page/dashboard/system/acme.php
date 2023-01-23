@@ -17,7 +17,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Acme extends DashboardPageController
+final class Acme extends DashboardPageController
 {
     public function view()
     {
@@ -82,8 +82,6 @@ class Acme extends DashboardPageController
     }
 
     /**
-     * @param \Concrete\Core\Page\Page|null $page
-     *
      * @return bool
      */
     private function canGoTo(Page $page = null)

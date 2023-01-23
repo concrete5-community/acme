@@ -1,6 +1,6 @@
 <?php
 
-use Acme\Security\FileDownloader;
+use Acme\Crypto\FileDownloader;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
@@ -12,6 +12,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var Concrete\Core\Form\Service\Form $form
  * @var Concrete\Core\Validation\CSRF\Token $token
  * @var Concrete\Core\Page\View\PageView $view
+ * @var Acme\Service\UI $ui
  */
 
 if ($revokedCertificates === []) {
@@ -40,10 +41,10 @@ if ($revokedCertificates === []) {
                 ?>
                 <tr>
                     <td>
-                        <button class="btn btn-xs btn-info acme-revokedcertificate-details-show" data-revokedcertificate-id="<?= $revokedCertificate->getID() ?>">
+                        <button class="btn btn-sm btn-info acme-revokedcertificate-details-show" data-revokedcertificate-id="<?= $revokedCertificate->getID() ?>">
                             <?= t('Details')?>
                         </button>
-                        <div id="acme-revokedcertificate-details-dialog-<?= $revokedCertificate->getID() ?>" class="hide ccm-ui">
+                        <div id="acme-revokedcertificate-details-dialog-<?= $revokedCertificate->getID() ?>" class="<?= $ui->displayNone ?> ccm-ui">
                             <?php
                             $view->element(
                                 'file_downloader',
@@ -53,12 +54,13 @@ if ($revokedCertificates === []) {
                                     'downloadTokenValue' => $token->generate('acme-download-revokedcertificate-key-' . $revokedCertificate->getID()),
                                     'what' => FileDownloader::WHAT_CERTIFICATE | FileDownloader::WHAT_ISSUERCERTIFICATE,
                                     'form' => $form,
+                                    'ui' => $ui,
                                 ],
                                 'acme'
                             );
                             ?>
                             <div class="dialog-buttons">
-                                <button class="btn btn-primary pull-right" onclick="$(this).closest('.ui-dialog').find('.ui-dialog-content').dialog('close')"><?= t('Close') ?></button>
+                                <button class="btn btn-primary <?= $ui->floatEnd ?>" onclick="$(this).closest('.ui-dialog').find('.ui-dialog-content').dialog('close')"><?= t('Close') ?></button>
                             </div>
                         </div>
                     </td>
@@ -97,19 +99,19 @@ if ($revokedCertificates === []) {
         <?php
         if ($certificate === null) {
             ?>
-            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme'])) ?>" class="btn btn-default pull-left">
+            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme'])) ?>" class="btn <?= $ui->defaultButton ?> <?= $ui->floatStart ?>">
                 <?= t('Back') ?>
             </a>
             <?php
         } else {
             ?>
-            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', $certificate->getID()])) ?>" class="btn btn-default pull-left">
+            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', $certificate->getID()])) ?>" class="btn <?= $ui->defaultButton ?> <?= $ui->floatStart ?>">
                 <?= t('Back') ?>
             </a>
             <?php
         }
         ?>
-        <div class="pull-right">
+        <div class="<?= $ui->floatEnd ?>">
             <?php
             if ($revokedCertificates === []) {
                 ?>
@@ -128,7 +130,7 @@ if ($revokedCertificates === []) {
 <?php
 if ($revokedCertificates !== []) {
     ?>
-    <form id="acme-certificate-deleterevoked-do" method="POST" action="<?= h($view->action('delete', $certificate === null ? 'unlinked' : $certificate->getID())) ?>" class="hide">
+    <form id="acme-certificate-deleterevoked-do" method="POST" action="<?= h($view->action('delete', $certificate === null ? 'unlinked' : $certificate->getID())) ?>" class="<?= $ui->displayNone ?>">
         <?php $token->output('acme-certificate-clear_history-' . ($certificate === null ? 'unlinked' : $certificate->getID())) ?>
     </form>
     <script>
@@ -154,4 +156,3 @@ if ($revokedCertificates !== []) {
     </script>
     <?php
 }
-?>

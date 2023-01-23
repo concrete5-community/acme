@@ -7,7 +7,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * Driver to work with remoe filesystems via SFTP (with login and password).
  */
-class SftpWithPassword extends Sftp
+final class SftpWithPassword extends Sftp
 {
     /**
      * {@inheritdoc}

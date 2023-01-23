@@ -8,15 +8,20 @@ use Acme\Entity\RevokedCertificate;
 use Acme\Exception\UnrecognizedProtocolVersionException;
 use Acme\Protocol\Communicator;
 use Acme\Protocol\Version;
-use Acme\Security\Crypto;
+use Acme\Service\Base64EncoderTrait;
+use Acme\Service\PemDerConversionTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use Throwable;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Revoker
+final class Revoker
 {
+    use Base64EncoderTrait;
+
+    use PemDerConversionTrait;
+
     /**
      * rfc5280 revokation reason: the private key associated with the certificate has been compromised.
      *
@@ -41,32 +46,20 @@ class Revoker
     /**
      * @var \Acme\Protocol\Communicator
      */
-    protected $communicator;
-
-    /**
-     * @var \Acme\Security\Crypto
-     */
-    protected $crypto;
+    private $communicator;
 
     /**
      * @var \Doctrine\ORM\EntityManagerInterface
      */
-    protected $em;
+    private $em;
 
-    /**
-     * @param \Acme\Protocol\Communicator $communicator
-     * @param \Acme\Security\Crypto $crypto
-     * @param \Doctrine\ORM\EntityManagerInterface $em
-     */
-    public function __construct(Communicator $communicator, Crypto $crypto, EntityManagerInterface $em)
+    public function __construct(Communicator $communicator, EntityManagerInterface $em)
     {
         $this->communicator = $communicator;
-        $this->crypto = $crypto;
         $this->em = $em;
     }
 
     /**
-     * @param \Acme\Entity\Certificate $certificate
      * @param int|null $reason the value of one of the REASON_... constants.
      * @param bool $allowFailure
      */
@@ -80,8 +73,6 @@ class Revoker
     }
 
     /**
-     * @param \Acme\Entity\Account $account
-     * @param \Acme\Certificate\CertificateInfo $certificateInfo
      * @param int|null $reason the value of one of the REASON_... constants.
      * @param bool $allowFailure
      */
@@ -91,13 +82,10 @@ class Revoker
     }
 
     /**
-     * @param \Acme\Certificate\CertificateInfo $certificateInfo
-     * @param \Acme\Entity\Account $account
-     * @param \Acme\Entity\Certificate $certificate
      * @param int|null $reason the value of one of the REASON_... constants.
      * @param bool $allowFailure
      */
-    protected function revoke(CertificateInfo $certificateInfo, Account $account, Certificate $certificate = null, $reason = null, $allowFailure = false)
+    private function revoke(CertificateInfo $certificateInfo, Account $account, Certificate $certificate = null, $reason = null, $allowFailure = false)
     {
         $error = null;
         try {
@@ -133,17 +121,15 @@ class Revoker
     }
 
     /**
-     * @param \Acme\Certificate\CertificateInfo $certificateInfo
-     * @param \Acme\Entity\Account $account
      * @param int|null $reason
      *
      * @return array
      */
-    protected function buildPayload(CertificateInfo $certificateInfo, Account $account, $reason)
+    private function buildPayload(CertificateInfo $certificateInfo, Account $account, $reason)
     {
         $reason = (int) $reason;
         $result = [
-            'certificate' => $this->crypto->toBase64($this->crypto->pemToDer($certificateInfo->getCertificate())),
+            'certificate' => $this->toBase64UrlSafe($this->convertPemToDer($certificateInfo->getCertificate())),
         ];
         switch ($account->getServer()->getProtocolVersion()) {
             case Version::ACME_01:

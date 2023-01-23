@@ -13,7 +13,7 @@ use Symfony\Component\Console\Question\ConfirmationQuestion;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class DeleteCommand extends Command
+final class DeleteCommand extends Command
 {
     /**
      * {@inheritdoc}
@@ -135,12 +135,9 @@ EOT
     }
 
     /**
-     * @param \Acme\Entity\Certificate $certificate
-     * @param \Acme\Editor\CertificateEditor $certificateEditor
-     *
      * @return bool|null NULL if skipped
      */
-    protected function deleteCertificate(Certificate $certificate, CertificateEditor $certificateEditor)
+    private function deleteCertificate(Certificate $certificate, CertificateEditor $certificateEditor)
     {
         $domainNames = implode(', ', $certificate->getDomainHostDisplayNames());
         if ($this->input->getOption('force')) {

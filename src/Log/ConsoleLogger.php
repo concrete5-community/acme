@@ -7,16 +7,13 @@ use Psr\Log\LogLevel;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class ConsoleLogger extends StateAwareLogger
+final class ConsoleLogger extends StateAwareLogger
 {
     /**
      * @var \Concrete\Core\Console\OutputStyle
      */
-    protected $output;
+    private $output;
 
-    /**
-     * @param \Concrete\Core\Console\OutputStyle $output
-     */
     public function __construct(OutputStyle $output)
     {
         $this->output = $output;

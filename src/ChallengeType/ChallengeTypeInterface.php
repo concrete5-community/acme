@@ -19,7 +19,6 @@ interface ChallengeTypeInterface
      * Initialize the instance (this will be called right after initializing the instance, so that you can place all the required dependencies in the class constructor).
      *
      * @param string $handle
-     * @param array $challengeTypeOptions
      */
     public function initialize($handle, array $challengeTypeOptions);
 
@@ -58,13 +57,13 @@ interface ChallengeTypeInterface
     /**
      * Check if this challenge is supported by a specific domain, and that the challenge configuration is valid.
      *
-     * @param \Acme\Entity\Domain $domain
      * @param array $challengeConfiguration the challenge configuration as specified by the user
+     * @param array $previousChallengeConfiguration the previous challenge configuration (it will be non empty when editing an existing domain)
      * @param \ArrayAccess $errors add detected errors here
      *
      * @return array|null The normalized $challengeConfiguration, or NULL in case of errors
      */
-    public function checkConfiguration(Domain $domain, array $challengeConfiguration, ArrayAccess $errors);
+    public function checkConfiguration(Domain $domain, array $challengeConfiguration, array $previousChallengeConfiguration, ArrayAccess $errors);
 
     /**
      * Get the element to be displayed in the web interface when configuring a domain.
@@ -74,25 +73,17 @@ interface ChallengeTypeInterface
      *     <li>\Concrete\Core\Form\Service\Form <code>$formService</li>
      * </ul>.
      *
-     * @param \Acme\Entity\Domain $domain
-     * @param \Concrete\Core\Filesystem\ElementManager $elementManager
-     * @param \Concrete\Core\Page\Page $page
-     *
      * @return \Concrete\Core\Filesystem\Element
      */
     public function getDomainConfigurationElement(Domain $domain, ElementManager $elementManager, Page $page);
 
     /**
      * Method called right before initiating the authorization challenge.
-     *
-     * @param \Acme\Entity\AuthorizationChallenge $authorizationChallenge
      */
     public function beforeChallenge(AuthorizationChallenge $authorizationChallenge);
 
     /**
      * Method called right after terminating the authorization challenge.
-     *
-     * @param \Acme\Entity\AuthorizationChallenge $authorizationChallenge
      */
     public function afterChallenge(AuthorizationChallenge $authorizationChallenge);
 }

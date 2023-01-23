@@ -16,16 +16,13 @@ use Doctrine\ORM\EntityManagerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class FirstTimeSetup
+final class FirstTimeSetup
 {
     /**
      * @var \Concrete\Core\Application\Application
      */
-    protected $app;
+    private $app;
 
-    /**
-     * @param \Concrete\Core\Application\Application $app
-     */
     public function __construct(Application $app)
     {
         $this->app = $app;

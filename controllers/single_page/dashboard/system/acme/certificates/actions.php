@@ -6,6 +6,7 @@ use Acme\Editor\CertificateActionEditor;
 use Acme\Entity\Certificate;
 use Acme\Entity\CertificateAction;
 use Acme\Entity\RemoteServer;
+use Acme\Service\UI;
 use Concrete\Core\Error\UserMessageException;
 use Concrete\Core\Http\ResponseFactoryInterface;
 use Concrete\Core\Page\Controller\DashboardPageController;
@@ -14,7 +15,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Actions extends DashboardPageController
+final class Actions extends DashboardPageController
 {
     public function view($certificateID = '')
     {
@@ -26,6 +27,7 @@ class Actions extends DashboardPageController
         $this->set('actions', $certificate->getActions()->toArray());
         $this->set('remoteServers', $this->app->make(EntityManagerInterface::class)->getRepository(RemoteServer::class)->findBy([], ['name' => 'ASC']));
         $this->set('resolverManager', $this->app->make(ResolverManagerInterface::class));
+        $this->set('ui', $this->app->make(UI::class));
         $this->requireAsset('javascript', 'vue');
         $this->addHeaderItem(
             <<<'EOT'

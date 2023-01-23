@@ -1,6 +1,6 @@
 <?php
 
-use Acme\Security\FileDownloader;
+use Acme\Crypto\FileDownloader;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
@@ -14,19 +14,19 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var Concrete\Core\Page\View\PageView $view
  * @var int $defaultKeySize
  * @var int $minimumKeySize
+ * @var Acme\Service\UI $ui
  */
 
 $canEdit = $applicableDomains !== [] && $certificate->getCsr() === '' && $certificate->getOngoingOrder() === null;
 
 if ($certificate->getID() !== null) {
     ?>
-    <form method="POST" action="<?= h($view->action('delete', $certificate->getID())) ?>" id="acme-certificate-delete" class="hide">
+    <form method="POST" action="<?= h($view->action('delete', $certificate->getID())) ?>" id="acme-certificate-delete" class="<?= $ui->displayNone ?>">
         <?php $token->output('acme-certificate-delete-' . $certificate->getID()) ?>
     </form>
     <?php
 }
 ?>
-
 <form method="POST" action="<?= h($view->action('submit', $certificate->getID() ?: 'new', $certificate->getAccount()->getID())) ?>">
     <?php
     $token->output('acme-certificate-edit-' . ($certificate->getID() ?: 'new') . '-' . $certificate->getAccount()->getID());
@@ -131,7 +131,7 @@ if ($certificate->getID() !== null) {
                 <?= $form->label('privateKeyBits', t('Size of private key to create')) ?>
                 <div class="input-group">
                     <?= $form->number('privateKeyBits', $defaultKeySize, ['required' => 'required', 'min' => $minimumKeySize]) ?>
-                    <span class="input-group-addon"><i class="fa fa-asterisk"></i></span>
+                    <span class="<?= $ui->inputGroupAddon ?>"><i class="<?= $ui->faAsterisk ?>"></i></span>
                 </div>
             </div>
             <?php
@@ -150,6 +150,7 @@ if ($certificate->getID() !== null) {
                         | FileDownloader::WHAT_PUBLICKEY
                         | FileDownloader::WHAT_PRIVATEKEY,
                     'form' => $form,
+                    'ui' => $ui,
                 ],
                 'acme'
             );
@@ -159,7 +160,7 @@ if ($certificate->getID() !== null) {
 
     <div class="ccm-dashboard-form-actions-wrapper">
         <div class="ccm-dashboard-form-actions">
-            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates'])) ?>" class="btn btn-default pull-left">
+            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates'])) ?>" class="btn <?= $ui->defaultButton ?> <?= $ui->floatStart ?>">
                 <?php
                 if ($certificate->getID() === null || $applicableDomains === [] || $canEdit) {
                     echo t('Cancel');
@@ -168,7 +169,7 @@ if ($certificate->getID() !== null) {
                 }
                 ?>
             </a>
-            <div class="pull-right">
+            <div class="<?= $ui->floatEnd ?>">
                 <?php
                 if ($certificate->getID() !== null) {
                     ?>

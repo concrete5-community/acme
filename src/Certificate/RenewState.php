@@ -10,30 +10,30 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * Class that contains the result of the Renewer::nextStep() method.
  */
-class RenewState extends ArrayLogger
+final class RenewState extends ArrayLogger
 {
     /**
      * The number of seconds to wait before re-calling the the "nextStep()" after this number of seconds (NULL if no).
      *
      * @var int|null
      */
-    protected $nextStepAfter;
+    private $nextStepAfter;
 
     /**
      * The certificate order/authorizations request.
      *
      * @var \Acme\Entity\Order|null
      */
-    protected $orderOrAuthorizationsRequest;
+    private $orderOrAuthorizationsRequest;
 
     /**
      * The info about the new issued certificate (if any).
      *
      * @var \Acme\Certificate\CertificateInfo|null
      */
-    protected $newCertificateInfo;
+    private $newCertificateInfo;
 
-    protected function __construct()
+    private function __construct()
     {
     }
 
@@ -86,7 +86,7 @@ class RenewState extends ArrayLogger
     /**
      * Set the certificate order/authorizations request.
      *
-     * @param \Acme\Entity\Order|null $value
+     * @return $this
      */
     public function setOrderOrAuthorizationsRequest(Order $value = null)
     {
@@ -108,7 +108,7 @@ class RenewState extends ArrayLogger
     /**
      * Set the info about the new issued certificate (if any).
      *
-     * @param \Acme\Certificate\CertificateInfo|null $value
+     * @return $this
      */
     public function setNewCertificateInfo(CertificateInfo $value = null)
     {

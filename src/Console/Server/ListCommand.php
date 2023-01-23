@@ -12,7 +12,7 @@ use Symfony\Component\Console\Helper\Table;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class ListCommand extends Command
+final class ListCommand extends Command
 {
     /**
      * {@inheritdoc}
@@ -49,7 +49,10 @@ EOT
         return $this->showServerDetails($server, $protocolVersion);
     }
 
-    protected function listServers(EntityManagerInterface $em, Version $protocolVersion)
+    /**
+     * @return int
+     */
+    private function listServers(EntityManagerInterface $em, Version $protocolVersion)
     {
         $table = new Table($this->output);
         $table
@@ -77,7 +80,10 @@ EOT
         return 0;
     }
 
-    protected function showServerDetails(Server $server, Version $protocolVersion)
+    /**
+     * @return int
+     */
+    private function showServerDetails(Server $server, Version $protocolVersion)
     {
         $this->output->writeln([
             'ID                 : ' . $server->getID(),

@@ -7,22 +7,18 @@ use Concrete\Core\Config\Repository\Repository;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class ChallengeTypeManager
+final class ChallengeTypeManager
 {
     /**
      * @var \Concrete\Core\Config\Repository\Repository
      */
-    protected $config;
+    private $config;
 
     /**
      * @var \Concrete\Core\Application\Application
      */
-    protected $app;
+    private $app;
 
-    /**
-     * @param \Concrete\Core\Config\Repository\Repository $config
-     * @param \Concrete\Core\Application\Application $app
-     */
     public function __construct(Repository $config, Application $app)
     {
         $this->config = $config;
@@ -73,7 +69,7 @@ class ChallengeTypeManager
      *
      * @return array|null
      */
-    protected function getChallengeDetails($handle)
+    private function getChallengeDetails($handle)
     {
         $handle = (string) $handle;
         if ($handle === '') {

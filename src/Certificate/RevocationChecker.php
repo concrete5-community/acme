@@ -15,34 +15,28 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * Class to check certificate revocation.
  */
-class RevocationChecker
+final class RevocationChecker
 {
     /**
      * @var \Ocsp\CertificateLoader
      */
-    protected $certificateLoader;
+    private $certificateLoader;
 
     /**
      * @var \Ocsp\CertificateInfo
      */
-    protected $certificateInfo;
+    private $certificateInfo;
 
     /**
      * @var \Ocsp\Ocsp
      */
-    protected $ocsp;
+    private $ocsp;
 
     /**
      * @var \Acme\Http\ClientFactory
      */
-    protected $httpClientFactory;
+    private $httpClientFactory;
 
-    /**
-     * @param \Ocsp\CertificateLoader $certificateLoader
-     * @param \Ocsp\CertificateInfo $certificateInfo
-     * @param \Ocsp\Ocsp $ocsp
-     * @param \Acme\Http\ClientFactory $httpClientFactory
-     */
     public function __construct(OcspCertificateLoader $certificateLoader, OcspCertificateInfo $certificateInfo, Ocsp $ocsp, HttpClientFactory $httpClientFactory)
     {
         $this->certificateLoader = $certificateLoader;
@@ -53,8 +47,6 @@ class RevocationChecker
 
     /**
      * Check if a certificate is revoked.
-     *
-     * @param \Acme\Certificate\CertificateInfo $certificateInfo
      *
      * @throws \Acme\Exception\CheckRevocationException
      *
@@ -68,28 +60,28 @@ class RevocationChecker
         try {
             $errorPattern = t('Failed to build the OCSP request: %s');
             $certificate = $this->certificateLoader->fromString($certificateInfo->getCertificate());
-            $issuerCertificate = $this->certificateLoader->fromString($certificateInfo->getIssuerCertificate());
+            $issuerCertificate = $this->certificateLoader->fromString($certificateInfo->getFirstIssuerCertificate());
             $requestInfo = $this->certificateInfo->extractRequestInfo($certificate, $issuerCertificate);
             $rawRequestBody = $this->ocsp->buildOcspRequestBodySingle($requestInfo);
             $errorPattern = t('Failed send OCSP request: %s');
-            $response = $this->httpClientFactory->getClient()
-                ->setUri($certificateInfo->getOcspResponderUrl())
-                ->setMethod('POST')
-                ->setEncType(Ocsp::OCSP_REQUEST_MEDIATYPE)
-                ->setRawBody($rawRequestBody)
-                ->send()
-            ;
+            $response = $this->httpClientFactory->getClient()->post(
+                $certificateInfo->getOcspResponderUrl(),
+                $rawRequestBody,
+                [
+                    'Content-Type' => Ocsp::OCSP_REQUEST_MEDIATYPE,
+                ]
+            );
             $errorPattern = '%s';
-            if (!$response->isOk()) {
-                throw new Exception(t('Error querying if the certificate is revoked (HTTP return code: %s)', $response->getStatusCode()));
+            if ($response->statusCode !== 200) {
+                throw new Exception(t('Error querying if the certificate is revoked (HTTP return code: %s)', $response->statusCode));
             }
-            $responseContentType = $response->getHeaders()->get('Content-Type');
-            if (!$responseContentType || strcasecmp($responseContentType->getMediaType(), Ocsp::OCSP_RESPONSE_MEDIATYPE) !== 0) {
-                throw new Exception(t('Error querying if the certificate is revoked (bad %1$s header: expected "%2$s", received "%3$s")', 'Content-Type', Ocsp::OCSP_RESPONSE_MEDIATYPE, $responseContentType->getMediaType()));
+            $responseContentType = $response->getHeader('Content-Type');
+            if ($responseContentType === '' || strcasecmp($responseContentType, Ocsp::OCSP_RESPONSE_MEDIATYPE) !== 0) {
+                throw new Exception(t('Error querying if the certificate is revoked (bad %1$s header: expected "%2$s", received "%3$s")', 'Content-Type', Ocsp::OCSP_RESPONSE_MEDIATYPE, $responseContentType));
             }
             $errorPattern = t('Failed to decode the OCSP response: %s');
 
-            return $this->ocsp->decodeOcspResponseSingle($response->getBody());
+            return $this->ocsp->decodeOcspResponseSingle($response->body);
         } catch (Exception $x) {
             throw new CheckRevocationException(sprintf($errorPattern, $x->getMessage()));
         } catch (Throwable $x) {

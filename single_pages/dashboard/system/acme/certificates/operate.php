@@ -11,25 +11,23 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface $resolverManager
  * @var Concrete\Core\Validation\CSRF\Token $token
  * @var Concrete\Core\Page\View\PageView $view
+ * @var Acme\Service\UI $ui
  */
-
 ?>
-
-<div id="acme-certificate-operate" class="hide">
-
+<div id="acme-certificate-operate" class="<?= $ui->displayNone ?>">
 
     <div class="ccm-dashboard-header-buttons">
         <div class="btn-group">
-            <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown" v-bind:disabled="busy || certificateInfo === null">
+            <button class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" data-toggle="dropdown" v-bind:disabled="busy || certificateInfo === null">
                 <?= t('Advanced') ?>
                 <span class="caret"></span>
             </button>
-            <ul class="dropdown-menu dropdown-menu-right" v-if="!busy &amp;&amp; certificateInfo !== null">
-                <li v-bind:class="{dsisabled: certificateInfo === null}">
-                    <a href="#" v-on:click.prevent="if (certificateInfo !== null) startOver({forceRenew: 1})"><?= t('Force renewal of certificate ')?></a>
+            <ul class="dropdown-menu <?= $ui->dropdownMenuAlignedEnd ?>" v-if="!busy &amp;&amp; certificateInfo !== null">
+                <li v-bind:class="{disabled: certificateInfo === null}">
+                    <a class="dropdown-item" href="#" v-on:click.prevent="if (certificateInfo !== null) startOver({forceRenew: 1})"><?= t('Force renewal of certificate ')?></a>
                 </li>
                 <li<?= $certificate->getActions()->isEmpty() ? ' class="disabled"' : '' ?>>
-                    <a href="#"<?= $certificate->getActions()->isEmpty() ? ' onclick="return false"' : ' v-on:click.prevent="startOver({forceActions: 1})"' ?>><?= t('Force re-execution of actions')?></a>
+                    <a class="dropdown-item" href="#"<?= $certificate->getActions()->isEmpty() ? ' onclick="return false"' : ' v-on:click.prevent="startOver({forceActions: 1})"' ?>><?= t('Force re-execution of actions')?></a>
                 </li>
             </ul>
         </div>
@@ -68,7 +66,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
                         </tr>
                         <tr>
                             <th></th>
-                            <td><button class="btn btn-default" v-on:click.prevent="checkRevocation()" v-bind:disabled="busy"><?= t('Check revocation') ?></button></td>
+                            <td><button class="btn <?= $ui->defaultButton ?>" v-on:click.prevent="checkRevocation()" v-bind:disabled="busy"><?= t('Check revocation') ?></button></td>
                         </tr>
                     </tbody>
                 </table>
@@ -100,15 +98,15 @@ defined('C5_EXECUTE') or die('Access Denied.');
 
     <div class="ccm-dashboard-form-actions-wrapper">
         <div class="ccm-dashboard-form-actions">
-            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates'])) ?>" class="btn btn-default pull-left" v-bind:disabled="busy">
+            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates'])) ?>" class="btn <?= $ui->defaultButton ?> <?= $ui->floatStart ?>" v-bind:disabled="busy">
                 {{ step === steps.DONE ? <?= json_encode(t('Back')) ?> : <?= json_encode(t('Cancel')) ?> }}
             </a>
-            <div class="pull-right">
+            <div class="<?= $ui->floatEnd ?>">
                 <button v-if="step === steps.INITIAL" class="btn btn-primary" v-on:click.prevent="setStep(steps.PROCESSING)">
                     <?= t('Start') ?>
                 </button>
                 <button v-if="step === steps.PROCESSING" class="btn btn-primary disabled" onclick="return false">
-                    <i class="fa fa-refresh fa-spin"></i> <?= t('Processing') ?>
+                    <i class="<?= $ui->faRefreshSpinning ?>"></i> <?= t('Processing') ?>
                 </button>
                 <button v-else-if="step === steps.DONE" class="btn btn-primary" v-on:click.prevent="startOver()">
                     <?= t('Start over') ?>
@@ -122,7 +120,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
 <script>$(document).ready(function() {
 'use strict';
 
-$('#acme-certificate-operate').removeClass('hide');
+$('#acme-certificate-operate').removeClass(<?= json_encode($ui->displayNone) ?>);
 
 new Vue({
     el: '#acme-certificate-operate',
