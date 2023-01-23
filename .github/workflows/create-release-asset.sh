@@ -28,10 +28,10 @@ git archive --format=tar --prefix="$PACKAGE_HANDLE/" HEAD | tar -x --directory=.
 echo 'done.'
 
 printf -- '- patching composer... '
-cp composer.json composer.json-original
-printf '{\n    "replace": {"phpseclib/phpseclib": "*"},\n' >composer.json
-tail +2 composer.json-original >>composer.json
-rm composer.json-original
+cp "./tmp/$PACKAGE_HANDLE/composer.json" "./tmp/$PACKAGE_HANDLE/composer.json-original"
+printf '{\n    "replace": {"phpseclib/phpseclib": "*"},\n' >"./tmp/$PACKAGE_HANDLE/composer.json"
+tail +2 "./tmp/$PACKAGE_HANDLE/composer.json-original" >>"./tmp/$PACKAGE_HANDLE/composer.json"
+rm "./tmp/$PACKAGE_HANDLE/composer.json-original"
 echo 'done.'
 
 printf -- '- installing composer dependencies:\n'
@@ -43,9 +43,7 @@ rm "./tmp/$PACKAGE_HANDLE/composer.lock"
 echo 'done.'
 
 printf -- '- creating asset... '
-cd ./tmp
-zip -rqX "./$PACKAGE_HANDLE.zip" "./$PACKAGE_HANDLE"
-cd ..
+(cd ./tmp && zip -rqX "./$PACKAGE_HANDLE.zip" "./$PACKAGE_HANDLE")
 echo 'done.'
 
 printf -- '- final operations... '
