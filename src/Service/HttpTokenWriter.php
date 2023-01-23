@@ -9,22 +9,21 @@ use Concrete\Core\Error\UserMessageException;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class HttpTokenWriter
+final class HttpTokenWriter
 {
     /**
      * @var \Acme\Filesystem\DriverInterface
      */
-    protected $driver;
+    private $driver;
 
     /**
      * With '/' as directory separator, without trailing '/'.
      *
      * @var string
      */
-    protected $webroot;
+    private $webroot;
 
     /**
-     * @param \Acme\Filesystem\DriverInterface $driver
      * @param string $webroot
      */
     public function __construct(DriverInterface $driver, $webroot)
@@ -117,7 +116,7 @@ class HttpTokenWriter
      * @throws \Concrete\Core\Error\UserMessageException
      * @throws \Acme\Exception\FilesystemException
      */
-    protected function createChallengeDirectory()
+    private function createChallengeDirectory()
     {
         if (!$this->driver->isDirectory($this->webroot)) {
             throw new UserMessageException(t('The directory %s does not exist.', $this->webroot));
@@ -141,7 +140,7 @@ class HttpTokenWriter
      *
      * @throws \Acme\Exception\FilesystemException
      */
-    protected function removeChallengeDirectory()
+    private function removeChallengeDirectory()
     {
         if (!$this->driver->isDirectory($this->webroot)) {
             return;

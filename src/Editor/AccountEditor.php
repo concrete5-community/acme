@@ -3,10 +3,11 @@
 namespace Acme\Editor;
 
 use Acme\Account\RegistrationService;
+use Acme\Crypto\KeyPair;
+use Acme\Crypto\PrivateKey\Generator;
 use Acme\Entity\Account;
 use Acme\Entity\Server;
 use Acme\Exception\Exception;
-use Acme\Security\Crypto;
 use Acme\Service\BooleanParser;
 use Acme\Service\NotificationSilencerTrait;
 use ArrayAccess;
@@ -19,47 +20,40 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * Helper class to create/edit/delete ACME account entities.
  */
-class AccountEditor
+final class AccountEditor
 {
     use NotificationSilencerTrait;
 
     /**
      * @var \Doctrine\ORM\EntityManagerInterface
      */
-    protected $em;
+    private $em;
 
     /**
      * @var \Concrete\Core\Validator\String\EmailValidator
      */
-    protected $emailValidator;
+    private $emailValidator;
 
     /**
-     * @var \Acme\Security\Crypto
+     * @var \Acme\Crypto\PrivateKey\Generator
      */
-    protected $crypto;
+    private $privateKeyGenerator;
 
     /**
      * @var \Acme\Account\RegistrationService
      */
-    protected $registrationService;
+    private $registrationService;
 
     /**
      * @var \Acme\Service\BooleanParser
      */
-    protected $booleanParser;
+    private $booleanParser;
 
-    /**
-     * @param \Doctrine\ORM\EntityManagerInterface $em
-     * @param \Concrete\Core\Validator\String\EmailValidator $emailValidator
-     * @param \Acme\Security\Crypto $crypto
-     * @param \Acme\Account\RegistrationService $registrationService
-     * @param \Acme\Service\BooleanParser $booleanParser
-     */
-    public function __construct(EntityManagerInterface $em, EmailValidator $emailValidator, Crypto $crypto, RegistrationService $registrationService, BooleanParser $booleanParser)
+    public function __construct(EntityManagerInterface $em, EmailValidator $emailValidator, Generator $privateKeyGenerator, RegistrationService $registrationService, BooleanParser $booleanParser)
     {
         $this->em = $em;
         $this->emailValidator = $emailValidator;
-        $this->crypto = $crypto;
+        $this->privateKeyGenerator = $privateKeyGenerator;
         $this->registrationService = $registrationService;
         $this->booleanParser = $booleanParser;
     }
@@ -117,7 +111,6 @@ class AccountEditor
     /**
      * Edit an existing Account instance.
      *
-     * @param \Acme\Entity\Account $account
      * @param array $data Keys:<br />
      *                    - string <code><b>name</b></code> the mnemonic name of the account [required]<br />
      *                    - boolean|mixed <code><b>default</b></code> should the account be the default one? [optional, default: false]
@@ -172,8 +165,7 @@ class AccountEditor
     /**
      * Delete an Account instance.
      *
-     * @param \Acme\Entity\Account $account
-     * @param \ArrayAccess $errors
+     * @param \ArrayAccess $errors Errors will be added here
      *
      * @return bool FALSE in case of errors
      */
@@ -236,13 +228,9 @@ class AccountEditor
     /**
      * Extract/normalize the data received when creating a new ACME account.
      *
-     * @param \Acme\Entity\Server $server
-     * @param array $data
-     * @param \ArrayAccess $errors
-     *
      * @return array|null Return NULL in case of errors
      */
-    protected function normalizeCreateData(Server $server, array $data, ArrayAccess $errors)
+    private function normalizeCreateData(Server $server, array $data, ArrayAccess $errors)
     {
         $state = new DataState($data, $errors);
         $normalizedData = [
@@ -262,11 +250,8 @@ class AccountEditor
 
     /**
      * Apply to an Account instance the data extracted from the normalizeCreateData() method.
-     *
-     * @param \Acme\Entity\Account $account
-     * @param array $normalizedCreateData
      */
-    protected function applyNormalizedCreateData(Account $account, array $normalizedCreateData)
+    private function applyNormalizedCreateData(Account $account, array $normalizedCreateData)
     {
         $account
             ->setName($normalizedCreateData['name'])
@@ -279,14 +264,9 @@ class AccountEditor
     /**
      * Extract/normalize the data received when editing an existing ACME account.
      *
-     * @param \Acme\Entity\Server $server
-     * @param array $data
-     * @param \ArrayAccess $errors
-     * @param Account $account
-     *
      * @return array|null Return NULL in case of errors
      */
-    protected function normalizeEditData(array $data, ArrayAccess $errors, Account $account)
+    private function normalizeEditData(array $data, ArrayAccess $errors, Account $account)
     {
         $state = new DataState($data, $errors);
 
@@ -305,11 +285,8 @@ class AccountEditor
 
     /**
      * Apply to an Account instance the data extracted from the normalizeEditData() method.
-     *
-     * @param \Acme\Entity\Account $account
-     * @param array $normalizedEditData
      */
-    protected function applyNormalizedEditData(Account $account, array $normalizedEditData)
+    private function applyNormalizedEditData(Account $account, array $normalizedEditData)
     {
         $account
             ->setName($normalizedEditData['name'])
@@ -320,12 +297,11 @@ class AccountEditor
     /**
      * Extract 'name', checking that it's valid and that's not already used.
      *
-     * @param \Acme\Editor\DataState $state
      * @param \Acme\Entity\Account|null $account NULL if creating a new account
      *
      * @return string
      */
-    protected function extractName(DataState $state, Account $account = null)
+    private function extractName(DataState $state, Account $account = null)
     {
         $value = $state->popValue('name');
         $value = is_string($value) ? trim($value) : '';
@@ -351,11 +327,9 @@ class AccountEditor
     /**
      * Extract 'email', checking that it's valid.
      *
-     * @param \Acme\Editor\DataState $state
-     *
      * @return string
      */
-    protected function extractEmail(DataState $state)
+    private function extractEmail(DataState $state)
     {
         $value = $state->popValue('email');
         $value = is_string($value) ? trim($value) : '';
@@ -376,12 +350,11 @@ class AccountEditor
     /**
      * Extract 'default', forcing it to TRUE in case the new/current account must be the default one.
      *
-     * @param \Acme\Editor\DataState $state
      * @param \Acme\Entity\Account|null $account NULL if creating a new account
      *
      * @return bool
      */
-    protected function extractDefault(DataState $state, Account $account = null)
+    private function extractDefault(DataState $state, Account $account = null)
     {
         $value = $state->popValue('default');
         if ($this->em->getRepository(Account::class)->findOneBy([]) === $account) {
@@ -394,12 +367,9 @@ class AccountEditor
     /**
      * Extract 'acceptedTermsOfService', checking that it's valid.
      *
-     * @param \Acme\Editor\DataState $state
-     * @param \Acme\Entity\Server $server
-     *
      * @return string
      */
-    protected function extractAcceptedTermsOfService(DataState $state, Server $server)
+    private function extractAcceptedTermsOfService(DataState $state, Server $server)
     {
         $value = $state->popValue('acceptedTermsOfService');
         $serverTermsOfService = $server->getTermsOfServiceUrl();
@@ -416,11 +386,9 @@ class AccountEditor
     /**
      * Extract 'useExisting', 'privateKey', 'privateKeyBits'.
      *
-     * @param \Acme\Editor\DataState $state
-     *
      * @return string
      */
-    protected function extractAccess(DataState $state)
+    private function extractAccess(DataState $state)
     {
         $result = [
             'useExisting' => $this->booleanParser->toBoolean($state->popValue('useExisting')),
@@ -439,11 +407,9 @@ class AccountEditor
     /**
      * Extract 'privateKey', checking that it's a valid private key.
      *
-     * @param \Acme\Editor\DataState $state
-     *
-     * @return \Acme\Security\KeyPair|null
+     * @return \Acme\Crypto\KeyPair|null
      */
-    protected function parsePrivateKeyExisting(DataState $state)
+    private function parsePrivateKeyExisting(DataState $state)
     {
         $privateKey = $state->popValue('privateKey');
         if (!is_string($privateKey) || $privateKey === '') {
@@ -452,7 +418,7 @@ class AccountEditor
             return null;
         }
 
-        $keyPair = $this->crypto->getKeyPairFromPrivateKey($privateKey);
+        $keyPair = KeyPair::fromPrivateKeyString($privateKey);
         if ($keyPair === null) {
             $state->addError(t('The specified private key of the existing account is not valid'));
 
@@ -465,18 +431,16 @@ class AccountEditor
     /**
      * Extract 'privateKeyBits', and create a new private/public key pair (if no previous errors occurred, so that we don't waste time).
      *
-     * @param \Acme\Editor\DataState $state
-     *
-     * @return \Acme\Security\KeyPair|null
+     * @return \Acme\Crypto\KeyPair|null
      */
-    protected function parsePrivateKeyNew(DataState $state)
+    private function parsePrivateKeyNew(DataState $state)
     {
         $privateKeyBits = $state->popValue('privateKeyBits');
         if ($state->isFailed()) {
             return null;
         }
         try {
-            return $this->crypto->generateKeyPair($privateKeyBits);
+            return $this->privateKeyGenerator->generateKeyPair($privateKeyBits);
         } catch (UserMessageException $x) {
             $state->addError($x);
 

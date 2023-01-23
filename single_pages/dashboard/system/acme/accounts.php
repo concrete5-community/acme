@@ -7,10 +7,11 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * @var Acme\Entity\Server[] $servers
  * @var Acme\Entity\Account[] $accounts
- * @var Acme\Security\Crypto $crypto
  * @var Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface $resolverManager
  * @var Concrete\Core\Localization\Service\Date $dateHelper
+ * @var Acme\Service\UI $ui
  */
+
 $numServers = count($servers);
 
 if ($numServers === 0) {
@@ -22,7 +23,6 @@ if ($numServers === 0) {
     return;
 }
 ?>
-
 <div class="ccm-dashboard-header-buttons">
     <?php
     if ($numServers === 1) {
@@ -32,7 +32,7 @@ if ($numServers === 0) {
     } else {
         ?>
         <div class="btn-group">
-            <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+            <button class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" data-toggle="dropdown">
                 <?= t('Add account') ?>
                 <span class="caret"></span>
             </button>
@@ -41,7 +41,7 @@ if ($numServers === 0) {
                 foreach ($servers as $server) {
                     ?>
                     <li>
-                        <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/accounts/add', $server->getID()])) ?>">
+                        <a class="dropdown-item" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/accounts/add', $server->getID()])) ?>">
                             <?php
                             if ($server->isDefault()) {
                                 echo '<strong>', h($server->getName()), '</strong>';
@@ -92,10 +92,11 @@ if ($accounts === []) {
         <tbody>
             <?php
             foreach ($accounts as $account) {
+                $keyPair = $account->getKeyPair();
                 ?>
                 <tr>
-                    <td><a class="btn btn-xs btn-primary" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/accounts/edit', $account->getID()])) ?>"><?= t('Edit') ?></a></td>
-                    <td class="text-center"><?= $account->isDefault() ? '<i class="fa fa-check-square-o"></i>' : '<i class="fa fa-square-o"></i>' ?></td>
+                    <td><a class="btn btn-sm btn-primary" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/accounts/edit', $account->getID()])) ?>"><?= t('Edit') ?></a></td>
+                    <td class="text-center"><?= $account->isDefault() ? "<i class=\"{$ui->faCheckboxChecked}\"></i>" : "<i class=\"{$ui->faCheckboxUnchecked}\"></i>" ?></td>
                     <td><?= h($account->getName()) ?></td>
                     <?php
                     if ($numServers > 1) {
@@ -113,7 +114,7 @@ if ($accounts === []) {
                             <?php
                         }
                         ?>
-                        <?= t('Key size: %s', $crypto->getKeySize($account->getKeyPair())) ?>
+                        <?= t('Key size: %s', $keyPair === null ? '' : $keyPair->getPrivateKeySize()) ?>
                     </td>
                 </tr>
             <?php } ?>

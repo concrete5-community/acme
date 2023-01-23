@@ -1,20 +1,22 @@
 <?php
 
-namespace Acme\Security;
+namespace Acme\Crypto;
 
 use Acme\Exception\FileDownloaderException;
+use Acme\Exception\RuntimeException;
+use Acme\Service\PemDerConversionTrait;
 use Concrete\Core\Http\ResponseFactoryInterface;
 use Concrete\Core\Utility\Service\Validation\Numbers;
-use phpseclib\Crypt\RSA;
-use phpseclib\File\X509;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
 /**
  * Helper class to be used with the 'file_downloader' element.
  */
-class FileDownloader
+final class FileDownloader
 {
+    use PemDerConversionTrait;
+
     /**
      * Download type identifier/flag: private keys.
      *
@@ -51,37 +53,49 @@ class FileDownloader
     const WHAT_ISSUERCERTIFICATE = 0b10000;
 
     /**
-     * @var \Concrete\Core\Utility\Service\Validation\Numbers
+     * PEM format (base64-encoded PEM with a header and a footer).
+     *
+     * @var int
      */
-    protected $numbersHelper;
+    const FORMAT_PEM = 1;
 
     /**
-     * @var \Acme\Security\Crypto
+     * DER format.
+     *
+     * @var int
      */
-    protected $crypto;
+    const FORMAT_DER = 2;
+
+    /**
+     * @var \Concrete\Core\Utility\Service\Validation\Numbers
+     */
+    private $numbersHelper;
 
     /**
      * @var \Concrete\Core\Http\ResponseFactoryInterface
      */
-    protected $responseFactory;
+    private $responseFactory;
 
     /**
-     * @param \Concrete\Core\Utility\Service\Validation\Numbers $numbersHelper
-     * @param \Acme\Security\Crypto $crypto
-     * @param \Concrete\Core\Http\ResponseFactoryInterface $responseFactory
+     * @var int
      */
-    public function __construct(Numbers $numbersHelper, Crypto $crypto, ResponseFactoryInterface $responseFactory)
+    private $engineID;
+
+    /**
+     * @param int|null $engineID The value of one of the Acme\Crypto\Engine constants
+     */
+    public function __construct(Numbers $numbersHelper, ResponseFactoryInterface $responseFactory, $engineID = null)
     {
         $this->numbersHelper = $numbersHelper;
-        $this->crypto = $crypto;
         $this->responseFactory = $responseFactory;
+        $this->engineID = $engineID === null ? Engine::get() : $engineID;
     }
 
     /**
      * Generate a response containing a private key, a public key, a certificate, ...
      *
      * @param int|mixed $what the value of one of the WHAT_... constants
-     * @param int|mixed $format the value of one of the RSA::PUBLIC_FORMAT_... or RSA::PRIVATE_FORMAT_... OR X509::FORMAT_... constants
+     * @param int|mixed $format the value of one of the Acme\Crypto\PrivateKey::FORMAT_... or Acme\Crypto\FileDownloader::FORMAT_ constants
      * @param array $data Array keys may be WHAT_PRIVATEKEY, WHAT_CSR, WHAT_CERTIFICATE, WHAT_ISSUERCERTIFICATE
      * @param string|mixed $comment an optional comment to be added to the downloaded file (if supported)
      *
@@ -100,20 +114,20 @@ class FileDownloader
         }
         $format = (int) $format;
         switch ($what) {
-            case static::WHAT_CSR:
-                list($mediaType, $filename, $data) = $this->prepareCSR($format, array_get($data, static::WHAT_CSR), $comment);
+            case self::WHAT_CSR:
+                list($mediaType, $filename, $data) = $this->prepareCSR($format, array_get($data, self::WHAT_CSR), $comment);
                 break;
-            case static::WHAT_CERTIFICATE:
-                list($mediaType, $filename, $data) = $this->prepareCertificate($format, array_get($data, static::WHAT_CERTIFICATE), $comment);
+            case self::WHAT_CERTIFICATE:
+                list($mediaType, $filename, $data) = $this->prepareCertificate($format, array_get($data, self::WHAT_CERTIFICATE), $comment);
                 break;
-            case static::WHAT_ISSUERCERTIFICATE:
-                list($mediaType, $filename, $data) = $this->prepareIssuerCertificate($format, array_get($data, static::WHAT_ISSUERCERTIFICATE), $comment);
+            case self::WHAT_ISSUERCERTIFICATE:
+                list($mediaType, $filename, $data) = $this->prepareIssuerCertificate($format, array_get($data, self::WHAT_ISSUERCERTIFICATE), $comment);
                 break;
-            case static::WHAT_PUBLICKEY:
-                list($mediaType, $filename, $data) = $this->preparePublicKey($format, array_get($data, static::WHAT_PRIVATEKEY), $comment);
+            case self::WHAT_PUBLICKEY:
+                list($mediaType, $filename, $data) = $this->preparePublicKey($format, array_get($data, self::WHAT_PRIVATEKEY), $comment);
                 break;
-            case static::WHAT_PRIVATEKEY:
-                list($mediaType, $filename, $data) = $this->preparePrivateKey($format, array_get($data, static::WHAT_PRIVATEKEY), $comment);
+            case self::WHAT_PRIVATEKEY:
+                list($mediaType, $filename, $data) = $this->preparePrivateKey($format, array_get($data, self::WHAT_PRIVATEKEY), $comment);
                 break;
             default:
                 throw FileDownloaderException::create(t('The kind of download is invalid'));
@@ -129,14 +143,14 @@ class FileDownloader
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    protected function createResponse($mediaType, $filename, $data)
+    private function createResponse($mediaType, $filename, $data)
     {
         return $this->responseFactory->create(
             $data,
             200,
             [
                 'Content-Type' => $mediaType,
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
             ]
         );
     }
@@ -148,16 +162,16 @@ class FileDownloader
      *
      * @return array
      */
-    protected function prepareCSR($format, $csr, $comment)
+    private function prepareCSR($format, $csr, $comment)
     {
         if (!is_string($csr) || $csr === '') {
             throw FileDownloaderException::create(t('The CSR is missing'));
         }
         switch ($format) {
-            case X509::FORMAT_PEM:
+            case self::FORMAT_PEM:
                 return ['application/octet-stream', 'csr.pem', $csr];
-            case X509::FORMAT_DER:
-                $der = $this->crypto->pemToDer($csr);
+            case self::FORMAT_DER:
+                $der = $this->convertPemToDer($csr);
                 if ($der === '') {
                     throw FileDownloaderException::create(t('Failed to convert from PEM to DER'));
                 }
@@ -175,16 +189,16 @@ class FileDownloader
      *
      * @return array
      */
-    protected function prepareCertificate($format, $certificate, $comment)
+    private function prepareCertificate($format, $certificate, $comment)
     {
         if (!is_string($certificate) || $certificate === '') {
             throw FileDownloaderException::create(t('The certificate is missing'));
         }
         switch ($format) {
-            case X509::FORMAT_PEM:
+            case self::FORMAT_PEM:
                 return ['application/octet-stream', 'certificate.pem', $certificate];
-            case X509::FORMAT_DER:
-                $der = $this->crypto->pemToDer($certificate);
+            case self::FORMAT_DER:
+                $der = $this->convertPemToDer($certificate);
                 if ($der === '') {
                     throw FileDownloaderException::create(t('Failed to convert from PEM to DER'));
                 }
@@ -202,16 +216,16 @@ class FileDownloader
      *
      * @return array
      */
-    protected function prepareIssuerCertificate($format, $issuerCertificate, $comment)
+    private function prepareIssuerCertificate($format, $issuerCertificate, $comment)
     {
         if (!is_string($issuerCertificate) || $issuerCertificate === '') {
             throw FileDownloaderException::create(t('The issuer certificate is missing'));
         }
         switch ($format) {
-            case X509::FORMAT_PEM:
+            case self::FORMAT_PEM:
                 return ['application/octet-stream', 'issuer-certificate.pem', $issuerCertificate];
-            case X509::FORMAT_DER:
-                $der = $this->crypto->pemToDer($issuerCertificate);
+            case self::FORMAT_DER:
+                $der = $this->convertPemToDer($issuerCertificate);
                 if ($der === '') {
                     throw FileDownloaderException::create(t('Failed to convert from PEM to DER'));
                 }
@@ -224,97 +238,84 @@ class FileDownloader
 
     /**
      * @param int $format
-     * @param string|mixed $privateKey
+     * @param string|mixed $privateKeyString
      * @param string|mixed $comment
      *
      * @throws \Concrete\Core\Error\UserMessageException
      *
      * @return array
      */
-    protected function preparePublicKey($format, $privateKey, $comment)
+    private function preparePublicKey($format, $privateKeyString, $comment)
     {
-        if (!is_string($privateKey) || $privateKey === '') {
+        if (!is_string($privateKeyString) || $privateKeyString === '') {
             throw FileDownloaderException::create(t('The private key is missing'));
         }
-
-        $rsa = new RSA();
-        if ($rsa->loadKey($privateKey) === false) {
-            throw FileDownloaderException::create(t('The private key is malformed'));
-        }
-        if (is_string($comment) && $comment !== '') {
-            $rsa->setComment($comment);
+        try {
+            $privateKey = PrivateKey::fromString($privateKeyString, $this->engineID);
+        } catch (RuntimeException $x) {
+            throw FileDownloaderException::create($x->getMessage());
         }
         $mediaType = 'application/octet-stream';
         switch ($format) {
-            case RSA::PUBLIC_FORMAT_PKCS1:
+            case PrivateKey::FORMAT_PKCS1:
                 $filename = 'key-public-pkcs1.pub';
                 break;
-            case RSA::PUBLIC_FORMAT_PKCS8:
+            case PrivateKey::FORMAT_PKCS8:
                 $filename = 'key-public-pkcs8.pub';
                 break;
-            case RSA::PUBLIC_FORMAT_XML:
+            case PrivateKey::FORMAT_XML:
                 $mediaType = 'text/xml';
                 $filename = 'key-public.xml';
                 break;
-            case RSA::PUBLIC_FORMAT_OPENSSH:
+            case PrivateKey::FORMAT_OPENSSH:
                 $filename = 'key-public-openssh.pub';
                 break;
             default:
                 throw FileDownloaderException::create(t('The format of download is invalid'));
         }
-        $data = $rsa->getPublicKey($format);
-        if ($data === false) {
-            throw FileDownloaderException::create(t('The private key is malformed'));
-        }
+        $data = $privateKey->getPublicKeyString($format, $comment);
 
         return [$mediaType, $filename, $data];
     }
 
     /**
      * @param int $format
-     * @param string|mixed $privateKey
+     * @param string|mixed $privateKeyString
      * @param string|mixed $comment
      *
      * @throws \Concrete\Core\Error\UserMessageException
      *
      * @return array
      */
-    protected function preparePrivateKey($format, $privateKey, $comment)
+    private function preparePrivateKey($format, $privateKeyString, $comment)
     {
-        if (!is_string($privateKey) || $privateKey === '') {
+        if (!is_string($privateKeyString) || $privateKeyString === '') {
             throw FileDownloaderException::create(t('The private key is missing'));
         }
-
-        $rsa = new RSA();
-        if ($rsa->loadKey($privateKey) === false) {
-            throw FileDownloaderException::create(t('The private key is malformed'));
-        }
-        if (is_string($comment) && $comment !== '') {
-            $rsa->setComment($comment);
+        try {
+            $privateKey = PrivateKey::fromString($privateKeyString, $this->engineID);
+        } catch (RuntimeException $x) {
+            throw FileDownloaderException::create($x->getMessage());
         }
         $mediaType = 'application/octet-stream';
         switch ($format) {
-            case RSA::PRIVATE_FORMAT_PKCS1:
+            case PrivateKey::FORMAT_PKCS1:
                 $filename = 'key-private-pkcs1.key';
                 break;
-            case RSA::PRIVATE_FORMAT_PKCS8:
+            case PrivateKey::FORMAT_PKCS8:
                 $filename = 'key-private-pkcs8.key';
                 break;
-            case RSA::PRIVATE_FORMAT_XML:
+            case PrivateKey::FORMAT_XML:
                 $mediaType = 'text/xml';
                 $filename = 'key-private.xml';
                 break;
-            case RSA::PRIVATE_FORMAT_PUTTY:
+            case PrivateKey::FORMAT_PUTTY:
                 $filename = 'key-private-putty.ppk';
                 break;
             default:
                 throw FileDownloaderException::create(t('The format of download is invalid'));
         }
-
-        $data = $rsa->getPrivateKey($format);
-        if ($data === false) {
-            throw FileDownloaderException::create(t('The private key is malformed'));
-        }
+        $data = $privateKey->getPrivateKeyString($format, $comment);
 
         return [$mediaType, $filename, $data];
     }

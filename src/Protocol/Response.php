@@ -6,7 +6,7 @@ use DateTime;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Response
+final class Response
 {
     /**
      * Response type: other/unknown.
@@ -34,44 +34,44 @@ class Response
      *
      * @var int
      */
-    protected $code;
+    private $code;
 
     /**
      * The response type (one of the TYPE_... constants).
      *
      * @var int
      */
-    protected $type;
+    private $type;
 
     /**
      * The contents of the response.
      *
      * @var mixed
      */
-    protected $data;
+    private $data;
 
     /**
      * The "location" contained in the response.
      *
      * @var string
      */
-    protected $location = '';
+    private $location = '';
 
     /**
      * The "links" contained in the response.
      *
      * @var array
      */
-    protected $links = [];
+    private $links = [];
 
     /**
      * The value of the "Retry-After" header (if present).
      *
      * @var \DateTime|null
      */
-    protected $retryAfter;
+    private $retryAfter;
 
-    protected function __construct()
+    private function __construct()
     {
     }
 
@@ -229,8 +229,6 @@ class Response
 
     /**
      * Set the value of the "Retry-After" header (if present).
-     *
-     * @param \DateTime|null $value
      *
      * @return $this
      */

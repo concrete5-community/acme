@@ -14,44 +14,44 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * Driver to work with remoe filesystems via FTP.
  */
-class Ftp implements DriverInterface, RemoteDriverInterface
+final class Ftp implements DriverInterface, RemoteDriverInterface
 {
     use NotificationSilencerTrait;
 
     /**
      * @var string
      */
-    protected $handle;
+    private $handle;
 
     /**
      * @var \Acme\Entity\RemoteServer|null
      */
-    protected $remoteServer;
+    private $remoteServer;
 
     /**
      * @var int
      */
-    protected $defaultPort;
+    private $defaultPort;
 
     /**
      * @var int
      */
-    protected $defaultConnectionTimeout;
+    private $defaultConnectionTimeout;
 
     /**
      * @var bool
      */
-    protected $passive;
+    private $passive;
 
     /**
      * @var bool
      */
-    protected $ssl;
+    private $ssl;
 
     /**
      * @var resource|null
      */
-    protected $connection;
+    private $connection;
 
     /**
      * @param string $handle
@@ -60,7 +60,7 @@ class Ftp implements DriverInterface, RemoteDriverInterface
      * @param bool $passive
      * @param bool $ssl
      */
-    protected function __construct($handle, $defaultPort, $defaultConnectionTimeout, $passive, $ssl)
+    private function __construct($handle, $defaultPort, $defaultConnectionTimeout, $passive, $ssl)
     {
         $this->handle = $handle;
         $this->defaultPort = $defaultPort;
@@ -69,9 +69,6 @@ class Ftp implements DriverInterface, RemoteDriverInterface
         $this->ssl = $ssl;
     }
 
-    /**
-     * Destruct the instance.
-     */
     public function __destruct()
     {
         $this->disconnect();
@@ -369,7 +366,7 @@ class Ftp implements DriverInterface, RemoteDriverInterface
      *
      * @throws \Acme\Exception\Exception
      */
-    protected function connect()
+    private function connect()
     {
         if ($this->remoteServer === null) {
             throw FilesystemException::create(FilesystemException::ERROR_CONNECTING_NOSERVER, t('The remote server has not been specified'));
@@ -415,12 +412,12 @@ class Ftp implements DriverInterface, RemoteDriverInterface
     /**
      * Close the connection (if it's open).
      */
-    protected function disconnect()
+    private function disconnect()
     {
         $connection = $this->connection;
         $this->connection = null;
         if ($connection !== null) {
-            $this->ignoringWarnings(function () use ($connection) {
+            $this->ignoringWarnings(static function () use ($connection) {
                 ftp_close($connection);
             });
         }

@@ -13,7 +13,7 @@ use Symfony\Component\Console\Question\ConfirmationQuestion;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class DeleteCommand extends Command
+final class DeleteCommand extends Command
 {
     /**
      * {@inheritdoc}
@@ -107,7 +107,7 @@ EOT
         return $numNotDeleted === 0 ? 0 : 1;
     }
 
-    protected function deleteAccount(Account $account, AccountEditor $accountEditor)
+    private function deleteAccount(Account $account, AccountEditor $accountEditor)
     {
         if ($this->input->getOption('force')) {
             $this->output->writeln("# DELETING ACME ACCOUNT {$account->getName()}");

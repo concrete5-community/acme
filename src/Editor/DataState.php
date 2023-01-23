@@ -6,27 +6,23 @@ use ArrayAccess;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class DataState
+final class DataState
 {
     /**
      * @var array
      */
-    protected $input;
+    private $input;
 
     /**
      * @var \ArrayAccess
      */
-    protected $errors;
+    private $errors;
 
     /**
      * @var bool
      */
-    protected $failed = false;
+    private $failed = false;
 
-    /**
-     * @param array $input
-     * @param \ArrayAccess $errors
-     */
     public function __construct(array $input, ArrayAccess $errors)
     {
         $this->input = $input;

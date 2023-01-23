@@ -5,7 +5,6 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * @var array $pages
  */
-
 ?>
 <p><?= t('In this section of the site you can manage the HTTPS certificates of your websites.') ?></p>
 <table class="table">

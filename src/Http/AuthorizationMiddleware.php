@@ -17,7 +17,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * Middleware that intercepts authorization calls from an ACME server.
  */
-class AuthorizationMiddleware implements MiddlewareInterface
+final class AuthorizationMiddleware implements MiddlewareInterface
 {
     /**
      * The prefix of authorization calls.
@@ -36,23 +36,18 @@ class AuthorizationMiddleware implements MiddlewareInterface
     /**
      * @var \Concrete\Core\Http\ResponseFactoryInterface
      */
-    protected $responseFactory;
+    private $responseFactory;
 
     /**
      * @var \Concrete\Core\Config\Repository\Repository
      */
-    protected $config;
+    private $config;
 
     /**
      * @var \Doctrine\ORM\EntityManagerInterface
      */
-    protected $em;
+    private $em;
 
-    /**
-     * @param \Concrete\Core\Http\ResponseFactoryInterface $responseFactory
-     * @param \Concrete\Core\Config\Repository\Repository $config
-     * @param EntityManagerInterface $em
-     */
     public function __construct(ResponseFactoryInterface $responseFactory, Repository $config, EntityManagerInterface $em)
     {
         $this->responseFactory = $responseFactory;
@@ -94,11 +89,9 @@ class AuthorizationMiddleware implements MiddlewareInterface
     }
 
     /**
-     * @param \Symfony\Component\HttpFoundation\Request $request
-     *
      * @return string
      */
-    protected function getAuthorizationChallengeToken(Request $request)
+    private function getAuthorizationChallengeToken(Request $request)
     {
         $pathInfo = $request->getRequestUri();
         if (strpos($pathInfo, static::ACME_CHALLENGE_PREFIX) !== 0) {
@@ -121,7 +114,7 @@ class AuthorizationMiddleware implements MiddlewareInterface
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    protected function buildChallengeAuthorizationKeyResponse($challengeAuthorizationKey)
+    private function buildChallengeAuthorizationKeyResponse($challengeAuthorizationKey)
     {
         return $this->responseFactory->create(
             $challengeAuthorizationKey,

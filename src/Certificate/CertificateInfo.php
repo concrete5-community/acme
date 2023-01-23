@@ -4,14 +4,17 @@ namespace Acme\Certificate;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
+use Acme\Service\CertificateSplitterTrait;
 use DateTime;
 use JsonSerializable;
 
 /**
  * Contains the info about a certificate.
  */
-class CertificateInfo implements JsonSerializable
+final class CertificateInfo implements JsonSerializable
 {
+    use CertificateSplitterTrait;
+
     /**
      * The actual certificate (in PEM format).
      *
@@ -41,11 +44,18 @@ class CertificateInfo implements JsonSerializable
     private $certifiedDomains;
 
     /**
-     * The certificate of the issuer of the certificate.
+     * The certificate chain of the issuer of the certificate.
      *
      * @var string
      */
     private $issuerCertificate;
+
+    /**
+     * The splitted certificates of the issuer of the certificate.
+     *
+     * @var string[]|null
+     */
+    private $issuerCertificates;
 
     /**
      * The name of the certificate issuer.
@@ -61,7 +71,7 @@ class CertificateInfo implements JsonSerializable
      */
     private $ocspResponderUrl;
 
-    protected function __construct()
+    private function __construct()
     {
     }
 
@@ -72,7 +82,7 @@ class CertificateInfo implements JsonSerializable
      * @param \DateTime $startDate the initial date/time validity of the certificate
      * @param \DateTime $endDate the final date/time validity of the certificate
      * @param string[] $certifiedDomains The list of the actually certified domains
-     * @param string $issuerCertificate the certificate of the issuer of the certificate
+     * @param string $issuerCertificate the certificate chain of the issuer of the certificate
      * @param string $issuerName the name of the certificate issuer
      * @param string $ocspResponderUrl the responder url of the Online Certificate Status Protocol
      *
@@ -133,13 +143,25 @@ class CertificateInfo implements JsonSerializable
     }
 
     /**
-     * Get the certificate of the issuer of the certificate.
+     * Get the certificate chain of the issuer of the certificate.
      *
      * @return string
      */
     public function getIssuerCertificate()
     {
         return $this->issuerCertificate;
+    }
+
+    /**
+     * Get the first certificate of the certificate chain of the issuer of the certificate.
+     *
+     * @return string
+     */
+    public function getFirstIssuerCertificate()
+    {
+        $certificates = $this->getIssuerCertificates();
+
+        return $certificates === [] ? '' : array_shift($certificates);
     }
 
     /**
@@ -185,5 +207,19 @@ class CertificateInfo implements JsonSerializable
             'certifiedDomains' => $this->getCertifiedDomains(),
             'issuerName' => $this->getIssuerName(),
         ];
+    }
+
+    /**
+     * Get the splitted certificates of the issuer of the certificate.
+     *
+     * @return string[]
+     */
+    private function getIssuerCertificates()
+    {
+        if ($this->issuerCertificates === null) {
+            $this->issuerCertificates = $this->splitCertificates($this->getIssuerCertificate());
+        }
+
+        return $this->issuerCertificates;
     }
 }

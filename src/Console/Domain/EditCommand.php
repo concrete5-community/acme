@@ -9,7 +9,7 @@ use Concrete\Core\Error\ErrorList\ErrorList;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class EditCommand extends Command
+final class EditCommand extends Command
 {
     /**
      * {@inheritdoc}
@@ -75,7 +75,7 @@ EOT
         $this->setHelp($this->describeChallengeTypeOptions());
     }
 
-    protected function getOptionValue($optionName, $domainValue)
+    private function getOptionValue($optionName, $domainValue)
     {
         $result = $this->input->getOption($optionName);
 

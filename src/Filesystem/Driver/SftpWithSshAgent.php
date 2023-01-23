@@ -2,14 +2,17 @@
 
 namespace Acme\Filesystem\Driver;
 
-use phpseclib\System\SSH\Agent;
+use Acme\Crypto\Engine;
+use phpseclib\System\SSH\Agent as Agent2;
+use phpseclib3\System\SSH\Agent as Agent3;
+use RuntimeException;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
 /**
  * Driver to work with remoe filesystems via SFTP (with login and private key).
  */
-class SftpWithSshAgent extends Sftp
+final class SftpWithSshAgent extends Sftp
 {
     /**
      * {@inheritdoc}
@@ -39,7 +42,26 @@ class SftpWithSshAgent extends Sftp
     protected function getLoginParameter()
     {
         $address = $this->remoteServer->getSshAgentSocket();
-
-        return $address === '' ? new Agent() : new Agent($address);
+        switch ($this->engineID) {
+            case Engine::PHPSECLIB2:
+                $systemAddress = isset($_SERVER['SSH_AUTH_SOCK']) ? $_SERVER['SSH_AUTH_SOCK'] : null;
+                if ($address === '' || $address === $systemAddress) {
+                    return new Agent2();
+                }
+                $_SERVER['SSH_AUTH_SOCK'] = $address;
+                try {
+                    return new Agent2();
+                } finally {
+                    if ($systemAddress === null) {
+                        unset($_SERVER['SSH_AUTH_SOCK']);
+                    } else {
+                        $_SERVER['SSH_AUTH_SOCK'] = $systemAddress;
+                    }
+                }
+            case Engine::PHPSECLIB3:
+                return new Agent3($address === '' ? null : $address);
+            default:
+                throw new RuntimeException('Not implemented');
+        }
     }
 }

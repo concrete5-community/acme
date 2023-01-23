@@ -2,26 +2,26 @@
 
 namespace Acme\Exception\Communication;
 
-use Zend\Http\Response;
+use Acme\Http\Response;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
 /**
  * Exception thrown when the response from the ACME server does not contain a nonce.
  */
-class NonceNotInResponseException extends Exception
+final class NonceNotInResponseException extends Exception
 {
     /**
      * The response that does not contain a nonce.
      *
-     * @var \Zend\Http\Response
+     * @var \Acme\Http\Response
      */
-    protected $response;
+    private $response;
 
     /**
      * Create a new instance.
      *
-     * @param \Zend\Http\Response $response the response that does not contain a nonce
+     * @param \Acme\Http\Response $response the response that does not contain a nonce
      *
      * @return static
      */
@@ -36,7 +36,7 @@ class NonceNotInResponseException extends Exception
     /**
      * Get the response that does not contain a nonce.
      *
-     * @return \Zend\Http\Response
+     * @return \Acme\Http\Response
      */
     public function getResponse()
     {

@@ -3,13 +3,13 @@
 namespace Acme\Editor;
 
 use Acme\Certificate\Revoker;
+use Acme\Crypto\PrivateKey\Generator;
 use Acme\Entity\Account;
 use Acme\Entity\Certificate;
 use Acme\Entity\CertificateDomain;
 use Acme\Entity\RevokedCertificate;
 use Acme\Exception\EntityNotFoundException;
 use Acme\Finder;
-use Acme\Security\Crypto;
 use Acme\Service\BooleanParser;
 use ArrayAccess;
 use Concrete\Core\Error\UserMessageException;
@@ -20,45 +20,38 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * Helper class to create/edit/delete Certificate entities.
  */
-class CertificateEditor
+final class CertificateEditor
 {
     /**
      * @var \Doctrine\ORM\EntityManagerInterface
      */
-    protected $em;
+    private $em;
 
     /**
      * @var \Acme\Finder
      */
-    protected $finder;
+    private $finder;
 
     /**
-     * @var \Acme\Security\Crypto
+     * @var \Acme\Crypto\PrivateKey\Generator
      */
-    protected $crypto;
+    private $privateKeyGenerator;
 
     /**
      * @var \Acme\Certificate\Revoker
      */
-    protected $revoker;
+    private $revoker;
 
     /**
      * @var \Acme\Service\BooleanParser
      */
-    protected $booleanParser;
+    private $booleanParser;
 
-    /**
-     * @param \Doctrine\ORM\EntityManagerInterface $em
-     * @param \Acme\Finder $finder
-     * @param \Acme\Security\Crypto $crypto
-     * @param \Acme\Certificate\Revoker $revoker
-     * @param \Acme\Service\BooleanParser $booleanParser
-     */
-    public function __construct(EntityManagerInterface $em, Finder $finder, Crypto $crypto, Revoker $revoker, BooleanParser $booleanParser)
+    public function __construct(EntityManagerInterface $em, Finder $finder, Generator $privateKeyGenerator, Revoker $revoker, BooleanParser $booleanParser)
     {
         $this->em = $em;
         $this->finder = $finder;
-        $this->crypto = $crypto;
+        $this->privateKeyGenerator = $privateKeyGenerator;
         $this->revoker = $revoker;
         $this->booleanParser = $booleanParser;
     }
@@ -92,7 +85,6 @@ class CertificateEditor
     /**
      * Edit an existing Certificate instance.
      *
-     * @param \Acme\Entity\Certificate $certificate
      * @param array $data Keys:<br />
      *                    - string|int|\Acme\Entity\Domain <code><b>primaryDomain</b></code> the primary domain of the certificate [optional]<br />
      *                    - string|string[]|int|int[]|\Acme\Entity\Domain[] <code><b>domains</b></code> the domains of the certificate (if a string, separate domains with spaces or commas) [optional]<br />
@@ -167,13 +159,9 @@ class CertificateEditor
     /**
      * Extract/normalize the data received when creating a new Certificate.
      *
-     * @param \Acme\Entity\Account $account
-     * @param array $data
-     * @param \ArrayAccess $errors
-     *
      * @return array|null Return NULL in case of errors
      */
-    protected function normalizeCreateData(Account $account, array $data, ArrayAccess $errors)
+    private function normalizeCreateData(Account $account, array $data, ArrayAccess $errors)
     {
         $state = new DataState($data, $errors);
         $normalizedData = $this->extractDomainList($state, $account)
@@ -192,11 +180,8 @@ class CertificateEditor
 
     /**
      * Apply to a Certificate instance the data extracted from the normalizeCreateData() method.
-     *
-     * @param \Acme\Entity\Certificate $certificate
-     * @param array $normalizedCreateData
      */
-    protected function applyNormalizedCreateData(Certificate $certificate, array $normalizedCreateData)
+    private function applyNormalizedCreateData(Certificate $certificate, array $normalizedCreateData)
     {
         $certificate->setKeyPair($normalizedCreateData['keyPair']);
         $domainList = $certificate->getDomains();
@@ -209,13 +194,9 @@ class CertificateEditor
     /**
      * Extract/normalize the data received when editing an existing Certificate.
      *
-     * @param array $data
-     * @param \ArrayAccess $errors
-     * @param \Acme\Entity\Certificate $certificate
-     *
      * @return array|null Return NULL in case of errors
      */
-    protected function normalizeEditData(array $data, ArrayAccess $errors, Certificate $certificate)
+    private function normalizeEditData(array $data, ArrayAccess $errors, Certificate $certificate)
     {
         $state = new DataState($data, $errors);
         $normalizedData = [];
@@ -259,11 +240,9 @@ class CertificateEditor
     /**
      * Apply to a Certificate instance the data extracted from the normalizeEditData() method.
      *
-     * @param \Acme\Entity\Certificate $certificate
-     * @param array $normalizedCreateData
      * @param array $changedEntities [output]
      */
-    protected function applyNormalizedEditData(Certificate $certificate, array $normalizedCreateData, array &$changedEntities)
+    private function applyNormalizedEditData(Certificate $certificate, array $normalizedCreateData, array &$changedEntities)
     {
         if (isset($normalizedCreateData['primaryDomain']) || isset($normalizedCreateData['otherDomains'])) {
             $domainList = $certificate->getDomains();
@@ -299,12 +278,9 @@ class CertificateEditor
     /**
      * Extract 'primaryDomain' and 'domains', checking that they are valid.
      *
-     * @param \Acme\Editor\DataState $state
-     * @param \Acme\Entity\Account $account
-     *
      * @return array
      */
-    protected function extractDomainList(DataState $state, Account $account)
+    private function extractDomainList(DataState $state, Account $account)
     {
         $result = [
             'primaryDomain' => null,
@@ -337,11 +313,9 @@ class CertificateEditor
     /**
      * Extract 'primaryDomain' and 'domains' from an existing Certificate entity.
      *
-     * @param \Acme\Entity\Certificate $certificate
-     *
      * @return array
      */
-    protected function getCurrentDomainList(Certificate $certificate)
+    private function getCurrentDomainList(Certificate $certificate)
     {
         $result = [
             'primaryDomain' => null,
@@ -360,12 +334,8 @@ class CertificateEditor
 
     /**
      * Extract 'removeDomains'.
-     *
-     * @param \Acme\Editor\DataState $state
-     * @param array $normalizedData
-     * @param \Acme\Entity\Account $account
      */
-    protected function extractRemoveDomains(DataState $state, array &$normalizedData, Account $account)
+    private function extractRemoveDomains(DataState $state, array &$normalizedData, Account $account)
     {
         foreach ($this->parseDomainList($state, $state->popValue('removeDomains'), $account) as $domain) {
             if ($normalizedData['primaryDomain'] === $domain) {
@@ -384,12 +354,8 @@ class CertificateEditor
 
     /**
      * Extract 'primaryDomain' when editing a certificate.
-     *
-     * @param \Acme\Editor\DataState $state
-     * @param array $normalizedData
-     * @param \Acme\Entity\Account $account
      */
-    protected function extractPrimaryDomainForEdit(DataState $state, array &$normalizedData, Account $account)
+    private function extractPrimaryDomainForEdit(DataState $state, array &$normalizedData, Account $account)
     {
         $value = $state->popValue('primaryDomain');
         if ($value === null || $value === '') {
@@ -414,12 +380,8 @@ class CertificateEditor
 
     /**
      * Extract 'addDomains'.
-     *
-     * @param \Acme\Editor\DataState $state
-     * @param array $normalizedData
-     * @param \Acme\Entity\Account $account
      */
-    protected function extractAddDomains(DataState $state, array &$normalizedData, Account $account)
+    private function extractAddDomains(DataState $state, array &$normalizedData, Account $account)
     {
         foreach ($this->parseDomainList($state, $state->popValue('addDomains'), $account) as $domain) {
             if ($normalizedData['primaryDomain'] !== $domain) {
@@ -433,18 +395,16 @@ class CertificateEditor
     /**
      * Extract 'privateKeyBits', and create a new private/public key pair (if no previous errors occurred, so that we don't waste time).
      *
-     * @param \Acme\Editor\DataState $state
-     *
-     * @return \Acme\Security\KeyPair|null
+     * @return \Acme\Crypto\KeyPair|null
      */
-    protected function extractKeyPair(DataState $state)
+    private function extractKeyPair(DataState $state)
     {
         $privateKeyBits = $state->popValue('privateKeyBits');
         if ($state->isFailed()) {
             return null;
         }
         try {
-            return $this->crypto->generateKeyPair($privateKeyBits);
+            return $this->privateKeyGenerator->generateKeyPair($privateKeyBits);
         } catch (UserMessageException $x) {
             $state->addError($x);
 
@@ -453,13 +413,11 @@ class CertificateEditor
     }
 
     /**
-     * @param \Acme\Editor\DataState $state
      * @param string|string[]|int|int[]|\Acme\Entity\Domain|\Acme\Entity\Domain[] $valueList
-     * @param \Acme\Entity\Account $account
      *
      * @return \Acme\Entity\Domain[]
      */
-    protected function parseDomainList(DataState $state, $valueList, Account $account)
+    private function parseDomainList(DataState $state, $valueList, Account $account)
     {
         $domains = [];
         if (!is_array($valueList)) {

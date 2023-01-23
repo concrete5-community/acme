@@ -2,18 +2,18 @@
 
 namespace Acme\Console\RemoteServer;
 
+use Acme\Crypto\KeyPair;
 use Acme\Entity\RemoteServer;
 use Acme\Exception\EntityNotFoundException;
 use Acme\Filesystem\DriverManager;
 use Acme\Filesystem\RemoteDriverInterface;
 use Acme\Finder;
-use Acme\Security\Crypto;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Helper\Table;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class ListCommand extends Command
+final class ListCommand extends Command
 {
     /**
      * {@inheritdoc}
@@ -33,7 +33,7 @@ acme:remote:list
 EOT
     ;
 
-    public function handle(EntityManagerInterface $em, DriverManager $filesystemDriverManager, Crypto $crypto, Finder $finder)
+    public function handle(EntityManagerInterface $em, DriverManager $filesystemDriverManager, Finder $finder)
     {
         $idOrName = $this->input->getArgument('remoteServer');
         if ($idOrName === null) {
@@ -48,10 +48,13 @@ EOT
             return 1;
         }
 
-        return $this->showRemoteServerDetails($remoteServer, $filesystemDriverManager, $crypto);
+        return $this->showRemoteServerDetails($remoteServer, $filesystemDriverManager);
     }
 
-    protected function listRemoteServers(EntityManagerInterface $em, DriverManager $filesystemDriverManager)
+    /**
+     * @return int
+     */
+    private function listRemoteServers(EntityManagerInterface $em, DriverManager $filesystemDriverManager)
     {
         $table = new Table($this->output);
         $table
@@ -79,7 +82,10 @@ EOT
         return 0;
     }
 
-    protected function showRemoteServerDetails(RemoteServer $remoteServer, DriverManager $filesystemDriverManager, Crypto $crypto)
+    /**
+     * @return int
+     */
+    private function showRemoteServerDetails(RemoteServer $remoteServer, DriverManager $filesystemDriverManager)
     {
         $drivers = $filesystemDriverManager->getDrivers(null, RemoteDriverInterface::class);
         $driverInfo = $drivers[$remoteServer->getDriverHandle()];
@@ -98,8 +104,9 @@ EOT
             ]);
         }
         if ($driverInfo['loginFlags'] & RemoteDriverInterface::LOGINFLAG_PRIVATEKEY) {
+            $keyPair = KeyPair::fromPrivateKeyString($remoteServer->getPrivateKey());
             $this->output->writeln([
-                'Private key size   : ' . $crypto->getKeySize($crypto->getKeyPairFromPrivateKey($remoteServer->getPrivateKey())) . ' bits',
+                'Private key size   : ' . ($keyPair === null ? '' : "{$keyPair->getPrivateKeySize()} bits"),
             ]);
         }
         if ($driverInfo['loginFlags'] & RemoteDriverInterface::LOGINFLAG_SSHAGENT) {

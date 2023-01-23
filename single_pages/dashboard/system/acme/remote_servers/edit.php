@@ -12,10 +12,12 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var Concrete\Core\Validation\CSRF\Token $token
  * @var Concrete\Core\Form\Service\Form $form
  * @var Concrete\Core\Page\View\PageView $view
+ * @var Acme\Service\UI $ui
  */
+
 if ($remoteServer->getID()) {
     ?>
-    <form method="POST" action="<?= h($view->action('delete', $remoteServer->getID())) ?>" id="acme-remoteserver-delete" class="hide">
+    <form method="POST" action="<?= h($view->action('delete', $remoteServer->getID())) ?>" id="acme-remoteserver-delete" class="<?= $ui->displayNone ?>">
         <?php $token->output('acme-remoteserver-delete-' . $remoteServer->getID()) ?>
     </form>
     <?php
@@ -30,7 +32,7 @@ if ($remoteServer->getID()) {
         <?= $form->label('name', t('Remote server name')) ?>
         <div class="input-group">
             <?= $form->text('name', $remoteServer->getName(), ['maxlength' => '190', 'required' => 'required', 'placeholder' => t('Mnemonic name of your choice')]) ?>
-            <span class="input-group-addon"><i class="fa fa-asterisk"></i></span>
+            <span class="<?= $ui->inputGroupAddon ?>"><i class="<?= $ui->faAsterisk ?>"></i></span>
         </div>
     </div>
 
@@ -38,7 +40,7 @@ if ($remoteServer->getID()) {
         <?= $form->label('hostname', t('Host name / IP address')) ?>
         <div class="input-group">
             <?= $form->text('hostname', $remoteServer->getHostname(), ['maxlength' => '255', 'required' => 'required']) ?>
-            <span class="input-group-addon"><i class="fa fa-asterisk"></i></span>
+            <span class="<?= $ui->inputGroupAddon ?>"><i class="<?= $ui->faAsterisk ?>"></i></span>
         </div>
     </div>
 
@@ -55,7 +57,7 @@ if ($remoteServer->getID()) {
             }
             echo $form->select('driver', $driverOptions, $remoteServer->getDriverHandle(), ['required' => 'required']);
             ?>
-            <span class="input-group-addon"><i class="fa fa-asterisk"></i></span>
+            <span class="<?= $ui->inputGroupAddon ?>"><i class="<?= $ui->faAsterisk ?>"></i></span>
         </div>
     </div>
 
@@ -78,7 +80,7 @@ if ($remoteServer->getID()) {
                 echo $passwordHtml;
             } else {
                 ?>
-                <div><a href="#" class="btn btn-default" onclick="<?= h("$(this).closest('div').replaceWith(" . json_encode($passwordHtml) . "); $('#password').focus(); return false;") ?>"><?= t('Change') ?></a></div>
+                <div><a href="#" class="btn <?= $ui->defaultButton ?>" onclick="<?= h("$(this).closest('div').replaceWith(" . json_encode($passwordHtml) . "); $('#password').focus(); return false;") ?>"><?= t('Change') ?></a></div>
                 <?php
             }
         } else {
@@ -101,7 +103,7 @@ if ($remoteServer->getID()) {
                 echo $privateKeyHtml;
             } else {
                 ?>
-                <div><a href="#" class="btn btn-default" onclick="<?= h("$(this).closest('div').replaceWith(" . json_encode($privateKeyHtml) . "); $('#privateKey').focus(); return false;") ?>"><?= t('Change') ?></a></div>
+                <div><a href="#" class="btn <?= $ui->defaultButton ?>" onclick="<?= h("$(this).closest('div').replaceWith(" . json_encode($privateKeyHtml) . "); $('#privateKey').focus(); return false;") ?>"><?= t('Change') ?></a></div>
                 <?php
             }
         } else {
@@ -130,7 +132,7 @@ if ($remoteServer->getID()) {
                 <?= $form->label('connectionTimeout', t('Connection timeout')) ?>
                 <div class="input-group">
                     <?= $form->number('connectionTimeout', $remoteServer->getConnectionTimeout(), ['min' => '1']) ?>
-                    <span class="input-group-addon"><?= Punic\Unit::getName('duration/second', 'long') ?></span>
+                    <span class="<?= $ui->inputGroupAddon ?>"><?= Punic\Unit::getName('duration/second', 'long') ?></span>
                 </div>
             </div>
         </div>
@@ -161,8 +163,8 @@ if ($remoteServer->getID()) {
 
     <div class="ccm-dashboard-form-actions-wrapper">
         <div class="ccm-dashboard-form-actions">
-            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/remote_servers'])) ?>" class="btn btn-default pull-left"><?= t('Cancel') ?></a>
-            <div class="pull-right">
+            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/remote_servers'])) ?>" class="btn <?= $ui->defaultButton ?> <?= $ui->floatStart ?>"><?= t('Cancel') ?></a>
+            <div class="<?= $ui->floatEnd ?>">
                 <?php
                 if ($remoteServer->getID()) {
                     ?>

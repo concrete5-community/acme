@@ -14,7 +14,7 @@ abstract class Command extends CoreCommand
     /**
      * @var string[]|null
      */
-    protected $allChallengeTypeOptions;
+    private $allChallengeTypeOptions;
 
     protected function setAllChallengeTypeOptions()
     {

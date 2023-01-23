@@ -13,69 +13,57 @@ use Acme\Exception\UnrecognizedProtocolVersionException;
 use Acme\Order\OrderUnserializer;
 use Acme\Protocol\Communicator;
 use Acme\Protocol\Version;
-use Acme\Security\Crypto;
+use Acme\Service\Base64EncoderTrait;
+use Acme\Service\PemDerConversionTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use Throwable;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class OrderService
+final class OrderService
 {
+    use Base64EncoderTrait;
+
+    use PemDerConversionTrait;
+
     /**
      * @var \Acme\Protocol\Communicator
      */
-    protected $communicator;
+    private $communicator;
 
     /**
      * @var \Acme\Order\OrderUnserializer
      */
-    protected $orderUnserializer;
+    private $orderUnserializer;
 
     /**
      * @var \Acme\ChallengeType\ChallengeTypeManager
      */
-    protected $challengeTypeManager;
+    private $challengeTypeManager;
 
     /**
      * @var \Acme\Certificate\CsrGenerator
      */
-    protected $csrGenerator;
-
-    /**
-     * @var \Acme\Security\Crypto
-     */
-    protected $crypto;
+    private $csrGenerator;
 
     /**
      * @var \Doctrine\ORM\EntityManagerInterface
      */
-    protected $em;
+    private $em;
 
-    /**
-     * @param \Acme\Protocol\Communicator $communicator
-     * @param \Acme\Order\OrderUnserializer $orderUnserializer
-     * @param \Acme\ChallengeType\ChallengeTypeManager $challengeTypeManager
-     * @param \Acme\Certificate\CertificateInfoCreator $certificateInfoCreator
-     * @param \Acme\Security\Crypto $crypto
-     * @param \Doctrine\ORM\EntityManagerInterface $em
-     * @param CsrGenerator $csrGenerator
-     */
-    public function __construct(Communicator $communicator, OrderUnserializer $orderUnserializer, ChallengeTypeManager $challengeTypeManager, CertificateInfoCreator $certificateInfoCreator, CsrGenerator $csrGenerator, Crypto $crypto, EntityManagerInterface $em)
+    public function __construct(Communicator $communicator, OrderUnserializer $orderUnserializer, ChallengeTypeManager $challengeTypeManager, CertificateInfoCreator $certificateInfoCreator, CsrGenerator $csrGenerator, EntityManagerInterface $em)
     {
         $this->communicator = $communicator;
         $this->orderUnserializer = $orderUnserializer;
         $this->challengeTypeManager = $challengeTypeManager;
         $this->certificateInfoCreator = $certificateInfoCreator;
         $this->csrGenerator = $csrGenerator;
-        $this->crypto = $crypto;
         $this->em = $em;
     }
 
     /**
      * Create a new order for a new certificate (ACME v2 only).
-     *
-     * @param \Acme\Entity\Certificate $certificate
      *
      * @return \Acme\Entity\Order
      */
@@ -105,8 +93,6 @@ class OrderService
 
     /**
      * Create a set of domain authorizations (ACME v1 and maybe ACME v2).
-     *
-     * @param \Acme\Entity\Certificate $certificate
      *
      * @return \Acme\Entity\Order
      */
@@ -193,8 +179,6 @@ class OrderService
     /**
      * Finalize an ACME v2 certificate order, by requesting the generation of the certificate.
      *
-     * @param \Acme\Entity\Order $order
-     *
      * @throws \Acme\Exception\Exception
      */
     public function finalizeOrder(Order $order)
@@ -211,7 +195,7 @@ class OrderService
                 'POST',
                 $order->getFinalizeUrl(),
                 [
-                    'csr' => $this->crypto->toBase64($this->crypto->pemToDer($certificate->getCsr())),
+                    'csr' => $this->toBase64UrlSafe($this->convertPemToDer($certificate->getCsr())),
                 ],
                 [200]
             );
@@ -229,8 +213,6 @@ class OrderService
     }
 
     /**
-     * @param \Acme\Entity\Certificate $certificate
-     *
      * @throws \Acme\Exception\Exception
      *
      * @return \Acme\Protocol\Response Possible codes: 201 (new certificate available), 403 (new authorization required)
@@ -251,7 +233,7 @@ class OrderService
                 $server->getNewCertificateUrl(),
                 [
                     'resource' => 'new-cert',
-                    'csr' => $this->crypto->toBase64($this->crypto->pemToDer($certificate->getCsr())),
+                    'csr' => $this->toBase64UrlSafe($this->convertPemToDer($certificate->getCsr())),
                 ],
                 [201, 403]
             );
@@ -273,7 +255,6 @@ class OrderService
     }
 
     /**
-     * @param \Acme\Entity\Account $account
      * @param string $url
      * @param bool $retryOnEmptyResponse
      *
@@ -316,13 +297,11 @@ class OrderService
     }
 
     /**
-     * @param \Acme\Entity\Certificate $certificate
-     *
      * @throws \Acme\Exception\Exception
      *
      * @return array
      */
-    protected function getCreateOrderPayload(Certificate $certificate)
+    private function getCreateOrderPayload(Certificate $certificate)
     {
         $result = ['identifiers' => []];
         foreach ($certificate->getDomains() as $certificateDomain) {
@@ -336,13 +315,11 @@ class OrderService
     }
 
     /**
-     * @param \Acme\Entity\Domain $domain
-     *
      * @throws \Acme\Exception\Exception
      *
      * @return array
      */
-    protected function getAuthorizationChallengePayload(Domain $domain)
+    private function getAuthorizationChallengePayload(Domain $domain)
     {
         $result = [
             'identifier' => [
@@ -369,11 +346,9 @@ class OrderService
     }
 
     /**
-     * @param \Acme\Entity\AuthorizationChallenge $authorizationChallenge
-     *
      * @throws \Acme\Exception\Exception
      */
-    protected function startAuthorizationChallenge(AuthorizationChallenge $authorizationChallenge)
+    private function startAuthorizationChallenge(AuthorizationChallenge $authorizationChallenge)
     {
         $domain = $authorizationChallenge->getDomain();
         $challengeType = $this->challengeTypeManager->getChallengeByHandle($domain->getChallengeTypeHandle());
@@ -431,13 +406,11 @@ class OrderService
     }
 
     /**
-     * @param \Acme\Entity\AuthorizationChallenge $authorizationChallenge
-     *
      * @throws \Acme\Exception\Exception
      *
      * @return array|null
      */
-    protected function getStartAuthorizationChallengePayload(AuthorizationChallenge $authorizationChallenge)
+    private function getStartAuthorizationChallengePayload(AuthorizationChallenge $authorizationChallenge)
     {
         $account = $authorizationChallenge->getDomain()->getAccount();
         switch ($account->getServer()->getProtocolVersion()) {
@@ -455,10 +428,8 @@ class OrderService
 
     /**
      * Stop an authorization challenge (if it was started).
-     *
-     * @param \Acme\Entity\AuthorizationChallenge $authorizationChallenge
      */
-    protected function stopAuthorizationChallenge(AuthorizationChallenge $authorizationChallenge)
+    private function stopAuthorizationChallenge(AuthorizationChallenge $authorizationChallenge)
     {
         if ($authorizationChallenge->isChallengeStarted()) {
             try {
@@ -476,50 +447,43 @@ class OrderService
     }
 
     /**
-     * @param \Acme\Entity\Order $order
-     *
      * @throws \Acme\Exception\Exception
      *
      * @return array
      */
-    protected function fetchOrderData(Order $order)
+    private function fetchOrderData(Order $order)
     {
         return $this->fetchData($order->getCertificate()->getAccount(), $order->getOrderUrl());
     }
 
     /**
-     * @param \Acme\Entity\AuthorizationChallenge $authorizationChallenge
-     *
      * @throws \Acme\Exception\Exception
      *
      * @return array
      */
-    protected function fetchAuthorizationData(AuthorizationChallenge $authorizationChallenge)
+    private function fetchAuthorizationData(AuthorizationChallenge $authorizationChallenge)
     {
         return $this->fetchData($authorizationChallenge->getDomain()->getAccount(), $authorizationChallenge->getAuthorizationUrl());
     }
 
     /**
-     * @param \Acme\Entity\AuthorizationChallenge $authorizationChallenge
-     *
      * @throws \Acme\Exception\Exception
      *
      * @return array
      */
-    protected function fetchChallengeData(AuthorizationChallenge $authorizationChallenge)
+    private function fetchChallengeData(AuthorizationChallenge $authorizationChallenge)
     {
         return $this->fetchData($authorizationChallenge->getDomain()->getAccount(), $authorizationChallenge->getChallengeUrl());
     }
 
     /**
-     * @param \Acme\Entity\Account $account
      * @param string $url
      *
      * @throws \Acme\Exception\Exception
      *
      * @return array
      */
-    protected function fetchData(Account $account, $url)
+    private function fetchData(Account $account, $url)
     {
         $response = $this->communicator->send(
             $account,
@@ -533,13 +497,11 @@ class OrderService
     }
 
     /**
-     * @param \Acme\Entity\Account $account
-     *
      * @throws \Acme\Exception\Exception
      *
      * @return string
      */
-    protected function getFetchDataMethod(Account $account)
+    private function getFetchDataMethod(Account $account)
     {
         switch ($account->getServer()->getProtocolVersion()) {
             case Version::ACME_01:

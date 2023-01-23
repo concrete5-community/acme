@@ -168,8 +168,7 @@ class Order implements JsonSerializable
     /**
      * Create a new instance.
      *
-     * @param \Acme\Entity\Certificate $certificate
-     * @param mixed $type
+     * @param string $type
      *
      * @return static
      */
@@ -265,8 +264,6 @@ class Order implements JsonSerializable
 
     /**
      * Set the order expiration order/closest expirations of the authorizations.
-     *
-     * @param \DateTime|null $value
      *
      * @return $this
      */

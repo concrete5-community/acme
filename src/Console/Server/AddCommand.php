@@ -9,7 +9,7 @@ use Concrete\Core\Error\ErrorList\ErrorList;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class AddCommand extends Command
+final class AddCommand extends Command
 {
     /**
      * {@inheritdoc}
@@ -57,7 +57,7 @@ EOT
         return 0;
     }
 
-    protected function getOptionWithDefaultValue($name, $defaultValue)
+    private function getOptionWithDefaultValue($name, $defaultValue)
     {
         $optionValue = $this->input->getOption($name);
 

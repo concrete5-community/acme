@@ -151,17 +151,12 @@ class CertificateAction implements JsonSerializable
      */
     protected $commandToExecute;
 
-    /**
-     * Initializes the instance.
-     */
     protected function __construct()
     {
     }
 
     /**
      * Create a new instance.
-     *
-     * @param \Acme\Entity\Certificate $certificate
      *
      * @return static
      */
@@ -227,8 +222,6 @@ class CertificateAction implements JsonSerializable
 
     /**
      * Set The remote server where the action should occur (NULL for local server).
-     *
-     * @param \Acme\Entity\RemoteServer|null $value
      *
      * @return $this
      */

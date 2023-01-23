@@ -12,17 +12,13 @@ use Psr\Log\LoggerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class ActionRunner
+final class ActionRunner
 {
     /**
      * @var \Acme\Filesystem\DriverManager
      */
-    protected $filesystemDriverManager;
+    private $filesystemDriverManager;
 
-    /**
-     * @param \Concrete\Core\System\Mutex\MutexInterface $mutex
-     * @param DriverManager $filesystemDriverManager
-     */
     public function __construct(DriverManager $filesystemDriverManager)
     {
         $this->filesystemDriverManager = $filesystemDriverManager;
@@ -30,9 +26,6 @@ class ActionRunner
 
     /**
      * Execute an CertificateAction.
-     *
-     * @param \Acme\Entity\CertificateAction $action
-     * @param \Psr\Log\LoggerInterface $logger
      */
     public function runAction(CertificateAction $action, LoggerInterface $logger)
     {
@@ -83,13 +76,10 @@ class ActionRunner
     }
 
     /**
-     * @param \Acme\Entity\CertificateAction $action
-     * @param \Acme\Filesystem\DriverInterface $driver
      * @param string $contents
      * @param string $path
-     * @param \Psr\Log\LoggerInterface $logger
      */
-    protected function saveFile(CertificateAction $action, DriverInterface $driver, $contents, $path, LoggerInterface $logger)
+    private function saveFile(CertificateAction $action, DriverInterface $driver, $contents, $path, LoggerInterface $logger)
     {
         try {
             $driver->setFileContents($path, $contents);
@@ -100,12 +90,9 @@ class ActionRunner
     }
 
     /**
-     * @param \Acme\Entity\CertificateAction $action
-     * @param \Acme\Filesystem\DriverInterface $driver
      * @param string $command
-     * @param \Psr\Log\LoggerInterface $logger
      */
-    protected function executeCommand(CertificateAction $action, DriverInterface $driver, $command, LoggerInterface $logger)
+    private function executeCommand(CertificateAction $action, DriverInterface $driver, $command, LoggerInterface $logger)
     {
         if (!$driver instanceof ExecutableDriverInterface) {
             $logger->error(t("The command can't be executed since the file system driver doesn't support executing commands"));
@@ -116,12 +103,16 @@ class ActionRunner
         try {
             $rc = $driver->executeCommand($command, $output);
             if ($rc === 0) {
-                return $logger->info(t("The command completed succesfully. Its output is:\n%s", $output));
+                if ($output === '') {
+                    $logger->info(t("The command completed succesfully. It didn't output anything."));
+                } else {
+                    $logger->info(t("The command completed succesfully. Its output is:\n%s", $output));
+                }
+            } else {
+                $logger->critical(t("The command returned a non-zero value (%1\$s). Its output is:\n%2\$s", $rc, $output));
             }
-
-            return $logger->critical(t("The command returned a non-zero value (%1\$s). Its output is:\n%2\$s", $rc, $output));
         } catch (FilesystemException $x) {
-            return $logger->critical(t('Failed to execute the command: %s', $x->getMessage()));
+            $logger->critical(t('Failed to execute the command: %s', $x->getMessage()));
         }
     }
 }

@@ -2,11 +2,11 @@
 
 namespace Acme\Editor;
 
+use Acme\Crypto\KeyPair;
 use Acme\Entity\RemoteServer;
 use Acme\Exception\FilesystemException;
 use Acme\Filesystem\DriverManager;
 use Acme\Filesystem\RemoteDriverInterface;
-use Acme\Security\Crypto;
 use ArrayAccess;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -15,33 +15,22 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * Helper class to create/edit/delete remote server entities.
  */
-class RemoteServerEditor
+final class RemoteServerEditor
 {
     /**
      * @var \Doctrine\ORM\EntityManagerInterface
      */
-    protected $em;
+    private $em;
 
     /**
      * @var \Acme\Filesystem\DriverManager
      */
-    protected $filesistemDriverManager;
+    private $filesistemDriverManager;
 
-    /**
-     * @var \Acme\Security\Crypto
-     */
-    protected $crypto;
-
-    /**
-     * @param \Doctrine\ORM\EntityManagerInterface $em
-     * @param DriverManager $filesistemDriverManager
-     * @param Crypto $crypto
-     */
-    public function __construct(EntityManagerInterface $em, DriverManager $filesistemDriverManager, Crypto $crypto)
+    public function __construct(EntityManagerInterface $em, DriverManager $filesistemDriverManager)
     {
         $this->em = $em;
         $this->filesistemDriverManager = $filesistemDriverManager;
-        $this->crypto = $crypto;
     }
 
     /**
@@ -79,7 +68,6 @@ class RemoteServerEditor
     /**
      * Edit an existing RemoteServer instance.
      *
-     * @param \Acme\Entity\RemoteServer $remoteServer
      * @param array $data Keys:<br />
      *                    - string <code><b>name</b></code> the mnemonic name of the remote server [required]<br />
      *                    - string <code><b>hostname</b></code> the host name/IP address of the remote server [required]<br />
@@ -109,8 +97,7 @@ class RemoteServerEditor
     /**
      * Delete a RemoteServer instance.
      *
-     * @param \Acme\Entity\RemoteServer $remoteServer
-     * @param \ArrayAccess $errors
+     * @param \ArrayAccess $errors Errors will be added here
      *
      * @return bool FALSE in case of errors
      */
@@ -141,13 +128,9 @@ class RemoteServerEditor
     /**
      * Extract/normalize the data received.
      *
-     * @param array $data
-     * @param \ArrayAccess $errors
-     * @param \Acme\Entity\RemoteServer|null $remoteServer
-     *
      * @return array|null Return NULL in case of errors
      */
-    protected function normalizeData(array $data, ArrayAccess $errors, RemoteServer $remoteServer = null)
+    private function normalizeData(array $data, ArrayAccess $errors, RemoteServer $remoteServer = null)
     {
         $state = new DataState($data, $errors);
         $normalizedData = [
@@ -171,11 +154,8 @@ class RemoteServerEditor
 
     /**
      * Apply to a RemoteServer instance the data extracted from the normalizeData() method.
-     *
-     * @param \Acme\Entity\RemoteServer $remoteServer
-     * @param array $normalizedData
      */
-    protected function applyNormalizedData(RemoteServer $remoteServer, array $normalizedData)
+    private function applyNormalizedData(RemoteServer $remoteServer, array $normalizedData)
     {
         $remoteServer
             ->setName($normalizedData['name'])
@@ -190,11 +170,7 @@ class RemoteServerEditor
         ;
     }
 
-    /**
-     * @param \Acme\Editor\DataState $state
-     * @param array $normalizedData
-     */
-    protected function checkConnectionParameters(DataState $state, array $normalizedData)
+    private function checkConnectionParameters(DataState $state, array $normalizedData)
     {
         $remoteServer = RemoteServer::create();
         $this->applyNormalizedData($remoteServer, $normalizedData);
@@ -208,12 +184,11 @@ class RemoteServerEditor
     /**
      * Extract 'name', checking that it's valid and that's not already used.
      *
-     * @param \Acme\Editor\DataState $state
      * @param \Acme\Entity\RemoteServer|null $remoteServer NULL if creating a new remote server
      *
      * @return string
      */
-    protected function extractName(DataState $state, RemoteServer $remoteServer = null)
+    private function extractName(DataState $state, RemoteServer $remoteServer = null)
     {
         $value = $state->popValue('name');
         $value = is_string($value) ? trim($value) : '';
@@ -245,11 +220,9 @@ class RemoteServerEditor
     /**
      * Extract 'hostname', checking that it's valid.
      *
-     * @param \Acme\Editor\DataState $state
-     *
      * @return string
      */
-    protected function extractHostname(DataState $state)
+    private function extractHostname(DataState $state)
     {
         $value = $state->popValue('hostname');
         $value = is_string($value) ? trim($value) : '';
@@ -265,11 +238,9 @@ class RemoteServerEditor
     /**
      * Extract 'port', checking that it's valid.
      *
-     * @param \Acme\Editor\DataState $state
-     *
      * @return int|null
      */
-    protected function extractPort(DataState $state)
+    private function extractPort(DataState $state)
     {
         $value = (string) $state->popValue('port');
         if ($value === '') {
@@ -293,11 +264,9 @@ class RemoteServerEditor
     /**
      * Extract 'connectionTimeout', checking that it's valid.
      *
-     * @param \Acme\Editor\DataState $state
-     *
      * @return int|null
      */
-    protected function extractConnectionTimeout(DataState $state)
+    private function extractConnectionTimeout(DataState $state)
     {
         $value = (string) $state->popValue('connectionTimeout');
         if ($value === '') {
@@ -321,11 +290,9 @@ class RemoteServerEditor
     /**
      * Extract 'driver', 'username', 'password', 'privateKey', 'sshAgentSocket'.
      *
-     * @param \Acme\Editor\DataState $state
-     *
      * @return string
      */
-    protected function extractDriver(DataState $state)
+    private function extractDriver(DataState $state)
     {
         $result = [
             'driver' => '',
@@ -372,7 +339,7 @@ class RemoteServerEditor
 
                 return $result;
             }
-            if ($this->crypto->getKeyPairFromPrivateKey($privateKey) === null) {
+            if (KeyPair::fromPrivateKeyString($privateKey) === null) {
                 $state->addError(t('The private key for the remote server driver is malformed'));
 
                 return $result;

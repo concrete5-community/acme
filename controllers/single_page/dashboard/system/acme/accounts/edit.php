@@ -2,11 +2,12 @@
 
 namespace Concrete\Package\Acme\Controller\SinglePage\Dashboard\System\Acme\Accounts;
 
+use Acme\Crypto\FileDownloader;
 use Acme\DomainService;
 use Acme\Editor\AccountEditor;
 use Acme\Entity\Account;
 use Acme\Exception\FileDownloaderException;
-use Acme\Security\FileDownloader;
+use Acme\Service\UI;
 use Concrete\Core\Error\UserMessageException;
 use Concrete\Core\Http\ResponseFactoryInterface;
 use Concrete\Core\Page\Controller\DashboardPageController;
@@ -15,7 +16,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Edit extends DashboardPageController
+final class Edit extends DashboardPageController
 {
     public function view($id = '')
     {
@@ -27,6 +28,7 @@ class Edit extends DashboardPageController
         $this->set('otherAccountsExist', $this->otherAccountsExists($account));
         $this->set('domainService', $this->app->make(DomainService::class));
         $this->set('dateHelper', $this->app->make('date'));
+        $this->set('ui', $this->app->make(UI::class));
     }
 
     public function submit($id = '')
@@ -122,8 +124,6 @@ class Edit extends DashboardPageController
     }
 
     /**
-     * @param \Acme\Entity\Account $account
-     *
      * @return bool
      */
     private function otherAccountsExists(Account $account)

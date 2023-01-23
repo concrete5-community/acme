@@ -7,14 +7,13 @@ use Acme\Entity\Certificate;
 use Acme\Entity\Server;
 use Acme\Exception\EntityNotFoundException;
 use Acme\Finder;
-use Acme\Security\Crypto;
 use Concrete\Core\Console\Command;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Helper\Table;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class ListCommand extends Command
+final class ListCommand extends Command
 {
     /**
      * {@inheritdoc}
@@ -36,7 +35,7 @@ acme:certificate:list
 EOT
     ;
 
-    public function handle(EntityManagerInterface $em, Finder $finder, Crypto $crypto)
+    public function handle(EntityManagerInterface $em, Finder $finder)
     {
         $id = $this->input->getArgument('certificate');
         $serverIDOrName = $this->input->getOption('server');
@@ -91,10 +90,10 @@ EOT
             return 1;
         }
 
-        return $this->showCertificateDetails($certificate, $crypto);
+        return $this->showCertificateDetails($certificate);
     }
 
-    protected function listCertificates(EntityManagerInterface $em, Server $server = null, Account $account = null)
+    private function listCertificates(EntityManagerInterface $em, Server $server = null, Account $account = null)
     {
         $table = new Table($this->output);
         $table
@@ -140,7 +139,7 @@ EOT
         return 0;
     }
 
-    protected function showCertificateDetails(Certificate $certificate, Crypto $crypto)
+    private function showCertificateDetails(Certificate $certificate)
     {
         $primaryDomain = null;
         $otherDomains = [];
@@ -152,6 +151,7 @@ EOT
             }
         }
         $info = $certificate->getCertificateInfo();
+        $keyPair = $certificate->getKeyPair();
 
         $this->output->writeln([
             'ID                 : ' . $certificate->getID(),
@@ -159,7 +159,7 @@ EOT
             'Created on         : ' . $certificate->getCreatedOn()->format('c'),
             'Primary domain     : ' . $primaryDomain,
             'Other domains      : ' . implode(' ', $otherDomains),
-            'Private key size   : ' . $crypto->getKeySize($certificate->getKeyPair()) . ' bits',
+            'Private key size   : ' . ($keyPair === null ? '' : "{$keyPair->getPrivateKeySize()} bits"),
             'Account            : ' . $certificate->getAccount()->getName(),
             'Server             : ' . $certificate->getAccount()->getServer()->getName(),
             'CSR created        : ' . ($certificate->getCsr() === '' ? 'No' : 'Yes'),

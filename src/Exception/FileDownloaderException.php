@@ -5,7 +5,7 @@ namespace Acme\Exception;
 defined('C5_EXECUTE') or die('Access Denied.');
 
 /**
- * Exception thrown by the download() method of the Acme\Security\FileDownloader class.
+ * Exception thrown by the download() method of the Acme\Crypto\FileDownloader class.
  */
 class FileDownloaderException extends Exception
 {

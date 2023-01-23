@@ -4,6 +4,7 @@ namespace Concrete\Package\Acme\Controller\SinglePage\Dashboard\System\Acme\Cert
 
 use Acme\Entity\Certificate;
 use Acme\Entity\Order;
+use Acme\Service\UI;
 use Concrete\Core\Http\ResponseFactoryInterface;
 use Concrete\Core\Page\Controller\DashboardPageController;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
@@ -11,7 +12,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Renewals extends DashboardPageController
+final class Renewals extends DashboardPageController
 {
     public function view($certificateID = '')
     {
@@ -23,6 +24,7 @@ class Renewals extends DashboardPageController
         $this->set('pageTitle', t('Renewal list for the certificate for %s', implode(', ', $certificate->getDomainHostDisplayNames())));
         $this->set('resolverManager', $this->app->make(ResolverManagerInterface::class));
         $this->set('dateHelper', $this->app->make('date'));
+        $this->set('ui', $this->app->make(UI::class));
     }
 
     public function clear_history($certificateID = '')

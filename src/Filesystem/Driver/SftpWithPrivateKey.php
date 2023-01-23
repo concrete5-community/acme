@@ -2,15 +2,16 @@
 
 namespace Acme\Filesystem\Driver;
 
+use Acme\Crypto\PrivateKey;
 use Acme\Exception\FilesystemException;
-use phpseclib\Crypt\RSA;
+use Exception;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
 /**
  * Driver to work with remoe filesystems via SFTP (with login and private key).
  */
-class SftpWithPrivateKey extends Sftp
+final class SftpWithPrivateKey extends Sftp
 {
     /**
      * {@inheritdoc}
@@ -39,15 +40,16 @@ class SftpWithPrivateKey extends Sftp
      */
     protected function getLoginParameter()
     {
-        $privateKey = $this->remoteServer->getPrivateKey();
-        if ($privateKey === '') {
+        $privateKeyString = $this->remoteServer->getPrivateKey();
+        if ($privateKeyString === '') {
             throw FilesystemException::create(FilesystemException::ERROR_CONNECTING, t('No private key configured for the remote server'));
         }
-        $rsa = new RSA();
-        if (!$rsa->loadKey($privateKey)) {
+        try {
+            $privateKey = PrivateKey::fromString($privateKeyString, $this->engineID);
+        } catch (Exception $x) {
             throw FilesystemException::create(FilesystemException::ERROR_CONNECTING, t('The private key of the remote server is malformed'));
         }
 
-        return $rsa;
+        return $privateKey->getUnderlyingObject();
     }
 }

@@ -4,42 +4,40 @@ namespace Acme\ChallengeType\Types;
 
 use Acme\Entity\AuthorizationChallenge;
 use Acme\Entity\Domain;
+use Acme\Exception\RuntimeException;
 use Acme\Http\AuthorizationMiddleware;
 use Acme\Http\ClientFactory;
-use Acme\Security\Crypto;
+use Acme\Service\UI;
 use ArrayAccess;
 use Concrete\Core\Config\Repository\Repository;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
-use Zend\Http\Client\Exception\RuntimeException as ZendClientRuntimeException;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class HttpInterceptChallenge extends HttpChallenge
+final class HttpInterceptChallenge extends HttpChallenge
 {
     /**
      * @var \Concrete\Core\Config\Repository\Repository
      */
-    protected $config;
+    private $config;
 
     /**
      * @var \Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface
      */
-    protected $resolverManager;
+    private $resolverManager;
 
     /**
      * @var \Acme\Http\ClientFactory
      */
-    protected $httpClientFactory;
+    private $httpClientFactory;
 
     /**
-     * @param \Concrete\Core\Config\Repository\Repository $config
-     * @param \Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface $resolverManager
-     * @param \Acme\Http\ClientFactory $httpClientFactory
-     * @param \Acme\Security\Crypto $crypto
+     * @var \Acme\Service\UI
      */
-    public function __construct(Repository $config, ResolverManagerInterface $resolverManager, ClientFactory $httpClientFactory, Crypto $crypto)
+    private $ui;
+
+    public function __construct(Repository $config, ResolverManagerInterface $resolverManager, ClientFactory $httpClientFactory, UI $ui)
     {
-        parent::__construct($crypto);
         $this->config = $config;
         $this->resolverManager = $resolverManager;
         $this->httpClientFactory = $httpClientFactory;
@@ -75,7 +73,7 @@ class HttpInterceptChallenge extends HttpChallenge
      *
      * @see \Acme\ChallengeType\ChallengeTypeInterface::checkConfiguration()
      */
-    public function checkConfiguration(Domain $domain, array $challengeConfiguration, ArrayAccess $errors)
+    public function checkConfiguration(Domain $domain, array $challengeConfiguration, array $previousChallengeConfiguration, ArrayAccess $errors)
     {
         if (parent::checkConfiguration($domain, $challengeConfiguration, $errors) === null) {
             return null;
@@ -119,16 +117,16 @@ class HttpInterceptChallenge extends HttpChallenge
                 $url .= AuthorizationMiddleware::ACME_CHALLENGE_PREFIX . AuthorizationMiddleware::ACME_CHALLENGE_TOKEN_TESTINTERCEPT;
                 $urls[] = $url;
                 try {
-                    $response = $httpClient->reset()->setMethod('GET')->setUri($url)->send();
-                } catch (ZendClientRuntimeException $x) {
+                    $response = $httpClient->get($url);
+                } catch (RuntimeException $x) {
                     $reason = $reason ?: $x->getMessage();
                     $response = null;
                 }
                 if ($response !== null) {
-                    if (!$response->isOk()) {
-                        $reason = t('Response code: %s (%s)', $response->getStatusCode(), $response->getReasonPhrase());
-                    } elseif ($response->getBody() !== $wantedContents) {
-                        $reason = t("The returned content is wrong (maybe it's another concrete5 installation?)");
+                    if ($response->statusCode !== 200) {
+                        $reason = t('Response code: %s (%s)', $response->statusCode, $response->reasonPhrase);
+                    } elseif ($response->body !== $wantedContents) {
+                        $reason = t("The returned content is wrong (maybe it's another Concrete installation?)");
                     } else {
                         $found = true;
                         break;
@@ -182,6 +180,7 @@ class HttpInterceptChallenge extends HttpChallenge
             'isInstalledInWebroot' => trim(DIR_REL, '/') === '',
             'isPrettyUrlEnabled' => (bool) $this->config->get('concrete.seo.url_rewriting'),
             'seoUrlsPage' => (string) $this->resolverManager->resolve(['/dashboard/system/seo/urls']),
+            'ui' => $this->ui,
         ];
     }
 }

@@ -7,6 +7,7 @@ use Acme\Certificate\RenewerOptions;
 use Acme\Certificate\RevocationChecker;
 use Acme\Entity\Certificate;
 use Acme\Exception\CheckRevocationException;
+use Acme\Service\UI;
 use Concrete\Core\Error\UserMessageException;
 use Concrete\Core\Http\ResponseFactoryInterface;
 use Concrete\Core\Page\Controller\DashboardPageController;
@@ -15,7 +16,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Operate extends DashboardPageController
+final class Operate extends DashboardPageController
 {
     public function view($certificateID = '')
     {
@@ -30,15 +31,13 @@ class Operate extends DashboardPageController
         }
         $this->set('certificate', $certificate);
         $this->set('resolverManager', $this->app->make(ResolverManagerInterface::class));
+        $this->set('ui', $this->app->make(UI::class));
         $this->requireAsset('moment');
         $this->requireAsset('javascript', 'vue');
     }
 
     public function next_step($certificateID = '')
     {
-        if (!$this->request->isXmlHttpRequest()) {
-            return $this->buildReturnRedirectResponse();
-        }
         $certificate = $this->getCertificate($certificateID);
         if ($certificate === null) {
             throw new UserMessageException(t('Unable to find the requested certificate.'));
@@ -73,9 +72,6 @@ class Operate extends DashboardPageController
 
     public function check_revocation($certificateID = '')
     {
-        if (!$this->request->isXmlHttpRequest()) {
-            return $this->buildReturnRedirectResponse();
-        }
         $certificate = $this->getCertificate($certificateID);
         if ($certificate === null) {
             throw new UserMessageException(t('Unable to find the requested certificate.'));

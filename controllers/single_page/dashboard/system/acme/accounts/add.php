@@ -5,6 +5,7 @@ namespace Concrete\Package\Acme\Controller\SinglePage\Dashboard\System\Acme\Acco
 use Acme\Editor\AccountEditor;
 use Acme\Entity\Account;
 use Acme\Entity\Server;
+use Acme\Service\UI;
 use Concrete\Core\Http\ResponseFactoryInterface;
 use Concrete\Core\Page\Controller\DashboardPageController;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
@@ -13,7 +14,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Add extends DashboardPageController
+final class Add extends DashboardPageController
 {
     public function view($serverID = '')
     {
@@ -33,6 +34,7 @@ class Add extends DashboardPageController
         $this->set('currentUser', $currentUser);
         $this->set('currentUserInfo', $currentUser->getUserInfoObject());
         $this->set('resolverManager', $this->app->make(ResolverManagerInterface::class));
+        $this->set('ui', $this->app->make(UI::class));
     }
 
     public function submit($serverID = '')

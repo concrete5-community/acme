@@ -11,10 +11,12 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var Concrete\Core\Validation\CSRF\Token $token
  * @var Concrete\Core\Form\Service\Form $form
  * @var Concrete\Core\Page\View\PageView $view
+ * @var Acme\Service\UI $ui
  */
+
 if ($server->getID()) {
     ?>
-    <form method="POST" action="<?= h($view->action('delete', $server->getID())) ?>" id="acme-server-delete" class="hide">
+    <form method="POST" action="<?= h($view->action('delete', $server->getID())) ?>" id="acme-server-delete" class="<?= $ui->displayNone ?>">
         <?php $token->output('acme-server-delete-' . $server->getID()) ?>
     </form>
     <?php
@@ -27,7 +29,7 @@ if ($server->getID()) {
         <?= $form->label('name', t('Server name')) ?>
         <div class="input-group">
             <?= $form->text('name', $server->getName(), ['maxlength' => '190', 'required' => 'required', 'placeholder' => t('Mnemonic name of your choice')]) ?>
-            <span class="input-group-addon"><i class="fa fa-asterisk"></i></span>
+            <span class="<?= $ui->inputGroupAddon ?>"><i class="<?= $ui->faAsterisk ?>"></i></span>
         </div>
     </div>
 
@@ -41,7 +43,7 @@ if ($server->getID()) {
             }
             ?>
             <?= $form->url('directoryUrl', $server->getDirectoryUrl(), $directoryUrlAttributes) ?>
-            <span class="input-group-addon"><i class="fa fa-asterisk"></i></span>
+            <span class="<?= $ui->inputGroupAddon ?>"><i class="<?= $ui->faAsterisk ?>"></i></span>
         </div>
         <?php
         if ($server->getID() !== null && !$server->getAccounts()->isEmpty()) {
@@ -79,7 +81,7 @@ if ($server->getID()) {
                                 foreach ($sampleServerList as $sampleServer) {
                                     ?>
                                     <a
-                                        class="acme-sample-server label label-primary"
+                                        class="acme-sample-server <?= $ui->badgePrimary ?>"
                                         href="#"
                                         data-directoryurl="<?= h(array_get($sampleServer, 'directoryUrl')) ?>"
                                         data-authorizationports="<?= h(implode(', ', array_get($sampleServer, 'authorizationPorts', []))) ?>"
@@ -106,7 +108,7 @@ if ($server->getID()) {
         <?= $form->label('name', t('Authorization ports')) ?>
         <div class="input-group">
             <?= $form->text('authorizationPorts', implode(' ', $server->getAuthorizationPorts()), ['required' => 'required']) ?>
-            <span class="input-group-addon"><i class="fa fa-asterisk"></i></span>
+            <span class="<?= $ui->inputGroupAddon ?>"><i class="<?= $ui->faAsterisk ?>"></i></span>
         </div>
         <div class="small text-muted">
             <div>
@@ -122,7 +124,7 @@ if ($server->getID()) {
             <label>
                 <?= $form->checkbox('allowUnsafeConnections', '1', $server->isAllowUnsafeConnections()) ?>
                 <?= t('Allow unsafe connections') ?>
-                <span class="small text-muted" style="display:block"><i class="text-danger fa fa-exclamation-triangle"></i> <?= t('this option should be enabled for development/testing purposes only!') ?></span>
+                <span class="small text-muted" style="display:block"><i class="text-danger <?= $ui->faExclamationTriangle ?>"></i> <?= t('this option should be enabled for development/testing purposes only!') ?></span>
             </label>
         </div>
         <?php
@@ -173,8 +175,8 @@ if ($server->getID()) {
 
     <div class="ccm-dashboard-form-actions-wrapper">
         <div class="ccm-dashboard-form-actions">
-            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/servers'])) ?>" class="btn btn-default pull-left"><?= t('Cancel') ?></a>
-            <div class="pull-right">
+            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/servers'])) ?>" class="btn <?= $ui->defaultButton ?> <?= $ui->floatStart ?>"><?= t('Cancel') ?></a>
+            <div class="<?= $ui->floatEnd ?>">
                 <?php
                 if ($server->getID()) {
                     ?>

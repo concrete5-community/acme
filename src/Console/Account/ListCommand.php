@@ -6,14 +6,13 @@ use Acme\Entity\Account;
 use Acme\Entity\Server;
 use Acme\Exception\EntityNotFoundException;
 use Acme\Finder;
-use Acme\Security\Crypto;
 use Concrete\Core\Console\Command;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Helper\Table;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class ListCommand extends Command
+final class ListCommand extends Command
 {
     /**
      * {@inheritdoc}
@@ -34,7 +33,7 @@ acme:account:list
 EOT
     ;
 
-    public function handle(EntityManagerInterface $em, Finder $finder, Crypto $crypto)
+    public function handle(EntityManagerInterface $em, Finder $finder)
     {
         $idOrName = $this->input->getArgument('account');
         if ($idOrName === null) {
@@ -68,10 +67,10 @@ EOT
             return 1;
         }
 
-        return $this->showAccountDetails($account, $crypto);
+        return $this->showAccountDetails($account);
     }
 
-    protected function listAccounts(EntityManagerInterface $em, Server $server = null)
+    private function listAccounts(EntityManagerInterface $em, Server $server = null)
     {
         $table = new Table($this->output);
         $table
@@ -107,8 +106,9 @@ EOT
         return 0;
     }
 
-    protected function showAccountDetails(Account $account, Crypto $crypto)
+    private function showAccountDetails(Account $account)
     {
+        $keyPair = $account->getKeyPair();
         $this->output->writeln([
             'ID                 : ' . $account->getID(),
             'Default            : ' . ($account->isDefault() ? 'Yes' : 'No'),
@@ -116,7 +116,7 @@ EOT
             'Email              : ' . $account->getEmail(),
             'Server             : ' . $account->getServer()->getName(),
             'Created on         : ' . $account->getCreatedOn()->format('c'),
-            'Private key size   : ' . $crypto->getKeySize($account->getKeyPair()) . ' bits',
+            'Private key size   : ' . ($keyPair === null ? '' : "{$keyPair->getPrivateKeySize()} bits"),
         ]);
 
         return 0;

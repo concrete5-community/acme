@@ -6,50 +6,41 @@ use Acme\Entity\AuthorizationChallenge;
 use Acme\Entity\Domain;
 use Acme\Entity\RemoteServer;
 use Acme\Exception\FilesystemException;
+use Acme\Exception\RuntimeException;
 use Acme\Filesystem\DriverManager as FilesystemDriverManager;
 use Acme\Http\ClientFactory;
-use Acme\Security\Crypto;
 use Acme\Service\HttpTokenWriter;
 use ArrayAccess;
 use Concrete\Core\Error\UserMessageException;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
 use Doctrine\ORM\EntityManagerInterface;
-use Zend\Http\Client\Exception\RuntimeException as ZendClientRuntimeException;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class HttpPhysicalChallenge extends HttpChallenge
+final class HttpPhysicalChallenge extends HttpChallenge
 {
     /**
      * @var \Doctrine\ORM\EntityManagerInterface
      */
-    protected $em;
+    private $em;
 
     /**
      * @var \Acme\Filesystem\DriverManager
      */
-    protected $filesystemDriverManager;
+    private $filesystemDriverManager;
 
     /**
      * @var \Acme\Http\ClientFactory
      */
-    protected $httpClientFactory;
+    private $httpClientFactory;
 
     /**
      * @var \Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface
      */
-    protected $resolverManager;
+    private $resolverManager;
 
-    /**
-     * @param \Doctrine\ORM\EntityManagerInterface $em
-     * @param \Acme\Filesystem\DriverManager $filesystemDriverManager
-     * @param \Acme\Http\ClientFactory $httpClientFactory
-     * @param \Acme\Security\Crypto $crypto
-     * @param \Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface $resolverManager
-     */
-    public function __construct(EntityManagerInterface $em, FilesystemDriverManager $filesystemDriverManager, ClientFactory $httpClientFactory, Crypto $crypto, ResolverManagerInterface $resolverManager)
+    public function __construct(EntityManagerInterface $em, FilesystemDriverManager $filesystemDriverManager, ClientFactory $httpClientFactory, ResolverManagerInterface $resolverManager)
     {
-        parent::__construct($crypto);
         $this->em = $em;
         $this->filesystemDriverManager = $filesystemDriverManager;
         $this->httpClientFactory = $httpClientFactory;
@@ -94,7 +85,7 @@ class HttpPhysicalChallenge extends HttpChallenge
      *
      * @see \Acme\ChallengeType\ChallengeTypeInterface::checkConfiguration()
      */
-    public function checkConfiguration(Domain $domain, array $challengeConfiguration, ArrayAccess $errors)
+    public function checkConfiguration(Domain $domain, array $challengeConfiguration, array $previousChallengeConfiguration, ArrayAccess $errors)
     {
         if (parent::checkConfiguration($domain, $challengeConfiguration, $errors) === null) {
             return null;
@@ -148,15 +139,15 @@ class HttpPhysicalChallenge extends HttpChallenge
                     $url .= '/' . $writer->getRelativeTokenFilename($sampleToken);
                     $urls[] = $url;
                     try {
-                        $response = $httpClient->setMethod('GET')->setUri($url)->send();
-                    } catch (ZendClientRuntimeException $x) {
+                        $response = $httpClient->get($url);
+                    } catch (RuntimeException $x) {
                         $reason = $reason ?: $x->getMessage();
                         $response = null;
                     }
                     if ($response !== null) {
-                        if (!$response->isOk()) {
-                            $reason = t('Response code: %s (%s)', $response->getStatusCode(), $response->getReasonPhrase());
-                        } elseif ($response->getBody() !== $sampleContents) {
+                        if ($response->statusCode !== 200) {
+                            $reason = t('Response code: %s (%s)', $response->statusCode, $response->reasonPhrase);
+                        } elseif ($response->body !== $sampleContents) {
                             $reason = t('The returned content is wrong');
                         } else {
                             $found = true;
@@ -241,11 +232,9 @@ class HttpPhysicalChallenge extends HttpChallenge
     }
 
     /**
-     * @param array $challengeConfiguration
-     *
      * @return array
      */
-    protected function normalizeChallengeConfiguration(array $challengeConfiguration)
+    private function normalizeChallengeConfiguration(array $challengeConfiguration)
     {
         $server = (int) array_get($challengeConfiguration, 'server');
 
@@ -257,13 +246,11 @@ class HttpPhysicalChallenge extends HttpChallenge
     }
 
     /**
-     * @param array $challengeConfiguration
-     *
      * @throws \Concrete\Core\Error\UserMessageException
      *
      * @return \Acme\Service\HttpTokenWriter
      */
-    protected function createTokenWriter(array $challengeConfiguration)
+    private function createTokenWriter(array $challengeConfiguration)
     {
         $challengeConfiguration = $this->normalizeChallengeConfiguration($challengeConfiguration);
         $webroot = $challengeConfiguration['webroot'];

@@ -13,7 +13,7 @@ use Symfony\Component\Console\Question\ConfirmationQuestion;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class DeleteCommand extends CoreCommand
+final class DeleteCommand extends CoreCommand
 {
     /**
      * {@inheritdoc}
@@ -131,12 +131,9 @@ EOT
     }
 
     /**
-     * @param \Acme\Entity\Domain $domain
-     * @param \Acme\Editor\DomainEditor $domainEditor
-     *
      * @return bool|null NULL if skipped
      */
-    protected function deleteDomain(Domain $domain, DomainEditor $domainEditor)
+    private function deleteDomain(Domain $domain, DomainEditor $domainEditor)
     {
         if ($this->input->getOption('force')) {
             $this->output->writeln("# DELETING DOMAIN {$domain->getHostDisplayName()} FOR ACCOUNT {$domain->getAccount()->getName()}");

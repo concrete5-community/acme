@@ -106,18 +106,14 @@ class Domain
      */
     protected $certificates;
 
-    /**
-     * Initialize the instance.
-     */
     protected function __construct()
     {
     }
 
     /**
      * Create a new instance.
-     * param \Acme\Entity\Account $account the account owning this domain.
      *
-     * @param Account $account
+     * @param \Acme\Entity\Account $account the account owning this domain
      *
      * @return static
      */
@@ -271,9 +267,6 @@ class Domain
 
     /**
      * Set the authorization challenge type and its domain-specific configuration.
-     *
-     * @param \Acme\ChallengeType\ChallengeTypeInterface|null $challengeType
-     * @param array $challengeConfiguration
      *
      * @return $this
      */

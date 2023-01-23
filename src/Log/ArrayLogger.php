@@ -118,9 +118,6 @@ class ArrayLogger extends StateAwareLogger
     /**
      * Log a new LogEntry.
      *
-     * @param LogEntry $logEntry
-     * @param LogEntry $entry
-     *
      * @return $this
      */
     private function addEntry(LogEntry $entry)

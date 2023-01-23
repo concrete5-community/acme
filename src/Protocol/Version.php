@@ -7,7 +7,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * Helper class to manage the list and names of ACME protocol versions.
  */
-class Version
+final class Version
 {
     /**
      * Protocol version handle: ACME version v1.

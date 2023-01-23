@@ -2,20 +2,22 @@
 
 namespace Acme\Install;
 
+use Acme\Crypto\Engine;
+use Acme\Exception\RuntimeException;
 use Acme\Http\ClientFactory;
 use Concrete\Core\Config\Repository\Repository;
 use Concrete\Core\Foundation\Environment\FunctionInspector;
-use Exception;
-use phpseclib\Crypt\RSA;
-use phpseclib\Math\BigInteger;
-use Throwable;
+use phpseclib\Crypt\RSA as RSA2;
+use phpseclib\Math\BigInteger as BigInteger2;
+use phpseclib3\Crypt\Common\AsymmetricKey;
+use phpseclib3\Math\BigInteger as BigInteger3;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
 /**
  * Helper class that provides tests to be performed before the package is installed.
  */
-class Checks
+final class Checks
 {
     /**
      * FTP extension state: unavailable.
@@ -41,17 +43,22 @@ class Checks
     /**
      * @var \Acme\Http\ClientFactory
      */
-    protected $clientFactory;
+    private $clientFactory;
 
     /**
      * @var \Concrete\Core\Foundation\Environment\FunctionInspector
      */
-    protected $functionInspector;
+    private $functionInspector;
 
     /**
      * @var \Concrete\Core\Config\Repository\Repository
      */
-    protected $config;
+    private $config;
+
+    /**
+     * @var int
+     */
+    private $engineID;
 
     /**
      * Is the OpenSSL extension available?
@@ -98,20 +105,19 @@ class Checks
     /**
      * Flag to remember if we already initialized phpseclib.
      *
-     * @var bool
+     * @var bool|null NULL if not yet initialized
      */
-    private $phpSecLibInitialized = false;
+    private $phpSecLibUseOpenSSL;
 
     /**
-     * @param \Acme\Http\ClientFactory $clientFactory
-     * @param \Concrete\Core\Foundation\Environment\FunctionInspector $functionInspector
-     * @param \Concrete\Core\Config\Repository\Repository $config
+     * @param int|null $engineID The value of one of the Acme\Crypto\Engine constants
      */
-    public function __construct(ClientFactory $clientFactory, FunctionInspector $functionInspector, Repository $config)
+    public function __construct(ClientFactory $clientFactory, FunctionInspector $functionInspector, Repository $config, $engineID = null)
     {
         $this->clientFactory = $clientFactory;
         $this->functionInspector = $functionInspector;
         $this->config = $config;
+        $this->engineID = $engineID === null ? Engine::get() : $engineID;
     }
 
     /**
@@ -160,9 +166,7 @@ class Checks
     {
         if ($this->openSslMisconfigurationProblems === null) {
             if ($this->isOpenSslInstalled()) {
-                // Initialize RSA, so that it defines its constants
-                $this->initializePhpSecLib();
-                if (CRYPT_RSA_MODE === RSA::MODE_INTERNAL) {
+                if ($this->phpSecLibUseOpenSSL() === false) {
                     $this->openSslMisconfigurationProblems = $this->detectOpenSslMisconfigurationProblems($this->getPhpInfoOutput());
                 } else {
                     $this->openSslMisconfigurationProblems = '';
@@ -183,8 +187,21 @@ class Checks
     public function isFastBigIntegerAvailable()
     {
         if ($this->fastBigIntegerAvailable === null) {
-            $this->initializePhpSecLib();
-            $this->fastBigIntegerAvailable = MATH_BIGINTEGER_MODE !== BigInteger::MODE_INTERNAL;
+            switch ($this->engineID) {
+                case Engine::PHPSECLIB2:
+                    if (!defined('MATH_BIGINTEGER_MODE')) {
+                        new BigInteger2();
+                    }
+                    $this->fastBigIntegerAvailable = MATH_BIGINTEGER_MODE !== BigInteger2::MODE_INTERNAL;
+                    break;
+                case Engine::PHPSECLIB3:
+                    $engine = BigInteger3::getEngine();
+                    $this->fastBigIntegerAvailable = !in_array($engine[0], ['PHP32', 'PHP64'], true) || !in_array($engine[1], ['DefaultEngine'], true);
+                    break;
+                default:
+                    $this->fastBigIntegerAvailable = false;
+                    break;
+            }
         }
 
         return $this->fastBigIntegerAvailable;
@@ -222,18 +239,16 @@ class Checks
                             if (!$directoryUrl) {
                                 continue;
                             }
+                            $httpClient = $this->clientFactory->getClient();
                             try {
-                                $httpClient = $this->clientFactory->getClient();
-                                $response = $httpClient->setMethod('HEAD')->setUri($directoryUrl)->send();
-                                if ($response->isOk()) {
+                                $response = $httpClient->head($directoryUrl);
+                                if ($response->statusCode === 200) {
                                     $httpClientError = '';
                                     break 2;
                                 }
-                                $httpClientError = $httpClientError ?: $response->getReasonPhrase();
-                            } catch (Exception $x) {
-                                $httpClientError = $httpClientError ?: ($x->getMessage() ?: get_class($x));
-                            } catch (Throwable $x) {
-                                $httpClientError = $httpClientError ?: ($x->getMessage() ?: get_class($x));
+                                $httpClientError === "Error {$response->statusCode} ({$response->reasonPhrase})";
+                            } catch (RuntimeException $x) {
+                                $httpClientError = $x->getMessage();
                             }
                         }
                     }
@@ -272,7 +287,7 @@ class Checks
      *
      * @return string
      */
-    protected function getPhpInfoOutput()
+    private function getPhpInfoOutput()
     {
         if ($this->phpInfoOutput === null) {
             ob_start();
@@ -290,7 +305,7 @@ class Checks
      *
      * @return string
      */
-    protected function detectOpenSslMisconfigurationProblems($phpInfo)
+    private function detectOpenSslMisconfigurationProblems($phpInfo)
     {
         $m = $matches = null;
         preg_match_all('#OpenSSL (Header|Library) Version(.*)#im', $phpInfo, $matches);
@@ -321,15 +336,28 @@ class Checks
     }
 
     /**
-     * Initialize phpseclib.
+     * @return bool
      */
-    protected function initializePhpSecLib()
+    private function phpSecLibUseOpenSSL()
     {
-        if ($this->phpSecLibInitialized === true) {
-            return;
+        if ($this->phpSecLibUseOpenSSL === null) {
+            switch ($this->engineID) {
+                case Engine::PHPSECLIB2:
+                    if (!defined('CRYPT_RSA_MODE')) {
+                        new RSA2();
+                    }
+                    $this->phpSecLibUseOpenSSL = CRYPT_RSA_MODE === RSA2::MODE_OPENSSL;
+                    break;
+                case Engine::PHPSECLIB3:
+                    $engines = AsymmetricKey::useBestEngine();
+                    $this->phpSecLibUseOpenSSL = !empty($engines['OpenSSL']);
+                    break;
+                default:
+                    $this->phpSecLibUseOpenSSL = false;
+                    break;
+            }
         }
-        new RSA();
-        new BigInteger();
-        $this->phpSecLibInitialized = true;
+
+        return $this->phpSecLibUseOpenSSL;
     }
 }

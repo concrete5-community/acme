@@ -14,9 +14,9 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var Concrete\Core\Page\View\PageView $view
  * @var Concrete\Core\Validation\CSRF\Token $token
  * @var Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface $resolverManager
+ * @var Acme\Service\UI $ui
  */
 ?>
-
 <form method="POST" action="<?= h($view->action('submit', $server->getID())) ?>">
 
     <?php $token->output('acme-account-add-' . $server->getID()) ?>
@@ -25,7 +25,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
         <?= $form->label('name', t('Name'), ['class' => 'launch-tooltip', 'title' => h(t('Give this account a name of your choice'))]) ?>
         <div class="input-group">
             <?= $form->text('name', $currentUser->getUserName(), ['required' => 'required', 'maxlength' => '190']) ?>
-            <span class="input-group-addon"><i class="fa fa-asterisk"></i></span>
+            <span class="<?= $ui->inputGroupAddon ?>"><i class="<?= $ui->faAsterisk ?>"></i></span>
         </div>
     </div>
 
@@ -33,7 +33,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
         <?= $form->label('email', t('Email')) ?>
         <div class="input-group">
             <?= $form->email('email', $currentUserInfo->getUserEmail(), ['required' => 'required']) ?>
-            <span class="input-group-addon"><i class="fa fa-asterisk"></i></span>
+            <span class="<?= $ui->inputGroupAddon ?>"><i class="<?= $ui->faAsterisk ?>"></i></span>
         </div>
     </div>
 
@@ -80,15 +80,15 @@ defined('C5_EXECUTE') or die('Access Denied.');
             <?= $form->label('privateKeyBits', t('Size of private key to create')) ?>
             <div class="input-group">
                 <?= $form->number('privateKeyBits', $defaultKeySize, ['required' => 'required', 'min' => $minimumKeySize]) ?>
-                <span class="input-group-addon"><i class="fa fa-asterisk"></i></span>
+                <span class="<?= $ui->inputGroupAddon ?>"><i class="<?= $ui->faAsterisk ?>"></i></span>
             </div>
         </div>
     </fieldset>
 
     <div class="ccm-dashboard-form-actions-wrapper">
         <div class="ccm-dashboard-form-actions">
-            <a href="<?= $resolverManager->resolve(['/dashboard/system/acme/accounts']) ?>" class="btn btn-default pull-left"><?= t('Cancel') ?></a>
-            <input type="submit" class="btn btn-primary pull-right btn ccm-input-submit" value="<?= t('Add') ?>">
+            <a href="<?= $resolverManager->resolve(['/dashboard/system/acme/accounts']) ?>" class="btn <?= $ui->defaultButton ?> <?= $ui->floatStart ?>"><?= t('Cancel') ?></a>
+            <input type="submit" class="btn btn-primary <?= $ui->floatEnd ?> btn ccm-input-submit" value="<?= t('Add') ?>">
         </div>
     </div>
 

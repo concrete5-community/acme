@@ -14,17 +14,12 @@ interface DriverInterface
     /**
      * Get the name of this driver.
      *
-     * @param array $options
-     *
      * @return string
      */
     public static function getName(array $options);
 
     /**
      * Check whether this driver can be used.
-     *
-     * @param array $options
-     * @param \Concrete\Core\Foundation\Environment\FunctionInspector $functionInspector
      *
      * @return bool
      */
@@ -34,7 +29,6 @@ interface DriverInterface
      * Create a new instance of the driver.
      *
      * @param string $handle
-     * @param array $options
      *
      * @return static
      */
@@ -113,7 +107,7 @@ interface DriverInterface
     /**
      * Attempt to delete the file(s) at a given path.
      *
-     * @param string|array $paths
+     * @param string|string[] $paths
      *
      * @throws \Acme\Exception\FilesystemException
      */

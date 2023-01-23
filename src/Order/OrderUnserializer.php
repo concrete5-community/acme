@@ -3,48 +3,54 @@
 namespace Acme\Order;
 
 use Acme\ChallengeType\ChallengeTypeManager;
+use Acme\Crypto\Engine;
+use Acme\Crypto\Hash;
+use Acme\Crypto\PrivateKey;
+use Acme\Entity\Account;
 use Acme\Entity\AuthorizationChallenge;
 use Acme\Entity\Certificate;
 use Acme\Entity\Domain;
 use Acme\Entity\Order;
 use Acme\Exception\RuntimeException;
 use Acme\Protocol\Response;
-use Acme\Security\Crypto;
+use Acme\Service\Base64EncoderTrait;
 use Acme\Service\DateTimeParser;
+use Acme\Service\JsonEncoderTrait;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class OrderUnserializer
+final class OrderUnserializer
 {
+    use Base64EncoderTrait;
+
+    use JsonEncoderTrait;
+
     /**
      * @var \Acme\Service\DateTimeParser
      */
-    protected $dateTimeParser;
+    private $dateTimeParser;
 
     /**
      * @var \Acme\ChallengeType\ChallengeTypeManager
      */
-    protected $challengeTypeManager;
+    private $challengeTypeManager;
 
     /**
-     * @var \Acme\Security\Crypto
+     * @var int
      */
-    protected $crypto;
+    private $engineID;
 
     /**
-     * @param \Acme\Service\DateTimeParser $dateTimeParser
-     * @param \Acme\ChallengeType\ChallengeTypeManager $challengeTypeManager
-     * @param \Acme\Security\Crypto $crypto
+     * @param int|null $engineID The value of one of the Acme\Crypto\Engine constants
      */
-    public function __construct(DateTimeParser $dateTimeParser, ChallengeTypeManager $challengeTypeManager, Crypto $crypto)
+    public function __construct(DateTimeParser $dateTimeParser, ChallengeTypeManager $challengeTypeManager, $engineID = null)
     {
         $this->dateTimeParser = $dateTimeParser;
         $this->challengeTypeManager = $challengeTypeManager;
-        $this->crypto = $crypto;
+        $this->engineID = $engineID === null ? Engine::get() : $engineID;
     }
 
     /**
-     * @param \Acme\Entity\Certificate $certificate
      * @param \Acme\Protocol\Response[] $authorizationResponses
      *
      * @throws \Acme\Exception\Exception
@@ -61,13 +67,6 @@ class OrderUnserializer
     }
 
     /**
-     * @param \Acme\Entity\Certificate $certificate
-     * @param \Acme\Protocol\Response $mainResponse
-     * @param \Acme\Protocol\Response[] $childResponses
-     * @param string $type One of the Order::TYPE_... constants
-     * @param Response $orderResponse
-     * @param array $authorizationResponses
-     *
      * @throws \Acme\Exception\Exception
      *
      * @return \Acme\Entity\Order
@@ -85,11 +84,6 @@ class OrderUnserializer
         return $result;
     }
 
-    /**
-     * @param \Acme\Entity\AuthorizationChallenge $authorizationChallenge
-     * @param array $authorization
-     * @param array $challenge
-     */
     public function updateAuthorizationChallenge(AuthorizationChallenge $authorizationChallenge, array $authorization, array $challenge)
     {
         $authorizationChallenge
@@ -100,10 +94,6 @@ class OrderUnserializer
         ;
     }
 
-    /**
-     * @param \Acme\Entity\Order $order
-     * @param array $data
-     */
     public function updateMainOrderRecord(Order $order, array $data)
     {
         $order
@@ -114,8 +104,6 @@ class OrderUnserializer
     }
 
     /**
-     * @param \Acme\Entity\Order $order
-     *
      * @throws \Acme\Exception\Exception
      */
     public function updateMainAuthorizationSetRecord(Order $order)
@@ -149,13 +137,11 @@ class OrderUnserializer
     }
 
     /**
-     * @param \Acme\Entity\Order $order
      * @param \Acme\Protocol\Response[] $childResponses
-     * @param array|null $authorizationUrls
      *
      * @throws \Acme\Exception\Exception
      */
-    protected function unserializeAuthorizationChallenges(Order $order, array $childResponses, array $authorizationUrls = null)
+    private function unserializeAuthorizationChallenges(Order $order, array $childResponses, array $authorizationUrls = null)
     {
         foreach ($childResponses as $index => $childResponse) {
             $authorizationUrl = $childResponse->getLocation();
@@ -171,15 +157,13 @@ class OrderUnserializer
     }
 
     /**
-     * @param \Acme\Entity\Order $order
      * @param string $authorizationUrl
-     * @param array $authorization
      *
      * @throws \Acme\Exception\Exception
      *
      * @return \Acme\Entity\AuthorizationChallenge
      */
-    protected function unserializeAuthorizationChallenge(Order $order, $authorizationUrl, array $authorization)
+    private function unserializeAuthorizationChallenge(Order $order, $authorizationUrl, array $authorization)
     {
         $domain = $this->detectAuthorizationChallengeDomain($order, $authorization);
         $challenges = array_get($authorization, 'challenges');
@@ -193,21 +177,18 @@ class OrderUnserializer
         if ($authorizationChallenge->getChallengeUrl() === '') {
             throw new RuntimeException(t('Detected challenge without URL'));
         }
-        $authorizationChallenge->setChallengeAuthorizationKey($this->crypto->generateChallengeAuthorizationKey($order->getCertificate()->getAccount(), $authorizationChallenge->getChallengeToken()));
+        $authorizationChallenge->setChallengeAuthorizationKey($this->generateChallengeAuthorizationKey($order->getCertificate()->getAccount(), $authorizationChallenge->getChallengeToken()));
         $this->updateAuthorizationChallenge($authorizationChallenge, $authorization, $challenge);
 
         return $authorizationChallenge;
     }
 
     /**
-     * @param \Acme\Entity\Order $order
-     * @param array $authorization
-     *
      * @throws \Acme\Exception\Exception
      *
      * @return \Acme\Entity\Domain
      */
-    protected function detectAuthorizationChallengeDomain(Order $order, array $authorization)
+    private function detectAuthorizationChallengeDomain(Order $order, array $authorization)
     {
         $identifierType = $this->arrayGetNonEmptyString($authorization, 'identifier.type');
         if ($identifierType !== 'dns') {
@@ -225,15 +206,11 @@ class OrderUnserializer
     }
 
     /**
-     * @param \Acme\Entity\Domain $domain
-     * @param array $challenges
-     * @param array|null $combinations
-     *
      * @throws \Acme\Exception\Exception
      *
      * return int|null
      */
-    protected function getChallengeIndex(Domain $domain, array $challenges, array $combinations = null)
+    private function getChallengeIndex(Domain $domain, array $challenges, array $combinations = null)
     {
         $domainChallengeType = $this->challengeTypeManager->getChallengeByHandle($domain->getChallengeTypeHandle());
         if ($domainChallengeType === null) {
@@ -269,7 +246,6 @@ class OrderUnserializer
     }
 
     /**
-     * @param array $data
      * @param string $key
      * @param int|null $maxLength
      *
@@ -277,7 +253,7 @@ class OrderUnserializer
      *
      * @return string
      */
-    protected function arrayGetNonEmptyString(array $data, $key, $maxLength = null)
+    private function arrayGetNonEmptyString(array $data, $key, $maxLength = null)
     {
         $value = array_get($data, $key);
         if (!is_string($value) || $value === '') {
@@ -288,5 +264,41 @@ class OrderUnserializer
         }
 
         return $value;
+    }
+
+    /**
+     * Generate the authorization challenge authorization key.
+     *
+     * @param string $challengeToken
+     *
+     * @throws \Acme\Exception\Codec\Base64EncodingException when we couldn't build a base-64 representation
+     * @throws \Acme\Exception\KeyPair\MalformedPrivateKeyException when the private key is malformed
+     * @throws \Acme\Exception\Codec\JsonEncodingException when we couldn't convert $data to json
+     *
+     * @return string
+     */
+    private function generateChallengeAuthorizationKey(Account $account, $challengeToken)
+    {
+        $privateKey = PrivateKey::fromString($account->getPrivateKey(), $this->engineID);
+
+        return $challengeToken . '.' . $this->getPrivateKeyThumbprint($privateKey);
+    }
+
+    /**
+     * Get the thumbprint of a private key.
+     *
+     * @throws \Acme\Exception\Codec\Base64EncodingException when we couldn't build a base-64 representation
+     * @throws \Acme\Exception\KeyPair\MalformedPrivateKeyException when the private key is malformed
+     * @throws \Acme\Exception\Codec\JsonEncodingException when we couldn't convert $data to json
+     *
+     * @return string
+     */
+    private function getPrivateKeyThumbprint(PrivateKey $privateKey)
+    {
+        $jwkJson = $this->toJson($privateKey->getJwk());
+        $hasher = new Hash('sha256', $this->engineID);
+        $hash = $hasher->hash($jwkJson);
+
+        return $this->toBase64UrlSafe($hash);
     }
 }

@@ -127,17 +127,12 @@ class RevokedCertificate
      */
     private $certificateInfo;
 
-    /**
-     * Initialize the instance.
-     */
     protected function __construct()
     {
     }
 
     /**
      * Create a new instance.
-     *
-     * @param \Acme\Certificate\CertificateInfo $certificateInfo
      *
      * @return static
      */
@@ -190,8 +185,6 @@ class RevokedCertificate
 
     /**
      * Set the associated Certificate instance (if any) that originated this RevokedCertificate instance.
-     *
-     * @param \Acme\Entity\Certificate|null $value
      *
      * @return $this
      */

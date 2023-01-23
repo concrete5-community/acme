@@ -8,7 +8,7 @@ use Concrete\Core\Foundation\Service\Provider;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class ServiceProvider extends Provider
+final class ServiceProvider extends Provider
 {
     /**
      * {@inheritdoc}
@@ -30,7 +30,7 @@ class ServiceProvider extends Provider
         }
     }
 
-    protected function setupConsoleCommands(ConsoleApplication $consoleApplication)
+    private function setupConsoleCommands(ConsoleApplication $consoleApplication)
     {
         foreach ([
             Console\Account\ListCommand::class,

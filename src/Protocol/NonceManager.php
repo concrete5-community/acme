@@ -5,15 +5,14 @@ namespace Acme\Protocol;
 use Acme\Entity\Server;
 use Acme\Exception\Communication\NonceNotInResponseException;
 use Acme\Http\ClientFactory;
-use Zend\Http\Header\HeaderInterface;
-use Zend\Http\Response;
+use Acme\Http\Response as HttpResponse;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
 /**
  * Class that generates/checks nonces to be used with ACME server calls.
  */
-class NonceManager
+final class NonceManager
 {
     /**
      * The name of the response header that contains nonces.
@@ -25,16 +24,13 @@ class NonceManager
     /**
      * @var \Acme\Http\ClientFactory
      */
-    protected $clientFactory;
+    private $clientFactory;
 
     /**
      * @var array[]
      */
-    protected $nonces = [];
+    private $nonces = [];
 
-    /**
-     * @param \Acme\Http\ClientFactory $clientFactory
-     */
     public function __construct(ClientFactory $clientFactory)
     {
         $this->clientFactory = $clientFactory;
@@ -42,8 +38,6 @@ class NonceManager
 
     /**
      * Get a nonce to be used to communicate to an ACME server.
-     *
-     * @param \Acme\Entity\Server $server
      *
      * @throws \Acme\Exception\Communication\NonceNotInResponseException when the ACME Server did not provided a new nonce
      *
@@ -64,11 +58,8 @@ class NonceManager
 
     /**
      * Parse a response from an ACME server and extract a new nonce from it (it present).
-     *
-     * @param \Acme\Entity\Server $server
-     * @param \Zend\Http\Response $response
      */
-    public function parseResponseForNewNonce(Server $server, Response $response)
+    public function parseResponseForNewNonce(Server $server, HttpResponse $response)
     {
         $nonce = $this->getNonceFromResponse($response);
         if ($nonce === '') {
@@ -81,18 +72,15 @@ class NonceManager
     /**
      * Generate a new nonce.
      *
-     * @param \Acme\Entity\Server $server
-     *
      * @throws \Acme\Exception\Communication\NonceNotInResponseException when the ACME Server did not provided a new nonce
      *
      * @return string
      */
-    protected function generateNonce(Server $server)
+    private function generateNonce(Server $server)
     {
         $newNonceUrl = $server->getNewNonceUrl();
         $httpClient = $this->clientFactory->getClientForServer($server);
-        $httpClient->getRequest()->setMethod('HEAD')->setUri($newNonceUrl);
-        $response = $httpClient->send();
+        $response = $httpClient->head($newNonceUrl);
         $nonce = $this->getNonceFromResponse($response);
         if ($nonce === '') {
             throw NonceNotInResponseException::create($response);
@@ -104,14 +92,10 @@ class NonceManager
     /**
      * Extract a nonce from a response.
      *
-     * @param \Zend\Http\Response $response
-     *
      * @return string empty string if not found
      */
-    protected function getNonceFromResponse(Response $response)
+    private function getNonceFromResponse(HttpResponse $response)
     {
-        $header = $response->getHeaders()->get(static::NONCE_RESPONSE_HEADER);
-
-        return $header instanceof HeaderInterface ? $header->getFieldValue() : '';
+        return $response->getHeader(self::NONCE_RESPONSE_HEADER);
     }
 }

@@ -3,6 +3,13 @@
 set -o errexit
 set -o nounset
 
+printf -- '- check... '
+if [ ! -f ./.github/workflows/create-release-asset.sh ]; then
+    echo 'INVALID FILE LOCATION!' >&2
+    exit 1
+fi
+echo 'done.'
+
 printf -- '- cleanup... '
 rm -rf ./tmp
 mkdir ./tmp
@@ -10,7 +17,7 @@ echo 'done.'
 
 printf -- '- determining package handle... '
 PACKAGE_HANDLE=$(cat controller.php | grep '$pkgHandle' | tr '"' "'" | cut -d"'" -f2)
-if test -z "$PACKAGE_HANDLE"; then
+if [ -z "$PACKAGE_HANDLE" ]; then
     echo 'FAILED!' >&2
     exit 1
 fi
@@ -20,20 +27,19 @@ printf -- '- exporting... '
 git archive --format=tar --prefix="$PACKAGE_HANDLE/" HEAD | tar -x --directory=./tmp
 echo 'done.'
 
-printf -- '- downloading composerpkg... '
-curl -sSLf -o ./tmp/composerpkg https://raw.githubusercontent.com/concrete5/cli/master/composerpkg
-chmod +x ./tmp/composerpkg
-echo 'done.'
-
-printf -- '- patching composer.json... '
-sed -i 's/"require-dev"/"require-dev-disabled"/' "./tmp/$PACKAGE_HANDLE/composer.json"
+printf -- '- patching composer... '
+cp composer.json composer.json-original
+printf '{\n    "replace": {"phpseclib/phpseclib": "*"},\n' >composer.json
+tail +2 composer.json-original >>composer.json
+rm composer.json-original
 echo 'done.'
 
 printf -- '- installing composer dependencies:\n'
-./tmp/composerpkg install --no-interaction --working-dir="./tmp/$PACKAGE_HANDLE" --no-dev --no-suggest --prefer-dist --optimize-autoloader 2>&1 | sed 's/^/  /'
+composer --no-interaction --ansi --working-dir="./tmp/$PACKAGE_HANDLE" update --no-dev --prefer-dist --optimize-autoloader 2>&1 | sed 's/^/  /'
 
 printf -- '- remove useless files... '
 rm "./tmp/$PACKAGE_HANDLE/composer.json"
+rm "./tmp/$PACKAGE_HANDLE/composer.lock"
 echo 'done.'
 
 printf -- '- creating asset... '

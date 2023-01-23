@@ -9,6 +9,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface $resolverManager
  * @var Concrete\Core\Localization\Service\Date $dateHelper
  * @var Acme\Certificate\Renewer $renewer
+ * @var Acme\Service\UI $ui
  * @var Concrete\Core\Validation\CSRF\Token $token
  * @var Concrete\Core\Page\View\PageView $view
  */
@@ -27,57 +28,35 @@ if ($numAccounts === 0) {
 
 $numServers = count($servers);
 ?>
-<div class="ccm-dashboard-header-buttons col-md-4 acme-hide-loading hide">
-    <div class="input-group">
-        <?php
-        if ($certificates !== []) {
-            ?>
-            <input type="search" id="acme-filter" placeholder="<?= t('Search') ?>" class="form-control" />
+<div class="ccm-dashboard-header-buttons acme-hide-loading <?= $ui->displayNone ?><?= $ui->majorVersion <= 8 ? ' col-md-4' : '' ?>">
+    <div>
+        <div class="input-group">
             <?php
-        }
-        ?>
-        <div class="input-group-btn">
-            <?php
-            if ($numAccounts === 1) {
+            if ($certificates !== []) {
                 ?>
-                <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', 'new', $accounts[0]->getID()])) ?>" class="btn btn-primary"><?= t('Add certificate') ?></a>
+                <input type="search" id="acme-filter" placeholder="<?= t('Search') ?>" class="form-control" />
                 <?php
-            } else {
-                ?>
-                <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
-                    <?= t('Add certificate') ?>
-                    <span class="caret"></span>
-                </button>
-                <ul class="dropdown-menu">
+            }
+            ?>
+            <div class="input-group-btn">
+                <?php
+                if ($numAccounts === 1) {
+                    ?>
+                    <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', 'new', $accounts[0]->getID()])) ?>" class="btn btn-primary"><?= t('Add certificate') ?></a>
                     <?php
-                    if ($numServers === 1) {
-                        foreach ($accounts as $account) {
-                            ?>
-                            <li>
-                                <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', 'new', $account->getID()])) ?>">
-                                    <?php
-                                    if ($account->isDefault()) {
-                                        echo '<strong>', h($account->getName()), '</strong>';
-                                    } else {
-                                        echo h($account->getName());
-                                    }
-                                    ?>
-                                </a>
-                            </li>
-                            <?php
-                        }
-                    } else {
-                        foreach ($servers as $server) {
-                            ?>
-                            <li class="dropdown-header"><?= h($server->getName())?></li>
-                            <?php
+                } else {
+                    ?>
+                    <button class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" data-toggle="dropdown">
+                        <?= t('Add certificate') ?>
+                        <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <?php
+                        if ($numServers === 1) {
                             foreach ($accounts as $account) {
-                                if ($account->getServer() !== $server) {
-                                    continue;
-                                }
                                 ?>
                                 <li>
-                                    <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', 'new', $account->getID()])) ?>">
+                                    <a class="dropdown-item" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', 'new', $account->getID()])) ?>">
                                         <?php
                                         if ($account->isDefault()) {
                                             echo '<strong>', h($account->getName()), '</strong>';
@@ -89,13 +68,37 @@ $numServers = count($servers);
                                 </li>
                                 <?php
                             }
+                        } else {
+                            foreach ($servers as $server) {
+                                ?>
+                                <li><span class="dropdown-header"><?= h($server->getName())?></span></li>
+                                <?php
+                                foreach ($accounts as $account) {
+                                    if ($account->getServer() !== $server) {
+                                        continue;
+                                    }
+                                    ?>
+                                    <li>
+                                        <a class="dropdown-item" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', 'new', $account->getID()])) ?>">
+                                            <?php
+                                            if ($account->isDefault()) {
+                                                echo '<strong>', h($account->getName()), '</strong>';
+                                            } else {
+                                                echo h($account->getName());
+                                            }
+                                            ?>
+                                        </a>
+                                    </li>
+                                    <?php
+                                }
+                            }
                         }
-                    }
-                    ?>
-                </ul>
-                <?php
-            }
-            ?>
+                        ?>
+                    </ul>
+                    <?php
+                }
+                ?>
+            </div>
         </div>
     </div>
 </div>
@@ -108,7 +111,7 @@ if ($certificates === []) {
     </div>
     <script>
     $(document).ready(function() {
-        $('.acme-hide-loading').removeClass('hide');
+        $('.acme-hide-loading').removeClass(<?= json_encode($ui->displayNone) ?>);
     });
     </script>
     <?php
@@ -117,7 +120,7 @@ if ($certificates === []) {
 $showAccount = $numAccounts > 1;
 $showServer = $numServers > 1;
 ?>
-<table class="table table-striped table-condensed acme-hide-loading hide" id="acme-list">
+<table class="table table-striped table-condensed acme-hide-loading <?= $ui->displayNone ?>" id="acme-list">
     <col width="1" />
     <thead>
         <tr>
@@ -154,7 +157,7 @@ $showServer = $numServers > 1;
             ?>
             <tr data-acme-domain-names="<?= h(mb_strtolower(implode(' ', $domainNames)))?>" data-certificate-id="<?= $certificate->getID() ?>" class="<?= $certificate->isDisabled() ? 'certificate-disabled' : 'certificate-enabled' ?>">
                 <td>
-                    <a class="btn btn-xs btn-primary" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', $certificate->getID()])) ?>"><?php
+                    <a class="btn btn-sm btn-primary" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/edit', $certificate->getID()])) ?>"><?php
                     if ($certificate->getCsr() === '' && $certificate->getOngoingOrder() === null) {
                         echo t('Edit');
                     } else {
@@ -192,15 +195,15 @@ $showServer = $numServers > 1;
                 <td><?= $info === null ? '' : h($dateHelper->formatDateTime($info->getEndDate(), true, true)) ?></td>
                 <td><?= $info === null ? '' : h($info->getIssuerName()) ?></td>
                 <td>
-                    <a class="btn btn-xs btn-info" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/actions', $certificate->getID()])) ?>">
+                    <a class="btn btn-sm btn-info" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/actions', $certificate->getID()])) ?>">
                         <?= t('Actions')?>
-                        <span class="badge"><?= $numActions ?></span>
+                        <span class="<?= $ui->badgeInsideButton ?>"><?= $numActions ?></span>
                     </a>
                 </td>
                 <td>
-                    <a class="btn btn-xs btn-danger disable-certificate" href="#"><?= t('Disable') ?></a>
-                    <a class="btn btn-xs btn-success enable-certificate" href="#"><?= t('Enable') ?></a>
-                    <a class="btn btn-xs btn-primary certificate-operation" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/operate', $certificate->getID()])) ?>">
+                    <a class="btn btn-sm btn-danger disable-certificate" href="#"><?= t('Disable') ?></a>
+                    <a class="btn btn-sm btn-success enable-certificate" href="#"><?= t('Enable') ?></a>
+                    <a class="btn btn-sm btn-primary certificate-operation" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates/operate', $certificate->getID()])) ?>">
                         <?php
                         switch ($renewer->getCertificateState($certificate)) {
                             case $renewer::CERTIFICATESTATE_GOOD:
@@ -285,7 +288,7 @@ $(document).ready(function() {
                         }
                     });
                 }
-                $row.toggleClass('hide', hide);
+                $row.toggleClass(<?= json_encode($ui->displayNone) ?>, hide);
             });
         };
     })();
@@ -294,12 +297,12 @@ $(document).ready(function() {
 
     $search
         .on('input', function() {
-           applyFilter($search.val());
+            applyFilter($search.val());
         })
         .val(persistentSearch.get());
     ;
 
-    $('.acme-hide-loading').removeClass('hide');
+    $('.acme-hide-loading').removeClass(<?= json_encode($ui->displayNone) ?>);
 
     if ($search.val().length > 0) {
         $search.focus();

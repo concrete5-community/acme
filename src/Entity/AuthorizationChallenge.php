@@ -201,9 +201,6 @@ class AuthorizationChallenge implements JsonSerializable
     /**
      * Create a new instance.
      *
-     * @param \Acme\Entity\Order $parentOrder
-     * @param \Acme\Entity\Domain $domain
-     *
      * @return static
      */
     public static function create(Order $parentOrder, Domain $domain)
@@ -280,8 +277,6 @@ class AuthorizationChallenge implements JsonSerializable
 
     /**
      * Set the authorization expiration.
-     *
-     * @param \DateTime|null $value
      *
      * @return $this
      */

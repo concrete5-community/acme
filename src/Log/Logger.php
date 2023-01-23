@@ -243,8 +243,6 @@ abstract class Logger implements LoggerInterface
     /**
      * Add to this log the logs of another logger.
      *
-     * @param \Acme\Log\ArrayLogger $arrayLogger
-     *
      * @return $this
      */
     public function logLogger(ArrayLogger $arrayLogger)

@@ -2,13 +2,14 @@
 
 namespace Concrete\Package\Acme\Controller\SinglePage\Dashboard\System\Acme;
 
+use Acme\Service\UI;
 use Concrete\Core\Http\ResponseFactoryInterface;
 use Concrete\Core\Page\Controller\DashboardPageController;
 use Concrete\Core\Utility\Service\Validation\Numbers;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Options extends DashboardPageController
+final class Options extends DashboardPageController
 {
     public function view()
     {
@@ -16,6 +17,7 @@ class Options extends DashboardPageController
         $this->set('renewDaysBeforeExpiration', $config->get('acme::renewal.daysBeforeExpiration'));
         $this->set('minimumKeySize', $config->get('acme::security.key_size.min'));
         $this->set('defaultKeySize', $config->get('acme::security.key_size.default'));
+        $this->set('ui', $this->app->make(UI::class));
     }
 
     public function submit()

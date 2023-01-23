@@ -13,7 +13,7 @@ use Symfony\Component\Console\Question\ConfirmationQuestion;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class DeleteCommand extends Command
+final class DeleteCommand extends Command
 {
     /**
      * {@inheritdoc}
@@ -85,7 +85,10 @@ EOT
         return $numNotDeleted === 0 ? 0 : 1;
     }
 
-    protected function deleteServer(Server $server, ServerEditor $serverEditor)
+    /**
+     * @return bool|null NULL if skipped
+     */
+    private function deleteServer(Server $server, ServerEditor $serverEditor)
     {
         if ($this->input->getOption('force')) {
             $this->output->writeln("# DELETING ACME SERVER {$server->getName()}");

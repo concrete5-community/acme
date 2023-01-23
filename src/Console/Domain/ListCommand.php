@@ -14,7 +14,7 @@ use Symfony\Component\Console\Helper\Table;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class ListCommand extends CoreCommand
+final class ListCommand extends CoreCommand
 {
     /**
      * {@inheritdoc}
@@ -90,7 +90,7 @@ EOT
         return $this->showDomainDetails($domain, $challengeTypeManager);
     }
 
-    protected function listDomains(EntityManagerInterface $em, Server $server = null, Account $account = null)
+    private function listDomains(EntityManagerInterface $em, Server $server = null, Account $account = null)
     {
         $table = new Table($this->output);
         $table
@@ -136,7 +136,7 @@ EOT
         return 0;
     }
 
-    protected function showDomainDetails(Domain $domain, ChallengeTypeManager $challengeTypeManager)
+    private function showDomainDetails(Domain $domain, ChallengeTypeManager $challengeTypeManager)
     {
         $challengeType = $challengeTypeManager->getChallengeByHandle($domain->getChallengeTypeHandle());
         $this->output->writeln([

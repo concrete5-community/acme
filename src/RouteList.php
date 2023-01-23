@@ -8,7 +8,7 @@ use Concrete\Core\Routing\Router;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class RouteList implements RouteListInterface
+final class RouteList implements RouteListInterface
 {
     /**
      * {@inheritdoc}

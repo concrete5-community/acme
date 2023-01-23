@@ -13,22 +13,18 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * Manage the list of filesystem drivers.
  */
-class DriverManager
+final class DriverManager
 {
     /**
      * @var \Concrete\Core\Foundation\Environment\FunctionInspector
      */
-    protected $functionInspector;
+    private $functionInspector;
 
     /**
      * @var \Concrete\Core\Config\Repository\Repository
      */
-    protected $config;
+    private $config;
 
-    /**
-     * @param \Concrete\Core\Foundation\Environment\FunctionInspector $functionInspector
-     * @param \Concrete\Core\Config\Repository\Repository $config
-     */
     public function __construct(FunctionInspector $functionInspector, Repository $config)
     {
         $this->functionInspector = $functionInspector;
@@ -108,8 +104,6 @@ class DriverManager
     }
 
     /**
-     * @param \Acme\Entity\RemoteServer $remoteServer
-     *
      * @throws \Acme\Exception\Exception
      *
      * @return \Acme\Filesystem\RemoteDriverInterface
@@ -139,7 +133,7 @@ class DriverManager
      *
      * @return array|null
      */
-    protected function getDriverDetails($handle)
+    private function getDriverDetails($handle)
     {
         $data = $this->config->get('acme::filesystem.drivers.' . $handle);
         if (!is_array($data)) {

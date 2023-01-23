@@ -12,22 +12,18 @@ use Doctrine\ORM\EntityManagerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Finder
+final class Finder
 {
     /**
      * @var \Doctrine\ORM\EntityManagerInterface
      */
-    protected $em;
+    private $em;
 
     /**
      * @var \Concrete\Core\Database\Query\LikeBuilder
      */
-    protected $likeBuilder;
+    private $likeBuilder;
 
-    /**
-     * @param \Doctrine\ORM\EntityManagerInterface $em
-     * @param \Concrete\Core\Database\Query\LikeBuilder $likeBuilder
-     */
     public function __construct(EntityManagerInterface $em, LikeBuilder $likeBuilder)
     {
         $this->em = $em;
@@ -120,8 +116,7 @@ class Finder
      * Find a domain given its ID or host name.
      *
      * @param \Acme\Entity\Domain|string|int|mixed $criteria
-     * @param \Acme\Entity\Account|null limit the search to a specific account
-     * @param Account|null $account
+     * @param \Acme\Entity\Account|null $account limit the search to a specific account
      *
      * @throws \Acme\Exception\EntityNotFoundException
      *
@@ -230,7 +225,7 @@ class Finder
      *
      * @return object[]
      */
-    protected function findByInitialName($class, $criteria)
+    private function findByInitialName($class, $criteria)
     {
         $qb = $this->em->createQueryBuilder();
 
@@ -249,7 +244,7 @@ class Finder
      *
      * @return bool
      */
-    protected function isInteger($value)
+    private function isInteger($value)
     {
         return is_int($value) || is_string($value) && $value === (string) (int) $value;
     }

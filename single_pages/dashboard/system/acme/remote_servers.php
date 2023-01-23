@@ -10,7 +10,6 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface $resolverManager
  * @var Concrete\Core\Localization\Service\Date $dateHelper
  */
-
 ?>
 <div class="ccm-dashboard-header-buttons">
     <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/remote_servers/edit', 'new'])) ?>" class="btn btn-primary"><?= t('Add remote server') ?></a>
@@ -44,7 +43,7 @@ if ($remoteServers === []) {
         foreach ($remoteServers as $remoteServer) {
             ?>
             <tr>
-                <td><a class="btn btn-xs btn-primary" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/remote_servers/edit', $remoteServer->getID()])) ?>"><?= t('Edit') ?></a></td>
+                <td><a class="btn btn-sm btn-primary" href="<?= h($resolverManager->resolve(['/dashboard/system/acme/remote_servers/edit', $remoteServer->getID()])) ?>"><?= t('Edit') ?></a></td>
                 <td><?= h($remoteServer->getName()) ?></td>
                 <td><?= h($remoteServer->getHostname()) ?></td>
                 <td><?= h($filesystemDriverManager->getDriverName($remoteServer->getDriverHandle())) ?></td>

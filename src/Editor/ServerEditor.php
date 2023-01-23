@@ -4,7 +4,6 @@ namespace Acme\Editor;
 
 use Acme\Entity\Server;
 use Acme\Exception\Exception;
-use Acme\Http\ClientFactory;
 use Acme\Server\DirectoryInfoService;
 use Acme\Service\BooleanParser;
 use Acme\Service\NotificationSilencerTrait;
@@ -16,40 +15,28 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * Helper class to create/edit/delete ACME server entities.
  */
-class ServerEditor
+final class ServerEditor
 {
     use NotificationSilencerTrait;
 
     /**
      * @var \Doctrine\ORM\EntityManagerInterface
      */
-    protected $em;
-
-    /**
-     * @var \Acme\Http\ClientFactory
-     */
-    protected $httpClientFactory;
+    private $em;
 
     /**
      * @var \Acme\Server\DirectoryInfoService
      */
-    protected $directoryInfoService;
+    private $directoryInfoService;
 
     /**
      * @var \Acme\Service\BooleanParser
      */
-    protected $booleanParser;
+    private $booleanParser;
 
-    /**
-     * @param \Doctrine\ORM\EntityManagerInterface $em
-     * @param \Acme\Http\ClientFactory $httpClientFactory
-     * @param \Acme\Server\DirectoryInfoService $directoryInfoService
-     * @param \Acme\Service\BooleanParser $booleanParser
-     */
-    public function __construct(EntityManagerInterface $em, ClientFactory $httpClientFactory, DirectoryInfoService $directoryInfoService, BooleanParser $booleanParser)
+    public function __construct(EntityManagerInterface $em, DirectoryInfoService $directoryInfoService, BooleanParser $booleanParser)
     {
         $this->em = $em;
-        $this->httpClientFactory = $httpClientFactory;
         $this->directoryInfoService = $directoryInfoService;
         $this->booleanParser = $booleanParser;
     }
@@ -94,7 +81,6 @@ class ServerEditor
     /**
      * Edit an existing Server instance.
      *
-     * @param \Acme\Entity\Server $server
      * @param array $data Keys:<br />
      *                    - string <code><b>name</b></code> the mnemonic name of the server [required]<br />
      *                    - string <code><b>directoryUrl</b></code> the directory URL of the server [required]<br />
@@ -141,9 +127,6 @@ class ServerEditor
     /**
      * Delete a Server instance.
      *
-     * @param \Acme\Entity\Server $server
-     * @param \ArrayAccess $errors
-     *
      * @return bool FALSE in case of errors
      */
     public function delete(Server $server, ArrayAccess $errors)
@@ -184,13 +167,9 @@ class ServerEditor
     /**
      * Extract/normalize the data received.
      *
-     * @param array $data
-     * @param \ArrayAccess $errors
-     * @param \Acme\Entity\Server|null $server
-     *
      * @return array|null Return NULL in case of errors
      */
-    protected function normalizeData(array $data, ArrayAccess $errors, Server $server = null)
+    private function normalizeData(array $data, ArrayAccess $errors, Server $server = null)
     {
         $state = new DataState($data, $errors);
         $normalizedData = [
@@ -215,11 +194,8 @@ class ServerEditor
 
     /**
      * Apply to a Server instance the data extracted from the normalizeData() method.
-     *
-     * @param \Acme\Entity\Server $server
-     * @param array $normalizedData
      */
-    protected function applyNormalizedData(Server $server, array $normalizedData)
+    private function applyNormalizedData(Server $server, array $normalizedData)
     {
         $server
             ->setName($normalizedData['name'])
@@ -242,12 +218,11 @@ class ServerEditor
     /**
      * Extract 'name', checking that it's valid and that's not already used.
      *
-     * @param \Acme\Editor\DataState $state
      * @param \Acme\Entity\Server|null $server NULL if and only if creating a new server
      *
      * @return string
      */
-    protected function extractName(DataState $state, Server $server = null)
+    private function extractName(DataState $state, Server $server = null)
     {
         $value = $state->popValue('name');
         $value = is_string($value) ? trim($value) : '';
@@ -273,11 +248,9 @@ class ServerEditor
     /**
      * Extract 'directoryUrl', checking that it's a valid URL.
      *
-     * @param \Acme\Editor\DataState $state
-     *
      * @return string
      */
-    protected function extractDirectoryUrl(DataState $state)
+    private function extractDirectoryUrl(DataState $state)
     {
         $value = $state->popValue('directoryUrl');
         $value = is_string($value) ? trim($value) : '';
@@ -299,12 +272,11 @@ class ServerEditor
     /**
      * Extract 'default', forcing it to TRUE in case the new/current server must be the default one.
      *
-     * @param \Acme\Editor\DataState $state
      * @param \Acme\Entity\Server|null $server NULL if and only if creating a new server
      *
      * @return bool
      */
-    protected function extractDefault(DataState $state, Server $server = null)
+    private function extractDefault(DataState $state, Server $server = null)
     {
         $value = $state->popValue('default');
         if ($this->em->getRepository(Server::class)->findOneBy([]) === $server) {
@@ -317,11 +289,9 @@ class ServerEditor
     /**
      * Extract 'authorizationPorts', checking that it's a valid list of ports.
      *
-     * @param \Acme\Editor\DataState $state
-     *
      * @return string
      */
-    protected function extractAuthorizationPorts(DataState $state)
+    private function extractAuthorizationPorts(DataState $state)
     {
         $value = $state->popValue('authorizationPorts');
         if (is_string($value)) {
@@ -337,7 +307,7 @@ class ServerEditor
         }
         $validPorts = array_values(array_filter(
             $ports,
-            function ($port) {
+            static function ($port) {
                 return $port >= 0x0001 && $port <= 0xffff;
             }
         ));
@@ -354,11 +324,9 @@ class ServerEditor
     /**
      * Extract 'allowUnsafeConnections'.
      *
-     * @param \Acme\Editor\DataState $state
-     *
      * @return bool
      */
-    protected function extractAllowUnsafeConnections(DataState $state)
+    private function extractAllowUnsafeConnections(DataState $state)
     {
         return $this->booleanParser->toBoolean($state->popValue('allowUnsafeConnections'));
     }
@@ -366,12 +334,9 @@ class ServerEditor
     /**
      * Detect the version of the protocol used.
      *
-     * @param \Acme\Editor\DataState $state
-     * @param array $normalizedData
-     *
      * @return \Acme\Server\DirectoryInfo|null
      */
-    protected function getDirectoryInfo(DataState $state, array $normalizedData)
+    private function getDirectoryInfo(DataState $state, array $normalizedData)
     {
         try {
             return $this->directoryInfoService->getInfoFromUrl($normalizedData['directoryUrl'], $normalizedData['allowUnsafeConnections']);

@@ -2,12 +2,13 @@
 
 namespace Concrete\Package\Acme\Controller\SinglePage\Dashboard\System\Acme\Certificates;
 
+use Acme\Crypto\FileDownloader;
 use Acme\Editor\CertificateEditor;
 use Acme\Entity\Account;
 use Acme\Entity\Certificate;
 use Acme\Entity\Domain;
 use Acme\Exception\FileDownloaderException;
-use Acme\Security\FileDownloader;
+use Acme\Service\UI;
 use Concrete\Core\Error\UserMessageException;
 use Concrete\Core\Http\ResponseFactoryInterface;
 use Concrete\Core\Page\Controller\DashboardPageController;
@@ -16,7 +17,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Edit extends DashboardPageController
+final class Edit extends DashboardPageController
 {
     public function view($certificateID = '', $accountID = '')
     {
@@ -33,6 +34,7 @@ class Edit extends DashboardPageController
         $this->set('defaultKeySize', (int) $config->get('acme::security.key_size.default'));
         $this->set('minimumKeySize', (int) $config->get('acme::security.key_size.min'));
         $this->set('pageTitle', $certificate->getID() === null ? t('Add HTTPS certificate') : t('Edit HTTPS certificate'));
+        $this->set('ui', $this->app->make(UI::class));
         $this->addHeaderItem(
             <<<'EOT'
 <style>
@@ -143,7 +145,7 @@ EOT
     }
 
     /**
-     * @param iny|string $certificateID
+     * @param int|string $certificateID
      * @param int|string|null $accountID (used when $certificateID === 'new')
      * @param bool $flashOnNotFound
      *

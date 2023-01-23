@@ -6,6 +6,7 @@ use Acme\Editor\RemoteServerEditor;
 use Acme\Entity\RemoteServer;
 use Acme\Filesystem\DriverManager;
 use Acme\Filesystem\RemoteDriverInterface;
+use Acme\Service\UI;
 use Concrete\Core\Http\ResponseFactoryInterface;
 use Concrete\Core\Page\Controller\DashboardPageController;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
@@ -13,7 +14,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class Edit extends DashboardPageController
+final class Edit extends DashboardPageController
 {
     public function view($id = '')
     {
@@ -26,6 +27,7 @@ class Edit extends DashboardPageController
         $this->set('dateHelper', $this->app->make('date'));
         $this->set('resolverManager', $this->app->make(ResolverManagerInterface::class));
         $this->set('pageTitle', $remoteServer->getID() ? t('Edit remote server') : t('Add remote server'));
+        $this->set('ui', $this->app->make(UI::class));
     }
 
     public function submit($id = '')

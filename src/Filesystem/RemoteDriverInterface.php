@@ -49,16 +49,12 @@ interface RemoteDriverInterface extends DriverInterface
     /**
      * Set the remote server to work with.
      *
-     * @param \Acme\Entity\RemoteServer $remoteServer
-     *
      * @return $this
      */
     public function setRemoteServer(RemoteServer $remoteServer);
 
     /**
      * Get the fields required/supported for login.
-     *
-     * @param array $options
      *
      * @return int One or more of the RemoteDriverInterface::LOGINFLAG_... constants
      */

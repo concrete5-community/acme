@@ -10,24 +10,25 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var bool $isPrettyUrlEnabled
  * @var string $seoUrlsPage
  * @var string $fieldsPrefix
+ * @var Acme\Service\UI $ui
  * @var Concrete\Core\Form\Service\Form $formService
  */
 
 ?>
 <p><?= t('With this validation, the ACME server reads an URL located under the root of the website using the HTTP protocol.') ?></p>
-<p><?= t('concrete5 will intercept the calls made to <strong>this</strong> server, no file will be written to the webroot directory.') ?></p>
+<p><?= t('Concrete will intercept the calls made to <strong>this</strong> server, no file will be written to the webroot directory.') ?></p>
 <?= t('Requirements:') ?>
 <ol>
     <li>
-        <?= t('this concrete5 instance is not installed in a sub-directory') ?>
-        <?= $isInstalledInWebroot ? '<span class="label label-success">' . t('ok') . '</span>' : '<span class="label label-danger">' . t('NO!') . '</span>' ?>
+        <?= t('this Concrete instance is not installed in a sub-directory') ?>
+        <?= $isInstalledInWebroot ? "<span class=\"{$ui->badgeSuccess}\">" . t('ok') . '</span>' : "<span class=\"{$ui->badgeDanger}\">" . t('NO!') . '</span>' ?>
     </li>
     <li>
         <?= t('<a href="%s" target="_blank">pretty URLs</a> are enabled', h($seoUrlsPage)) ?>
-        <?= $isPrettyUrlEnabled ? '<span class="label label-success">' . t('ok') . '</span>' : '<span class="label label-danger">' . t('NO!') . '</span>' ?>
+        <?= $isPrettyUrlEnabled ? "<span class=\"{$ui->badgeSuccess}\">" . t('ok') . '</span>' : "<span class=\"{$ui->badgeDanger}\">" . t('NO!') . '</span>' ?>
     </li>
     <li>
-        <?= t('PHP and webserver are configured to pass URLs that start with %s to concrete5', '<code>' . h(AuthorizationMiddleware::ACME_CHALLENGE_PREFIX) . '</code>') ?>
+        <?= t('PHP and webserver are configured to pass URLs that start with %s to Concrete', '<code>' . h(AuthorizationMiddleware::ACME_CHALLENGE_PREFIX) . '</code>') ?>
     </li>
 </ol>
 

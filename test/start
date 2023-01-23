@@ -2,12 +2,33 @@
 
 set -o errexit
 
+if [ -n "${1:-}" ]; then
+    switch-php "$1"
+fi
+
+if [ -n "${2:-}" ]; then
+    switch-composer "$2"
+fi
+
+composer valid --strict
+
 ccm-service start db
 
 cd /app/packages/acme
 
-composerpkg install
+cp composer.json composer.json-original
+printf '{\n    "replace": {"phpseclib/phpseclib": "*"},\n' >composer.json
+tail +2 composer.json-original >>composer.json
+TEST_PHPUNIT_BIN=../concrete/vendor/bin/phpunit
+if [ -f "$TEST_PHPUNIT_BIN" ]; then
+    composer --no-interaction --ansi update --prefer-dist --optimize-autoloader --no-dev
+else
+    TEST_PHPUNIT_BIN=./vendor/bin/phpunit
+    composer --no-interaction --ansi update --prefer-dist --optimize-autoloader
+fi
+mv composer.json-original composer.json
+rm composer.lock
 
 c5 c5:package:install acme
 
-./vendor/bin/phpunit
+"$TEST_PHPUNIT_BIN"

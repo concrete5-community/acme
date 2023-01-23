@@ -7,24 +7,19 @@ use Acme\Entity\Domain;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class DomainService
+final class DomainService
 {
     /**
      * @var \Acme\ChallengeType\ChallengeTypeManager
      */
-    protected $challengeTypeManager;
+    private $challengeTypeManager;
 
-    /**
-     * @param \Acme\ChallengeType\ChallengeTypeManager $challengeTypeManager
-     */
     public function __construct(ChallengeTypeManager $challengeTypeManager)
     {
         $this->challengeTypeManager = $challengeTypeManager;
     }
 
     /**
-     * @param \Acme\Entity\Domain $domain
-     *
      * @return string
      */
     public function describeChallengeType(Domain $domain)

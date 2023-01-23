@@ -50,7 +50,7 @@ abstract class StateAwareLogger extends Logger
      * Update the maxLevel property accordingly to a new logged level.
      *
      * @param string $level One of the Psr\Log\LogLevel:... constants
-     * @param mixed $onInvalidLevel
+     * @param string|mixed $onInvalidLevel
      *
      * @return $this
      */

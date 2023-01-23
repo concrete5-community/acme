@@ -20,7 +20,7 @@ class MalformedPrivateKeyException extends Exception
      * Create a new instance.
      *
      * @param string $wrongPrivateKey The invalid private key
-     * @param mixed $invalidPrivateKey
+     * @param string|mixed $invalidPrivateKey
      *
      * @return static
      */

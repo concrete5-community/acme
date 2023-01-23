@@ -7,15 +7,14 @@ defined('C5_EXECUTE') or die('Access Denied.');
 /**
  * @var Acme\Entity\Certificate $certificate
  * @var Acme\Entity\CertificateAction[] $actions
- * @var Acme\Entity\RemoteServer[] $remoteServer
+ * @var Acme\Entity\RemoteServer[] $remoteServers
  * @var Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface $resolverManager
  * @var Concrete\Core\Validation\CSRF\Token $token
  * @var Concrete\Core\Page\View\PageView $view
+ * @var Acme\Service\UI $ui
  */
-
 ?>
-
-<div id="acme-certificate-actions" class="hide">
+<div id="acme-certificate-actions" class="<?= $ui->displayNone ?>">
 
     <div class="ccm-dashboard-header-buttons">
         <button class="btn btn-primary" v-on:click.prevent="addNewAction" v-bind:disabled="busy"><?= t('New action') ?></button>
@@ -106,6 +105,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
                                 'Useful to reload the web server configuration after updating the certificate (for example: %s)',
                                 '<code>service apache2 reload</code>'
                             ) ?>
+                        </div>
                     </td>
                 </tr>
             </tbody>
@@ -118,9 +118,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
 
     <div class="ccm-dashboard-form-actions-wrapper">
         <div class="ccm-dashboard-form-actions">
-            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates'])) ?>" class="btn btn-default pull-left"><?= t('Back') ?></a>
-            <div class="pull-right">
-            </div>
+            <a href="<?= h($resolverManager->resolve(['/dashboard/system/acme/certificates'])) ?>" class="btn <?= $ui->defaultButton ?> <?= $ui->floatStart ?>"><?= t('Back') ?></a>
         </div>
     </div>
 </div>
@@ -128,7 +126,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
 <script>$(document).ready(function() {
 'use strict';
 
-$('#acme-certificate-actions').removeClass('hide');
+$('#acme-certificate-actions').removeClass(<?= json_encode($ui->displayNone) ?>);
 
 function DomainAction(data)
 {

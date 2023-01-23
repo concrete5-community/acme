@@ -10,7 +10,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-class RemoteServers extends DashboardPageController
+final class RemoteServers extends DashboardPageController
 {
     public function view()
     {
