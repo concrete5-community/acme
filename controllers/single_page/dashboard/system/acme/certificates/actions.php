@@ -46,7 +46,7 @@ EOT
 
     public function save_action($certificateID = '')
     {
-        if (!$this->token->validate('acme-removeaction-' . $certificateID)) {
+        if (!$this->token->validate('acme-saveaction-' . $certificateID)) {
             throw new UserMessageException($this->token->getErrorMessage());
         }
         $certificate = $this->getCertificate($certificateID, false);

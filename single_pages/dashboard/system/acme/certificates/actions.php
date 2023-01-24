@@ -228,7 +228,7 @@ var app = new Vue({
                 url: <?= json_encode((string) $view->action(['save_action', $certificate->getID()])) ?>,
                 data: $.extend(
                     {
-                        <?= json_encode($token::DEFAULT_TOKEN_NAME) ?>: <?= json_encode($token->generate('acme-removeaction-' . $certificate->getID())) ?>,
+                        <?= json_encode($token::DEFAULT_TOKEN_NAME) ?>: <?= json_encode($token->generate('acme-saveaction-' . $certificate->getID())) ?>,
                     },
                     action.getData()
                 ),
@@ -257,6 +257,7 @@ var app = new Vue({
             }
             if (action.isNew) {
                 my.removeAction(action);
+                return;
             }
             my.busy = true;
             $.ajax({
