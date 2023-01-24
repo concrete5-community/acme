@@ -26,7 +26,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
                 <tr>
                     <th><?= t('Server') ?></th>
                     <td>
-                        <select v-model="action.remoteServer">
+                        <select v-model="action.remoteServer" class="form-control">
                             <option value="."><?= t('This server') ?></option>
                             <?php
                             foreach ($remoteServers as $remoteServer) {
@@ -41,7 +41,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
                 <tr>
                     <th><label><input type="checkbox" v-model="action.savePrivateKey" /> <?= t('Save private key') ?></label></th>
                     <td>
-                        <input type="text" v-model.trim="action.savePrivateKeyTo" v-bind:disabled="!action.savePrivateKey" />
+                        <input type="text" v-model.trim="action.savePrivateKeyTo" v-bind:disabled="!action.savePrivateKey" class="form-control" spellcheck="false" />
                         <div class="small text-muted">
                             <?= t(
                                 'Useful for %1$s (%2$s directive) and %3$s (%4$s directive)',
@@ -56,7 +56,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
                 <tr>
                     <th><label><input type="checkbox" v-model="action.saveCertificate" /> <?= t('Save certificate') ?></label></th>
                     <td>
-                        <input type="text" v-model.trim="action.saveCertificateTo" v-bind:disabled="!action.saveCertificate" />
+                        <input type="text" v-model.trim="action.saveCertificateTo" v-bind:disabled="!action.saveCertificate" class="form-control" spellcheck="false" />
                         <div class="small text-muted">
                             <?= t(
                                 'Useful for %1$s (%2$s directive)',
@@ -69,7 +69,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
                 <tr>
                     <th><label><input type="checkbox" v-model="action.saveIssuerCertificate"/> <?= t('Save the issuer certificate') ?></label></th>
                     <td>
-                        <input type="text" v-model.trim="action.saveIssuerCertificateTo" v-bind:disabled="!action.saveIssuerCertificate" />
+                        <input type="text" v-model.trim="action.saveIssuerCertificateTo" v-bind:disabled="!action.saveIssuerCertificate" class="form-control" spellcheck="false" />
                         <div class="small text-muted">
                             <?= t(
                                 'Useful for %1$s (%2$s directive) and %3$s (%4$s directive)',
@@ -84,7 +84,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
                 <tr>
                     <th><label><input type="checkbox" v-model="action.saveCertificateWithIssuer"/> <?= t('Save certificate and issuer') ?></label></th>
                     <td>
-                        <input type="text" v-model.trim="action.saveCertificateWithIssuerTo" v-bind:disabled="!action.saveCertificateWithIssuer" />
+                        <input type="text" v-model.trim="action.saveCertificateWithIssuerTo" v-bind:disabled="!action.saveCertificateWithIssuer" class="form-control" spellcheck="false" />
                         <div class="small text-muted">
                             <?= t(
                                 'Useful for %1$s (%2$s directive) and %3$s (%4$s directive)',
@@ -99,7 +99,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
                 <tr>
                     <th><label><input type="checkbox" v-model="action.executeCommand"/> <?= t('Execute command') ?></label></th>
                     <td>
-                        <input type="text" v-model.trim="action.commandToExecute" v-bind:disabled="!action.executeCommand" />
+                        <input type="text" v-model.trim="action.commandToExecute" v-bind:disabled="!action.executeCommand" class="form-control" spellcheck="false" />
                         <div class="small text-muted">
                             <?= t(
                                 'Useful to reload the web server configuration after updating the certificate (for example: %s)',
