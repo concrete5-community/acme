@@ -10,6 +10,7 @@ use Acme\Exception\CheckRevocationException;
 use Acme\Service\UI;
 use Concrete\Core\Error\UserMessageException;
 use Concrete\Core\Http\ResponseFactoryInterface;
+use Concrete\Core\Localization\Localization;
 use Concrete\Core\Page\Controller\DashboardPageController;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
 use Doctrine\ORM\EntityManagerInterface;
@@ -31,8 +32,8 @@ final class Operate extends DashboardPageController
         }
         $this->set('certificate', $certificate);
         $this->set('resolverManager', $this->app->make(ResolverManagerInterface::class));
+        $this->set('localization', $this->app->make(Localization::class));
         $this->set('ui', $this->app->make(UI::class));
-        $this->requireAsset('moment');
         $this->requireAsset('javascript', 'vue');
     }
 

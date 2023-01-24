@@ -11,28 +11,28 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface $resolverManager
  * @var Concrete\Core\Validation\CSRF\Token $token
  * @var Concrete\Core\Page\View\PageView $view
+ * @var Concrete\Core\Localization\Localization $localization
  * @var Acme\Service\UI $ui
  */
 ?>
-<div id="acme-certificate-operate" class="<?= $ui->displayNone ?>">
-
-    <div class="ccm-dashboard-header-buttons">
-        <div class="btn-group">
-            <button class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" data-toggle="dropdown" v-bind:disabled="busy || certificateInfo === null">
-                <?= t('Advanced') ?>
-                <span class="caret"></span>
-            </button>
-            <ul class="dropdown-menu <?= $ui->dropdownMenuAlignedEnd ?>" v-if="!busy &amp;&amp; certificateInfo !== null">
-                <li v-bind:class="{disabled: certificateInfo === null}">
-                    <a class="dropdown-item" href="#" v-on:click.prevent="if (certificateInfo !== null) startOver({forceRenew: 1})"><?= t('Force renewal of certificate ')?></a>
-                </li>
-                <li<?= $certificate->getActions()->isEmpty() ? ' class="disabled"' : '' ?>>
-                    <a class="dropdown-item" href="#"<?= $certificate->getActions()->isEmpty() ? ' onclick="return false"' : ' v-on:click.prevent="startOver({forceActions: 1})"' ?>><?= t('Force re-execution of actions')?></a>
-                </li>
-            </ul>
-        </div>
+<div class="ccm-dashboard-header-buttons">
+    <div class="btn-group <?= $ui->displayNone ?>" id="acme-certificate-operate-actions">
+        <button class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" data-toggle="dropdown" v-bind:disabled="busy || !hasCertificateInfo">
+            <?= t('Advanced') ?>
+            <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu <?= $ui->dropdownMenuAlignedEnd ?>">
+            <li v-bind:class="{disabled: !hasCertificateInfo}">
+                <a class="dropdown-item" href="#" v-on:click.prevent="forceRenew"><?= t('Force renewal of certificate ')?></a>
+            </li>
+            <li<?= (0 && $certificate->getActions()->isEmpty()) ? ' class="disabled"' : '' ?>>
+                <a class="dropdown-item" href="#"<?= (0 && $certificate->getActions()->isEmpty()) ? ' onclick="return false"' : ' v-on:click.prevent="forceActions"' ?>><?= t('Force re-execution of actions')?></a>
+            </li>
+        </ul>
     </div>
+</div>
 
+<div><div class="<?= $ui->displayNone ?>" id="acme-certificate-operate">
     <div class="row">
         <div class="col-md-6">
             <fieldset>
@@ -54,11 +54,11 @@ defined('C5_EXECUTE') or die('Access Denied.');
                         </tr>
                         <tr>
                             <th><?= t('Valid from') ?></th>
-                            <td>{{ moment.unix(certificateInfo.startDate).format('L LT') }}</td>
+                            <td>{{ formatTimestamp(certificateInfo.startDate) }}</td>
                         </tr>
                         <tr>
                             <th><?= t('Valid to') ?></th>
-                            <td>{{ moment.unix(certificateInfo.endDate).format('L LT') }}</td>
+                            <td>{{ formatTimestamp(certificateInfo.endDate) }}</td>
                         </tr>
                         <tr>
                             <th><?= t('Issued by') ?></th>
@@ -115,12 +115,50 @@ defined('C5_EXECUTE') or die('Access Denied.');
         </div>
     </div>
 
-</div>
+</div></div>
 
-<script>$(document).ready(function() {
+<script>$(document).ready(function() { setTimeout(function() {
 'use strict';
 
-$('#acme-certificate-operate').removeClass(<?= json_encode($ui->displayNone) ?>);
+$('#acme-certificate-operate-actions, #acme-certificate-operate').removeClass(<?= json_encode($ui->displayNone) ?>);
+
+var Bridge = {
+    menu: null,
+    main: null,
+    sync: function() {
+        if (this.menu === null || this.main === null) {
+            return;
+        }
+        this.menu.busy = this.main.busy;
+        this.menu.hasCertificateInfo = this.main.certificateInfo !== null;
+    },
+};
+
+new Vue({
+    el: '#acme-certificate-operate-actions',
+    data: function() {
+        return {
+            busy: true,
+            hasCertificateInfo: false,
+        };
+    },
+    mounted: function() {
+        Bridge.menu = this;
+        Bridge.sync();
+    },
+    methods: {
+        forceRenew: function() {
+            if (Bridge.main !== null && !this.busy && this.hasCertificateInfo) {
+                Bridge.main.startOver({forceRenew: 1});
+            }
+        },
+        forceActions: function(options) {
+            if (Bridge.main !== null && !this.busy && this.hasCertificateInfo) {
+                Bridge.main.startOver({forceActions: 1});
+            }
+        },
+    },
+});
 
 new Vue({
     el: '#acme-certificate-operate',
@@ -140,7 +178,36 @@ new Vue({
         data.step = data.steps.INITIAL;
         return data;
     },
+    mounted: function() {
+        var my = this;
+        Bridge.main = my;
+        Bridge.sync();
+        $(window).on('beforeunload', function() {
+            if (my.busy) {
+                return 'busy';
+            }
+        });
+        my.setStep(my.steps.PROCESSING);
+    },
+    watch: {
+        busy: function() {
+            Bridge.sync();
+        },
+        certificateInfo: function() {
+            Bridge.sync();
+        },
+    },
     methods: {
+        formatTimestamp: function(timestamp) {
+            if (!timestamp || isNaN(timestamp)) {
+                return '';
+            }
+            var date = new Date(timestamp * 1000);
+            if (!date.toLocaleString) {
+                return date.toString();
+            }
+            return date.toLocaleString(<?= json_encode(str_replace('_', '-', $localization->getLocale())) ?>, {dateStyle: 'medium', timeStyle: 'short'});
+        },
         setStep: function(step) {
             var oldStep = this.step;
             this.step = step;
@@ -318,16 +385,7 @@ new Vue({
             });
         }
     },
-    mounted: function() {
-        var my = this;
-        $(window).on('beforeunload', function() {
-            if (my.busy) {
-                return 'busy';
-            }
-        });
-        my.setStep(my.steps.PROCESSING);
-    }
 });
 
-});
+}, 100); });
 </script>
