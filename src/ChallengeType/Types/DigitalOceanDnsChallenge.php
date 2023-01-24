@@ -180,12 +180,15 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
     public function beforeChallenge(AuthorizationChallenge $authorizationChallenge)
     {
         $configuration = $authorizationChallenge->getDomain()->getChallengeTypeConfiguration();
+        $recordName = '_acme-challenge' . $configuration['recordSuffix'];
+        $recordValue = $this->generateDnsRecordValue($authorizationChallenge->getChallengeAuthorizationKey());
         $this->createDnsRecord(
-            '_acme-challenge' . $configuration['recordSuffix'],
-            $this->generateDnsRecordValue($authorizationChallenge->getChallengeAuthorizationKey()),
+            $recordName,
+            $recordValue,
             $configuration['digitalOceanDomain'],
             $configuration['apiToken']
         );
+        $this->waitDnsReady($recordName . '.' . $authorizationChallenge->getDomain()->getPunycode(), $recordValue, 8);
     }
 
     /**
@@ -339,5 +342,38 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
         }
 
         return "{$response->statusCode} ({$response->reasonPhrase})";
+    }
+
+    /**
+     * @param string $recordName
+     * @param string $recordValue
+     * @param int|float $timeout in seconds
+     *
+     * @return bool
+     */
+    private function waitDnsReady($recordName, $recordValue, $timeout)
+    {
+        $timeoutMicroseconds = $timeout * 1000000;
+        $startTime = microtime(true);
+        for (;;) {
+            set_error_handler(static function() {}, -1);
+            try {
+                $records = dns_get_record($recordName, DNS_TXT);
+            } finally {
+                restore_error_handler();
+            }
+            if (is_array($records)) {
+                foreach ($records as $record) {
+                    if (is_array($record) && array_key_exists('txt', $record) && $record['txt'] === $recordValue) {
+                        return true;
+                    }
+                }
+            }
+            $elapsed = microtime(true) - $startTime;
+            if ($elapsed > $timeoutMicroseconds) {
+                return false;
+            }
+            usleep(500000);
+        }
     }
 }
