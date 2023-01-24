@@ -17,7 +17,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
 <div id="acme-certificate-actions" class="<?= $ui->displayNone ?>">
 
     <div class="ccm-dashboard-header-buttons">
-        <button class="btn btn-primary" v-on:click.prevent="addNewAction" v-bind:disabled="busy"><?= t('New action') ?></button>
+        <button class="btn btn-primary" id="acme-certificate-actions-new"><?= t('New action') ?></button>
     </div>
 
     <div v-for="action in actions" v-if="action !== undefined" class="alert alert-info">
@@ -182,7 +182,7 @@ DomainAction.prototype = {
     }
 };
 
-new Vue({
+var app = new Vue({
     el: '#acme-certificate-actions',
     data: function() {
         var data = {
@@ -296,6 +296,11 @@ new Vue({
             }
         }
     },
+});
+
+$('#acme-certificate-actions-new').on('click', function(e) {
+    e.preventDefault();
+    app.addNewAction();
 });
 
 });
