@@ -87,10 +87,12 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
             'digitalOceanDomain' => [
                 'description' => t('The root domain managed by DigitalOcean'),
                 'defaultValue' => '',
+                'derived' => true,
             ],
             'recordSuffix' => [
                 'description' => t('The suffix for the DNS records'),
                 'defaultValue' => '',
+                'derived' => true,
             ],
         ];
     }

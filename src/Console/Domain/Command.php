@@ -68,7 +68,12 @@ abstract class Command extends CoreCommand
         $help = 'Valid challenge types are:';
         foreach ($challengeTypeManager->getChallengeTypes() as $challengeType) {
             $help .= "\n\n - '{$challengeType->getHandle()}': {$challengeType->getName()}";
-            $definition = $challengeType->getConfigurationDefinition();
+            $definition = [];
+            foreach ($challengeType->getConfigurationDefinition() as $option => $optionData) {
+                if (empty($optionData['derived'])) {
+                    $definition[$option] = $optionData;
+                }
+            }
             if ($definition === []) {
                 $help .= "\n    (this challenge does not accept any option)";
             } else {

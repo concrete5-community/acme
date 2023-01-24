@@ -48,7 +48,7 @@ interface ChallengeTypeInterface
 
     /**
      * Get the configuration definition of the challenge type (with *ALL* the supported options).
-     * Array keys are the option name, array values are arrays with 'description' and 'defaultValue'.
+     * Array keys are the option name, array values are arrays with 'description' (required), 'defaultValue' (required), 'derived' (optional, default to false).
      *
      * @return array return an empty array if (and only if) the challenge type doesn't have any configuration option
      */

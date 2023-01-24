@@ -272,7 +272,6 @@ final class DomainEditor
             'challengeType' => null,
             'challengeTypeConfiguration' => [],
         ];
-
         $challengeTypeHandle = $state->popValue('challengetype');
         $challengeTypeHandle = is_string($challengeTypeHandle) ? trim($challengeTypeHandle) : '';
         if ($challengeTypeHandle === '') {
@@ -289,10 +288,14 @@ final class DomainEditor
         }
         $result['challengeType'] = $challengeType;
         $defaultConfiguration = [];
+        $domainConfiguration = $domainConfiguration = $domain === null || $domain->getChallengeTypeHandle() !== $challengeType->getHandle() ? [] : $domain->getChallengeTypeConfiguration();
         foreach ($challengeType->getConfigurationDefinition() as $key => $data) {
-            $defaultConfiguration[$key] = $data['defaultValue'];
+            if (empty($data['derived'])) {
+                $defaultConfiguration[$key] = $data['defaultValue'];
+            } else {
+                unset($domainConfiguration[$key]);
+            }
         }
-        $domainConfiguration = $domain === null || $domain->getChallengeTypeHandle() !== $challengeType->getHandle() ? [] : $domain->getChallengeTypeConfiguration();
         foreach ($defaultConfiguration as $key => $defaultValue) {
             $result['challengeTypeConfiguration'][$key] = $state->popValue($key, array_get($domainConfiguration, $key, $defaultValue));
         }
