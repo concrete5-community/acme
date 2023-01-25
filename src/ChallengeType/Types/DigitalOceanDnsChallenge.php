@@ -7,6 +7,7 @@ use Acme\Entity\Domain;
 use Acme\Exception\RuntimeException;
 use Acme\Http\ClientFactory as HttpClientFactory;
 use Acme\Http\Response;
+use Acme\Service\DNSChecker;
 use ArrayAccess;
 use Concrete\Core\Filesystem\ElementManager;
 use Concrete\Core\Page\Page;
@@ -23,13 +24,19 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
     private $httpClientFactory;
 
     /**
+     * @var \Acme\Service\DNSChecker
+     */
+    private $dnsChecker;
+
+    /**
      * @var string
      */
     private $handle;
 
-    public function __construct(HttpClientFactory $httpClientFactory)
+    public function __construct(HttpClientFactory $httpClientFactory, DNSChecker $dnsChecker)
     {
         $this->httpClientFactory = $httpClientFactory;
+        $this->dnsChecker = $dnsChecker;
     }
 
     /**
@@ -188,7 +195,7 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
             $configuration['digitalOceanDomain'],
             $configuration['apiToken']
         );
-        $this->waitDnsReady($recordName . '.' . $authorizationChallenge->getDomain()->getPunycode(), $recordValue, 8);
+        $this->waitDnsReady($configuration['digitalOceanDomain'], $recordName, $recordValue, 8);
     }
 
     /**
@@ -345,32 +352,22 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
     }
 
     /**
+     * @param string $punycodeDomain
      * @param string $recordName
      * @param string $recordValue
      * @param int|float $timeout in seconds
      *
      * @return bool
      */
-    private function waitDnsReady($recordName, $recordValue, $timeout)
+    private function waitDnsReady($punycodeDomain, $recordName, $recordValue, $timeout)
     {
-        $timeoutMicroseconds = $timeout * 1000000;
         $startTime = microtime(true);
         for (;;) {
-            set_error_handler(static function() {}, -1);
-            try {
-                $records = dns_get_record($recordName, DNS_TXT);
-            } finally {
-                restore_error_handler();
-            }
-            if (is_array($records)) {
-                foreach ($records as $record) {
-                    if (is_array($record) && array_key_exists('txt', $record) && $record['txt'] === $recordValue) {
-                        return true;
-                    }
-                }
+            if (in_array($recordValue, $this->dnsChecker->listTXTRecords($punycodeDomain, $recordName))) {
+                return true;
             }
             $elapsed = microtime(true) - $startTime;
-            if ($elapsed > $timeoutMicroseconds) {
+            if ($elapsed > $timeout) {
                 return false;
             }
             usleep(500000);
