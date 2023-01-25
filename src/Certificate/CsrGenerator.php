@@ -59,10 +59,11 @@ final class CsrGenerator
     private function generateCsrFromDomainList($privateKeyString, array $domains)
     {
         $privateKey = PrivateKey::fromString($privateKeyString, $this->engineID);
-        $domain = array_shift($domains);
-        if (!$domain instanceof Domain) {
+        $primaryDomain = array_shift($domains);
+        if (!$primaryDomain instanceof Domain) {
             throw new RuntimeException(t('No domains for the CSR'));
         }
+        $domain = $primaryDomain;
         $altNames = [];
         for (;;) {
             $altNames[] = ['dNSName' => $domain->getPunycodeDisplayName()];
@@ -86,7 +87,7 @@ final class CsrGenerator
         switch ($this->engineID) {
             case Engine::PHPSECLIB2:
             case Engine::PHPSECLIB3:
-                $x509->setDNProp('id-at-commonName', $domain->getPunycodeDisplayName());
+                $x509->setDNProp('id-at-commonName', $primaryDomain->getPunycodeDisplayName());
                 if ($x509->loadCSR($this->signAndSave($x509)) === false) {
                     throw new RuntimeException(t('Failed to generate the CSR'));
                 }
