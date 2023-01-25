@@ -12,6 +12,7 @@ use ArrayAccess;
 use Concrete\Core\Filesystem\ElementManager;
 use Concrete\Core\Page\Page;
 use Exception;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 defined('C5_EXECUTE') or die('Access Denied.');
@@ -184,18 +185,19 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
      *
      * @see \Acme\ChallengeType\ChallengeTypeInterface::beforeChallenge()
      */
-    public function beforeChallenge(AuthorizationChallenge $authorizationChallenge)
+    public function beforeChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
     {
         $configuration = $authorizationChallenge->getDomain()->getChallengeTypeConfiguration();
         $recordName = '_acme-challenge' . $configuration['recordSuffix'];
         $recordValue = $this->generateDnsRecordValue($authorizationChallenge->getChallengeAuthorizationKey());
-        $this->createDnsRecord(
+        $recordID = $this->createDnsRecord(
             $recordName,
             $recordValue,
             $configuration['digitalOceanDomain'],
             $configuration['apiToken']
         );
-        $this->waitDnsReady($configuration['digitalOceanDomain'], $recordName, $recordValue, 8);
+        $logger->debug(t('Created record named %1$s with ID %2$s for domain %3$s. Its value is "%s"', $recordName, $recordID, $configuration['digitalOceanDomain']), $recordValue);
+        $this->waitDnsReady($configuration['digitalOceanDomain'], $recordName, $recordValue, 8, $logger);
     }
 
     /**
@@ -203,8 +205,9 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
      *
      * @see \Acme\ChallengeType\ChallengeTypeInterface::afterChallenge()
      */
-    public function afterChallenge(AuthorizationChallenge $authorizationChallenge)
+    public function afterChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
     {
+        $logger->debug(t('Looking for DNS records'));
         $configuration = $authorizationChallenge->getDomain()->getChallengeTypeConfiguration();
         $url = "https://api.digitalocean.com/v2/domains/{$configuration['digitalOceanDomain']}/records?" . http_build_query([
             'name' => '_acme-challenge' . $configuration['recordSuffix'] . '.' . $configuration['digitalOceanDomain'],
@@ -215,25 +218,43 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
         try {
             $response = $this->httpClientFactory->getClient()->get($url, $headers);
         } catch (RuntimeException $x) {
+            $logger->debug(t('Operation failed with error %s', $x->getMessage()));
             $response = null;
         }
-        if ($response !== null && $response->statusCode >= 200 && $response->statusCode < 300) {
+        if ($response === null) {
+            return;
+        }
+        $records = null;
+        if ($response->statusCode >= 200 && $response->statusCode < 300) {
             $data = json_decode($response->body, true);
-            if (is_array($data) && isset($data['domain_records'])) {
+            if (is_array($data) && isset($data['domain_records']) && is_array($data['domain_records'])) {
                 $records = $data['domain_records'];
-                if (is_array($records)) {
-                    $recordData = $this->generateDnsRecordValue($authorizationChallenge->getChallengeAuthorizationKey());
-                    foreach ($records as $record) {
-                        if (isset($record['data']) && $record['data'] === $recordData) {
-                            if (isset($record['id']) && is_numeric($record['id'])) {
-                                $this->deleteDnsRecord($record['id'], $configuration['digitalOceanDomain'], $configuration['apiToken']);
-                            }
-                            break;
-                        }
-                    }
-                }
             }
         }
+        if ($records === null) {
+            $logger->debug(implode("\n", [
+                t('Invalid response code: %s', $response->statusCode),
+                t('Response body: %s', $response->body),
+            ]));
+
+            return;
+        }
+        $recordData = $this->generateDnsRecordValue($authorizationChallenge->getChallengeAuthorizationKey());
+        foreach ($records as $record) {
+            if (isset($record['data']) && $record['data'] === $recordData) {
+                if (isset($record['id']) && is_numeric($record['id'])) {
+                    try {
+                        $this->deleteDnsRecord($record['id'], $configuration['digitalOceanDomain'], $configuration['apiToken']);
+                        $logger->debug(t('Record with ID %s has been deleted.', $record['id']));
+                    } catch (RuntimeException $x) {
+                        $logger->debug(t('Failed to delete the record with ID %s: %s', $record['id'], $x->getMessage()));
+                    }
+                }
+
+                return;
+            }
+        }
+        $logger->debug(t('Failed to find the DNS record to be deleted.'));
     }
 
     /**
@@ -275,7 +296,7 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
      * @param string $digitalOceanDomain
      * @param string $apiToken
      *
-     * @return int
+     * @return int the record ID
      */
     private function createDnsRecord($name, $value, $digitalOceanDomain, $apiToken)
     {
@@ -309,6 +330,8 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
      * @param int $recordID
      * @param string $digitalOceanDomain
      * @param string $apiToken
+     *
+     * @throws \Acme\Exception\RuntimeException
      */
     private function deleteDnsRecord($recordID, $digitalOceanDomain, $apiToken)
     {
@@ -359,17 +382,23 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
      *
      * @return bool
      */
-    private function waitDnsReady($punycodeDomain, $recordName, $recordValue, $timeout)
+    private function waitDnsReady($punycodeDomain, $recordName, $recordValue, $timeout, LoggerInterface $logger)
     {
+        $logger->debug(t('Waiting for the DNS record to be available'));
         $startTime = microtime(true);
         for (;;) {
-            if (in_array($recordValue, $this->dnsChecker->listTXTRecords($punycodeDomain, $recordName))) {
+            if (in_array($recordValue, $this->dnsChecker->listTXTRecords($punycodeDomain, $recordName, '', $logger))) {
+                $logger->debug(t('The DNS record has been found'));
+
                 return true;
             }
             $elapsed = microtime(true) - $startTime;
             if ($elapsed > $timeout) {
+                $logger->debug(t("The DNS record hasn't been found after %s seconds: let's proceed anyway.", $timeout));
+
                 return false;
             }
+            $logger->debug(t("The DNS record hasn't been found: let's wait for a while.", $timeout));
             usleep(500000);
         }
     }

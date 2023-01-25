@@ -6,6 +6,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @var int $renewDaysBeforeExpiration
  * @var int $minimumKeySize
  * @var int $defaultKeySize
+ * @var bool $debugChallenge
  * @var Concrete\Core\Form\Service\Form $form
  * @var Concrete\Core\Validation\CSRF\Token $token
  * @var Concrete\Core\Page\View\PageView $view
@@ -28,6 +29,14 @@ defined('C5_EXECUTE') or die('Access Denied.');
         <div class="input-group">
             <?= $form->number('defaultKeySize', $defaultKeySize, ['required' => 'required', 'min' => $minimumKeySize]) ?>
             <span class="<?= $ui->inputGroupAddon ?>"><?= Punic\Unit::getName('digital/bit', 'long') ?></span>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <?= $form->label('', t('Options')) ?>
+        <div class="form-check mb-3">
+            <?= $form->checkbox('debugChallenge', '1', $debugChallenge) ?>
+            <label for="debugChallenge"><?= t('Log certificate generation/renewal steps') ?></label>
         </div>
     </div>
 

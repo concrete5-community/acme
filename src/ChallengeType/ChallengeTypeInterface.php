@@ -7,6 +7,7 @@ use Acme\Entity\Domain;
 use ArrayAccess;
 use Concrete\Core\Filesystem\ElementManager;
 use Concrete\Core\Page\Page;
+use Psr\Log\LoggerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
@@ -80,10 +81,10 @@ interface ChallengeTypeInterface
     /**
      * Method called right before initiating the authorization challenge.
      */
-    public function beforeChallenge(AuthorizationChallenge $authorizationChallenge);
+    public function beforeChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger);
 
     /**
      * Method called right after terminating the authorization challenge.
      */
-    public function afterChallenge(AuthorizationChallenge $authorizationChallenge);
+    public function afterChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger);
 }

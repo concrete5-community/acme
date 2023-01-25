@@ -3,6 +3,8 @@
 namespace Acme\Service;
 
 use Concrete\Core\Foundation\Environment\FunctionInspector;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
@@ -32,18 +34,36 @@ final class DNSChecker
      *
      * @return string[] Empty array in case of errors
      */
-    public function listTXTRecords($punycodeDomain, $recordName = '', $nameserver = '')
+    public function listTXTRecords($punycodeDomain, $recordName = '', $nameserver = '', LoggerInterface $logger = null)
     {
+        if ($logger === null) {
+            $logger = new NullLogger();
+        }
         $punycodeDomain = trim($punycodeDomain, '.');
         $recordName = trim($recordName, '.');
         $fullRecordName = $recordName === '' ? $punycodeDomain : "{$recordName}.{$punycodeDomain}";
         if (!$this->isNSLookupAvailable()) {
+            $logger->debug(t('DNS requests will be made using the current system, since the %s program is not available.', 'nslookup'));
             $nameserver = '';
         } elseif ($nameserver === '') {
             $nameserver = $this->resolveNameserver($punycodeDomain);
+            if ($nameserver === '') {
+                $logger->debug(t("DNS requests will be made using the current system, since we haven't been able to determine the authoritative nameservers."));
+            }
+        }
+        if ($nameserver === '') {
+            $records = $this->listTXTRecordsNative($fullRecordName, $logger);
+        } else {
+            $logger->debug(t('DNS requests will be made using the %s nameserver.', $nameserver));
+            $records = $this->listTXTRecordsNSLookup($fullRecordName, $nameserver);
+        }
+        if ($records === []) {
+            $logger->debug(t('No DNS record has been found.'));
+        } else {
+            $logger->debug(t('DNS record found:') . "\n- " . implode("\n- ", $records));
         }
 
-        return $nameserver === '' ? $this->listTXTRecordsNative($fullRecordName) : $this->listTXTRecordsNSLookup($fullRecordName, $nameserver);
+        return $records;
     }
 
     /**

@@ -14,6 +14,7 @@ use ArrayAccess;
 use Concrete\Core\Error\UserMessageException;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
@@ -186,7 +187,7 @@ final class HttpPhysicalChallenge extends HttpChallenge
      *
      * @see \Acme\ChallengeType\ChallengeTypeInterface::beforeChallenge()
      */
-    public function beforeChallenge(AuthorizationChallenge $authorizationChallenge)
+    public function beforeChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
     {
         $writer = $this->createTokenWriter($authorizationChallenge->getDomain()->getChallengeTypeConfiguration());
         $writer->createTokenFile($authorizationChallenge->getChallengeToken(), $authorizationChallenge->getChallengeAuthorizationKey());
@@ -197,7 +198,7 @@ final class HttpPhysicalChallenge extends HttpChallenge
      *
      * @see \Acme\ChallengeType\ChallengeTypeInterface::afterChallenge()
      */
-    public function afterChallenge(AuthorizationChallenge $authorizationChallenge)
+    public function afterChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
     {
         $writer = $this->createTokenWriter($authorizationChallenge->getDomain()->getChallengeTypeConfiguration());
         $writer->deleteTokenFile($authorizationChallenge->getChallengeToken());

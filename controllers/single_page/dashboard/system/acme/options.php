@@ -17,6 +17,7 @@ final class Options extends DashboardPageController
         $this->set('renewDaysBeforeExpiration', $config->get('acme::renewal.daysBeforeExpiration'));
         $this->set('minimumKeySize', $config->get('acme::security.key_size.min'));
         $this->set('defaultKeySize', $config->get('acme::security.key_size.default'));
+        $this->set('debugChallenge', (bool) $config->get('acme::challenge.debug'));
         $this->set('ui', $this->app->make(UI::class));
     }
 
@@ -43,6 +44,7 @@ final class Options extends DashboardPageController
         } else {
             $this->error->add(t('The minimum size of the private keys is %s bits', $minimumKeySize));
         }
+        $debugChallenge = !empty($post->get('debugChallenge'));
 
         if ($this->error->has()) {
             return $this->view();
@@ -50,6 +52,7 @@ final class Options extends DashboardPageController
 
         $config->save('acme::renewal.daysBeforeExpiration', $renewDaysBeforeExpiration);
         $config->save('acme::security.key_size.default', $defaultKeySize);
+        $config->save('acme::challenge.debug', $debugChallenge);
 
         $this->flash('success', t('The options have been saved.'));
 

@@ -75,7 +75,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
         <div class="col-md-6" v-if="order !== null">
             <fieldset>
                 <legend><?= t('Certificate generation') ?></legend>
-                <p><strong>{{ getOrderStatusName(order.type, order.status) }}.</strong></p>
+                <div><strong>{{ getOrderStatusName(order.type, order.status) }}.</strong></div>
                 <ul v-if="order.authorizationChallenges.length !== 0">
                     <li v-for="authorizationChallenge in order.authorizationChallenges">
                         <strong><?= t('Authorization for %s', '{{ authorizationChallenge.domain }}')?></strong>: {{ getAuthorizationStatusName(authorizationChallenge.authorizationStatus) }}<br />
@@ -89,11 +89,9 @@ defined('C5_EXECUTE') or die('Access Denied.');
         </div>
     </div>
 
-    <fieldset v-if="messageGroups.length !== 0">
+    <fieldset v-if="messages.length !== 0">
         <legend><?= t('Progress messages') ?></legend>
-        <div v-for="messageGroup in messageGroups" v-bind:class="getMessageGroupClassName(messageGroup)">
-            <p v-for="message in messageGroup" style="white-space: pre-wrap"> {{message.message }}</p>
-        </div>
+        <div v-for="message in messages" v-bind:class="message.cssClass" style="white-space: pre-wrap">{{ message.message }}</div>
     </fieldset>
 
     <div class="ccm-dashboard-form-actions-wrapper">
@@ -173,7 +171,7 @@ new Vue({
             certificateInfo: <?= json_encode($certificate->getCertificateInfo()) ?>,
             order: null,
             firstStepOptions: {},
-            messageGroups: [],
+            messages: [],
         };
         data.step = data.steps.INITIAL;
         return data;
@@ -251,8 +249,9 @@ new Vue({
                         my.setStep(my.steps.DONE);
                         return;
                     }
-                    if (data.messages.length > 0) {
-                        my.messageGroups.push(data.messages);
+                    for (var i = 0; i < data.messages.length; i++) {
+                        data.messages[i].cssClass = my.getMessageClassName(data.messages[i]);
+                        my.messages.push(data.messages[i]);
                     }
                     if (data.hasOwnProperty('certificateInfo')) {
                         my.certificateInfo = data.certificateInfo;
@@ -315,7 +314,7 @@ new Vue({
             ]) ?>;
             return map.hasOwnProperty(status) ? map[status] : <?= json_encode(t('Unknown')) ?>;
         },
-        getMessageGroupClassName: function(messageGroup) {
+        getMessageClassName: function(message) {
             var levelsMap = <?= json_encode([
                 LogLevel::EMERGENCY => 'alert alert-danger',
                 LogLevel::ALERT => 'alert alert-danger',
@@ -324,18 +323,11 @@ new Vue({
                 LogLevel::WARNING => 'alert alert-warning',
                 LogLevel::NOTICE => 'alert alert-warning',
                 LogLevel::INFO => 'alert alert-info',
-                LogLevel::DEBUG => 'alert alert-info',
+                LogLevel::DEBUG => $ui->majorVersion >= 9 ? 'alert alert-secondary' : 'alert alert-info',
             ]) ?>;
-            var levels = [];
-            messageGroup.forEach(function(message) {
-                levels.push(message.level);
-            });
-            for (var level in levelsMap) {
-                if (levelsMap.hasOwnProperty(level) && levels.indexOf(level) >= 0) {
-                    return levelsMap[level];
-                }
+            if (levelsMap.hasOwnProperty(message.level)) {
+                return levelsMap[message.level];
             }
-
             return 'alert alert-danger';
         },
         startOver: function(options) {
@@ -343,8 +335,8 @@ new Vue({
                 return;
             }
             this.order = null;
-            if (this.messageGroups.length > 0) {
-                this.messageGroups.splice(0, this.messageGroups.length);
+            if (this.messages.length > 0) {
+                this.messages.splice(0, this.messages.length);
             }
             this.firstStepOptions = $.extend(true, {}, options || {});
             this.setStep(this.steps.PROCESSING);

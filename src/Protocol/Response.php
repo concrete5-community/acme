@@ -3,10 +3,11 @@
 namespace Acme\Protocol;
 
 use DateTime;
+use JsonSerializable;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-final class Response
+final class Response implements JsonSerializable
 {
     /**
      * Response type: other/unknown.
@@ -220,7 +221,7 @@ final class Response
     /**
      * Get the value of the "Retry-After" header (if present).
      *
-     * @return string
+     * @return \DateTime|null
      */
     public function getRetryAfter()
     {
@@ -237,5 +238,42 @@ final class Response
         $this->retryAfter = $value;
 
         return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @see \JsonSerializable::jsonSerialize()
+     */
+    public function jsonSerialize()
+    {
+        $retryAfter = $this->getRetryAfter();
+
+        return [
+            'httpResponseCode' => $this->getCode(),
+            'type' => $this->getTypeName(),
+            'location' => $this->getLocation(),
+            'links' => $this->getLinks(),
+            'retryAfter' => $retryAfter === null ? null : $retryAfter->format('c'),
+            'data' => $this->getData(),
+        ];
+    }
+
+    /**
+     * @return string
+     */
+    private function getTypeName()
+    {
+        static $map;
+        if ($map === null) {
+            $map = [
+                self::TYPE_JSON => 'json',
+                self::TYPE_JSONERROR => 'json error',
+                self::TYPE_OTHER => 'other',
+            ];
+        }
+        $type = $this->getType();
+
+        return isset($map[$type]) ? $map[$type] : (string) $type;
     }
 }

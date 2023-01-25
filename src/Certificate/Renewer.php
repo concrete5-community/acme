@@ -172,6 +172,7 @@ final class Renewer
     {
         $state = RenewState::create();
         if ($options->isForceActionsExecution()) {
+            $state->debug(t('Forcing execution of actions'));
             $certificate
                 ->setActionsState($certificate::ACTIONSTATE_NONE)
                 ->setLastActionExecuted(null)
@@ -203,6 +204,7 @@ final class Renewer
      */
     private function requestNewCertificate(RenewState $state, Certificate $certificate)
     {
+        $state->debug(t('Start requesting a new certificate'));
         $protocolVersion = $certificate->getAccount()->getServer()->getProtocolVersion();
         switch ($protocolVersion) {
             case Version::ACME_01:
@@ -224,15 +226,15 @@ final class Renewer
     {
         $error = null;
         try {
-            $response = $this->orderService->callAcme01NewCert($certificate);
+            $response = $this->orderService->callAcme01NewCert($certificate, $state);
             if ($response->getCode() === 201) {
                 if (!$response->getLink('up')) {
                     return RenewState::create()
                         ->chainCritical(t('Missing the URL of the issuer certificate'))
                     ;
                 }
-                $issuerCertificate = $this->orderService->downloadActualCertificate($certificate->getAccount(), $response->getLink('up'), false);
-                $newCertificate = $this->orderService->downloadActualCertificate($certificate->getAccount(), $response->getLocation(), true);
+                $issuerCertificate = $this->orderService->downloadActualCertificate($certificate->getAccount(), $response->getLink('up'), false, $state);
+                $newCertificate = $this->orderService->downloadActualCertificate($certificate->getAccount(), $response->getLocation(), true, $state);
                 $certificateInfo = $this->certificateInfoCreator->createCertificateInfo($newCertificate, $issuerCertificate, true);
                 $this->setNewCertificateInfo($certificate, $certificateInfo);
                 $state
@@ -241,9 +243,9 @@ final class Renewer
                     ->setNextStepAfter($certificate->getActions()->isEmpty() ? null : 0)
                 ;
             } elseif ($response->getCode() === 403 && $response->getErrorIdentifier() === 'urn:acme:error:unauthorized') {
-                $order = $this->orderService->createAuthorizationChallenges($certificate);
+                $order = $this->orderService->createAuthorizationChallenges($certificate, $state);
                 $this->setCurrentCertificateOrder($certificate, $order);
-                $this->orderService->startAuthorizationChallenges($order);
+                $this->orderService->startAuthorizationChallenges($order, $state);
                 $state
                     ->chainNotice(t('The authorization process started since the ACME server needs to authorize the domains'))
                     ->setNextStepAfter(1)
@@ -270,9 +272,9 @@ final class Renewer
     {
         $error = null;
         try {
-            $order = $this->orderService->createOrder($certificate);
+            $order = $this->orderService->createOrder($certificate, $state);
             $this->setCurrentCertificateOrder($certificate, $order);
-            $this->orderService->startAuthorizationChallenges($order);
+            $this->orderService->startAuthorizationChallenges($order, $state);
             $state
                 ->chainNotice(t('The order for a new certificate has been submitted'))
                 ->setNextStepAfter(1)
@@ -300,7 +302,7 @@ final class Renewer
         } else {
             $error = null;
             try {
-                $this->orderService->refresh($order);
+                $this->orderService->refresh($order, $state);
             } catch (Exception $x) {
                 $error = $x;
             } catch (Throwable $x) {
@@ -326,7 +328,7 @@ final class Renewer
         $order = $certificate->getOngoingOrder();
         $certificate->setOngoingOrder(null);
         $this->em->flush($certificate);
-        $this->orderService->stopAuthorizationChallenges($order);
+        $this->orderService->stopAuthorizationChallenges($order, $state);
         $state
             ->chainError(t('The domains authorization process expired on %s', $order->getExpiration()->format('c')))
             ->setOrderOrAuthorizationsRequest($order)
@@ -378,7 +380,7 @@ final class Renewer
     private function handleOngoingOrderReady(RenewState $state, Certificate $certificate)
     {
         $order = $certificate->getOngoingOrder();
-        $this->orderService->stopAuthorizationChallenges($order);
+        $this->orderService->stopAuthorizationChallenges($order, $state);
         if ($order->getType() === $order::TYPE_AUTHORIZATION) {
             $certificate->setOngoingOrder(null);
             $this->em->flush($certificate);
@@ -387,7 +389,7 @@ final class Renewer
         } else {
             $error = null;
             try {
-                $this->orderService->finalizeOrder($order);
+                $this->orderService->finalizeOrder($order, $state);
                 $state
                     ->chainInfo(t('The ACME server authorized the domains, and the request for the certificate generation has been submitted'))
                     ->setOrderOrAuthorizationsRequest($order)
@@ -413,7 +415,7 @@ final class Renewer
      */
     private function handleOngoingOrderProcessing(RenewState $state, Certificate $certificate)
     {
-        $this->orderService->stopAuthorizationChallenges($certificate->getOngoingOrder());
+        $this->orderService->stopAuthorizationChallenges($certificate->getOngoingOrder(), $state);
         $state
             ->chainInfo(t('The ACME server is going to issue the requested certificate'))
             ->setOrderOrAuthorizationsRequest($certificate->getOngoingOrder())
@@ -427,10 +429,10 @@ final class Renewer
     private function handleOngoingOrderValid(RenewState $state, Certificate $certificate)
     {
         $order = $certificate->getOngoingOrder();
-        $this->orderService->stopAuthorizationChallenges($order);
+        $this->orderService->stopAuthorizationChallenges($order, $state);
         $error = null;
         try {
-            $allCertificates = $this->orderService->downloadActualCertificate($certificate->getAccount(), $order->getCertificateUrl());
+            $allCertificates = $this->orderService->downloadActualCertificate($certificate->getAccount(), $order->getCertificateUrl(), false, $state);
             $allCertificates = trim($allCertificates);
             $matches = null;
             if (!preg_match('/(^.*?[\r\n]+---+[ \t]*END[^\r\n\-]*---+)\s*[\r\n]+\s*(---+[ \t]*BEGIN.*)$/ms', $allCertificates, $matches)) {
@@ -473,7 +475,7 @@ final class Renewer
     private function handleOngoingOrderInvalid(RenewState $state, Certificate $certificate)
     {
         $order = $certificate->getOngoingOrder();
-        $this->orderService->stopAuthorizationChallenges($order);
+        $this->orderService->stopAuthorizationChallenges($order, $state);
         $certificate->setOngoingOrder(null);
         $this->em->flush($certificate);
 

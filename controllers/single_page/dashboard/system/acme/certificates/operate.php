@@ -7,13 +7,16 @@ use Acme\Certificate\RenewerOptions;
 use Acme\Certificate\RevocationChecker;
 use Acme\Entity\Certificate;
 use Acme\Exception\CheckRevocationException;
+use Acme\Log\LogEntry;
 use Acme\Service\UI;
+use Concrete\Core\Config\Repository\Repository;
 use Concrete\Core\Error\UserMessageException;
 use Concrete\Core\Http\ResponseFactoryInterface;
 use Concrete\Core\Localization\Localization;
 use Concrete\Core\Page\Controller\DashboardPageController;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LogLevel;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
@@ -56,9 +59,20 @@ final class Operate extends DashboardPageController
         ;
         $renewer = $this->app->make(Renewer::class);
         $renewed = $renewer->nextStep($certificate, $renewerOptions);
-
+        $entries = $renewed->getEntries();
+        $config = $this->app->make(Repository::class);
+        if (!$config->get('acme::challenge.debug')) {
+            $entries = array_values(
+                array_filter(
+                    $entries,
+                    static function (LogEntry $entry) {
+                        return $entry->getLevel() !== LogLevel::DEBUG;
+                    }
+                )
+            );
+        }
         $responseData = [
-            'messages' => $renewed->getEntries(),
+            'messages' => $entries,
             'nextStepAfter' => $renewed->getNextStepAfter(),
         ];
         if ($renewed->getNewCertificateInfo() !== null) {

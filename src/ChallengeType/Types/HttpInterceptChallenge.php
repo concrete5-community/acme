@@ -11,6 +11,7 @@ use Acme\Service\UI;
 use ArrayAccess;
 use Concrete\Core\Config\Repository\Repository;
 use Concrete\Core\Url\Resolver\Manager\ResolverManagerInterface;
+use Psr\Log\LoggerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
@@ -148,7 +149,7 @@ final class HttpInterceptChallenge extends HttpChallenge
      *
      * @see \Acme\ChallengeType\ChallengeTypeInterface::beforeChallenge()
      */
-    public function beforeChallenge(AuthorizationChallenge $authorizationChallenge)
+    public function beforeChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
     {
     }
 
@@ -157,7 +158,7 @@ final class HttpInterceptChallenge extends HttpChallenge
      *
      * @see \Acme\ChallengeType\ChallengeTypeInterface::afterChallenge()
      */
-    public function afterChallenge(AuthorizationChallenge $authorizationChallenge)
+    public function afterChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
     {
     }
 

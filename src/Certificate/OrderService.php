@@ -12,11 +12,14 @@ use Acme\Exception\RuntimeException;
 use Acme\Exception\UnrecognizedProtocolVersionException;
 use Acme\Order\OrderUnserializer;
 use Acme\Protocol\Communicator;
+use Acme\Protocol\Response;
 use Acme\Protocol\Version;
 use Acme\Service\Base64EncoderTrait;
 use Acme\Service\PemDerConversionTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Throwable;
 
 defined('C5_EXECUTE') or die('Access Denied.');
@@ -67,8 +70,12 @@ final class OrderService
      *
      * @return \Acme\Entity\Order
      */
-    public function createOrder(Certificate $certificate)
+    public function createOrder(Certificate $certificate, LoggerInterface $logger = null)
     {
+        if ($logger === null) {
+            $logger = new NullLogger();
+        }
+        $logger->debug(t('Creating the order for a new certificate'));
         $mainResponse = $this->communicator->send(
             $certificate->getAccount(),
             'POST',
@@ -76,16 +83,19 @@ final class OrderService
             $this->getCreateOrderPayload($certificate),
             [201]
         );
-
+        $this->logResponse($logger, $mainResponse);
         $childResponses = [];
         foreach (array_get($mainResponse->getData(), 'authorizations', []) as $authorizationUrl) {
-            $childResponses[] = $this->communicator->send(
+            $logger->debug(t('Requesting an authorization at URL %s', $authorizationUrl));
+            $childResponse = $this->communicator->send(
                 $certificate->getAccount(),
                 'POST',
                 $authorizationUrl,
                 null,
                 [200]
             );
+            $this->logResponse($logger, $childResponse);
+            $childResponses[] = $childResponse;
         }
 
         return $this->orderUnserializer->unserializeOrder($certificate, $mainResponse, $childResponses);
@@ -96,17 +106,23 @@ final class OrderService
      *
      * @return \Acme\Entity\Order
      */
-    public function createAuthorizationChallenges(Certificate $certificate)
+    public function createAuthorizationChallenges(Certificate $certificate, LoggerInterface $logger = null)
     {
+        if ($logger === null) {
+            $logger = new NullLogger();
+        }
         $authorizationResponses = [];
         foreach ($certificate->getDomains() as $certificateDomain) {
-            $authorizationResponses[] = $this->communicator->send(
+            $logger->debug(t('Requesting the authorization challenge for the domain %s', $certificateDomain->getDomain()->getHostDisplayName()));
+            $authorizationResponse = $this->communicator->send(
                 $certificate->getAccount(),
                 'POST',
                 $certificate->getAccount()->getServer()->getNewAuthorizationUrl(),
                 $this->getAuthorizationChallengePayload($certificateDomain->getDomain()),
                 [201]
             );
+            $this->logResponse($logger, $authorizationResponse);
+            $authorizationResponses[] = $authorizationResponse;
         }
 
         return $this->orderUnserializer->unserializeAuthorizationRequests($certificate, $authorizationResponses);
@@ -117,12 +133,15 @@ final class OrderService
      *
      * @param \Acme\Entity\Order $order it must be already persisted
      */
-    public function startAuthorizationChallenges(Order $order)
+    public function startAuthorizationChallenges(Order $order, LoggerInterface $logger = null)
     {
+        if ($logger === null) {
+            $logger = new NullLogger();
+        }
         $refreshGlobalState = false;
         foreach ($order->getAuthorizationChallenges() as $authorizationChallenge) {
             if ($authorizationChallenge->getAuthorizationStatus() === AuthorizationChallenge::AUTHORIZATIONSTATUS_PENDING && $authorizationChallenge->getChallengeStatus() === AuthorizationChallenge::CHALLENGESTATUS_PENDING) {
-                $this->startAuthorizationChallenge($authorizationChallenge);
+                $this->startAuthorizationChallenge($authorizationChallenge, $logger);
                 $refreshGlobalState = true;
             }
         }
@@ -132,7 +151,7 @@ final class OrderService
                     $this->orderUnserializer->updateMainAuthorizationSetRecord($order);
                     break;
                 case Order::TYPE_ORDER:
-                    $this->orderUnserializer->updateMainOrderRecord($order, $this->fetchOrderData($order));
+                    $this->orderUnserializer->updateMainOrderRecord($order, $this->fetchOrderData($order, $logger));
                     break;
             }
             $this->em->flush($order);
@@ -144,13 +163,16 @@ final class OrderService
      *
      * @param \Acme\Entity\Order $order it must be already persisted
      */
-    public function refresh(Order $order)
+    public function refresh(Order $order, LoggerInterface $logger = null)
     {
+        if ($logger === null) {
+            $logger = new NullLogger();
+        }
         foreach ($order->getAuthorizationChallenges() as $authorizationChallenge) {
             $this->orderUnserializer->updateAuthorizationChallenge(
                 $authorizationChallenge,
-                $this->fetchAuthorizationData($authorizationChallenge),
-                $this->fetchChallengeData($authorizationChallenge)
+                $this->fetchAuthorizationData($authorizationChallenge, $logger),
+                $this->fetchChallengeData($authorizationChallenge, $logger)
             );
         }
         switch ($order->getType()) {
@@ -158,7 +180,7 @@ final class OrderService
                 $this->orderUnserializer->updateMainAuthorizationSetRecord($order);
                 break;
             case Order::TYPE_ORDER:
-                $this->orderUnserializer->updateMainOrderRecord($order, $this->fetchOrderData($order));
+                $this->orderUnserializer->updateMainOrderRecord($order, $this->fetchOrderData($order, $logger));
                 break;
         }
         $this->em->flush($order);
@@ -169,10 +191,13 @@ final class OrderService
      *
      * @param \Acme\Entity\Order $order it must be already persisted
      */
-    public function stopAuthorizationChallenges(Order $order)
+    public function stopAuthorizationChallenges(Order $order, LoggerInterface $logger = null)
     {
+        if ($logger === null) {
+            $logger = new NullLogger();
+        }
         foreach ($order->getAuthorizationChallenges() as $authorizationChallenge) {
-            $this->stopAuthorizationChallenge($authorizationChallenge);
+            $this->stopAuthorizationChallenge($authorizationChallenge, $logger);
         }
     }
 
@@ -181,15 +206,20 @@ final class OrderService
      *
      * @throws \Acme\Exception\Exception
      */
-    public function finalizeOrder(Order $order)
+    public function finalizeOrder(Order $order, LoggerInterface $logger = null)
     {
+        if ($logger === null) {
+            $logger = new NullLogger();
+        }
         $resetCsr = false;
         $certificate = $order->getCertificate();
         try {
             if ($certificate->getCsr() === '') {
+                $logger->debug(t('Generating CSR'));
                 $certificate->setCsr($this->csrGenerator->generateCsrFromCertificate($certificate));
                 $resetCsr = true;
             }
+            $logger->debug(t('Finalizing order'));
             $response = $this->communicator->send(
                 $certificate->getAccount(),
                 'POST',
@@ -199,6 +229,7 @@ final class OrderService
                 ],
                 [200]
             );
+            $this->logResponse($logger, $response);
             $this->orderUnserializer->updateMainOrderRecord($order, $response->getData());
             $this->em->flush($order);
             if ($resetCsr) {
@@ -217,16 +248,21 @@ final class OrderService
      *
      * @return \Acme\Protocol\Response Possible codes: 201 (new certificate available), 403 (new authorization required)
      */
-    public function callAcme01NewCert(Certificate $certificate)
+    public function callAcme01NewCert(Certificate $certificate, LoggerInterface $logger = null)
     {
+        if ($logger === null) {
+            $logger = new NullLogger();
+        }
         $resetCsr = false;
         try {
             $account = $certificate->getAccount();
             $server = $account->getServer();
             if ($certificate->getCsr() === '') {
+                $logger->debug(t('Generating CSR'));
                 $certificate->setCsr($this->csrGenerator->generateCsrFromCertificate($certificate));
                 $resetCsr = true;
             }
+            $logger->debug(t('Requesting a new certificate'));
             $response = $this->communicator->send(
                 $account,
                 'POST',
@@ -237,6 +273,7 @@ final class OrderService
                 ],
                 [201, 403]
             );
+            $this->logResponse($logger, $response);
             if ($resetCsr) {
                 if ($response->getCode() < 200 || $response->getCode() >= 300) {
                     $certificate->setCsr('');
@@ -260,8 +297,11 @@ final class OrderService
      *
      * @return string
      */
-    public function downloadActualCertificate(Account $account, $url, $retryOnEmptyResponse = false)
+    public function downloadActualCertificate(Account $account, $url, $retryOnEmptyResponse = false, LoggerInterface $logger = null)
     {
+        if ($logger === null) {
+            $logger = new NullLogger();
+        }
         switch ($account->getServer()->getProtocolVersion()) {
             case Version::ACME_01:
                 $method = 'GET';
@@ -273,6 +313,7 @@ final class OrderService
                 throw UnrecognizedProtocolVersionException::create($account->getServer()->getProtocolVersion());
         }
         for ($retry = 0; $retry < 2; $retry++) {
+            $logger->debug(t('Downloading the certificate'));
             $response = $this->communicator->send(
                 $account,
                 $method,
@@ -280,9 +321,11 @@ final class OrderService
                 null,
                 [200]
             );
+            $this->logResponse($logger, $response);
             if (!empty($response->getData()) || !$retryOnEmptyResponse) {
                 break;
             }
+            $logger->debug(t("Failed (we'll retry)"));
             pause(2);
         }
         $result = $response->getData();
@@ -348,9 +391,10 @@ final class OrderService
     /**
      * @throws \Acme\Exception\Exception
      */
-    private function startAuthorizationChallenge(AuthorizationChallenge $authorizationChallenge)
+    private function startAuthorizationChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
     {
         $domain = $authorizationChallenge->getDomain();
+        $logger->debug(t('Starting the autorization for the domain %s', $domain->getHostDisplayName()));
         $challengeType = $this->challengeTypeManager->getChallengeByHandle($domain->getChallengeTypeHandle());
         if ($challengeType === null) {
             throw new RuntimeException(t('Invalid challenge type set for domain %s', $domain->getHostDisplayName()));
@@ -358,7 +402,7 @@ final class OrderService
         $payload = $this->getStartAuthorizationChallengePayload($authorizationChallenge);
         $revertStartedStatus = false;
         if ($authorizationChallenge->isChallengeStarted() !== true) {
-            $challengeType->beforeChallenge($authorizationChallenge);
+            $challengeType->beforeChallenge($authorizationChallenge, $logger);
             $revertStartedStatus = true;
         }
         try {
@@ -366,22 +410,25 @@ final class OrderService
             try {
                 $authorizationChallenge->setIsChallengeStarted(true);
                 $this->em->flush($authorizationChallenge);
-                $challenge = $this->communicator->send(
+                $logger->debug(t('Asking the ACME server to start the challenge'));
+                $response = $this->communicator->send(
                     $domain->getAccount(),
                     'POST',
                     $authorizationChallenge->getChallengeUrl(),
                     $payload,
                     [200, 202]
-                )->getData();
+                );
+                $this->logResponse($logger, $response);
+                $challenge = $response->getData();
             } catch (Exception $x) {
                 $startException = $x;
             } catch (Throwable $x) {
                 $startException = $x;
             }
             if ($startException !== null) {
-                $challenge = $this->fetchChallengeData($authorizationChallenge);
+                $challenge = $this->fetchChallengeData($authorizationChallenge, $logger);
             }
-            $authorization = $this->fetchAuthorizationData($authorizationChallenge, $authorizationChallenge->getAuthorizationUrl());
+            $authorization = $this->fetchAuthorizationData($authorizationChallenge, $logger);
             $this->orderUnserializer->updateAuthorizationChallenge($authorizationChallenge, $authorization, $challenge);
             if ($startException !== null && $authorizationChallenge->getChallengeStatus() === $authorizationChallenge::CHALLENGESTATUS_PENDING) {
                 throw $startException;
@@ -391,7 +438,7 @@ final class OrderService
         } finally {
             if ($revertStartedStatus) {
                 try {
-                    $challengeType->afterChallenge($authorizationChallenge);
+                    $challengeType->afterChallenge($authorizationChallenge, $logger);
                 } catch (Exception $foo) {
                 } catch (Throwable $foo) {
                 }
@@ -429,14 +476,15 @@ final class OrderService
     /**
      * Stop an authorization challenge (if it was started).
      */
-    private function stopAuthorizationChallenge(AuthorizationChallenge $authorizationChallenge)
+    private function stopAuthorizationChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
     {
         if ($authorizationChallenge->isChallengeStarted()) {
+            $logger->debug(t('Cleanup after the challenge for the domain %s', $authorizationChallenge->getDomain()->getHostDisplayName()));
             try {
                 $domain = $authorizationChallenge->getDomain();
                 $challengeType = $this->challengeTypeManager->getChallengeByHandle($domain->getChallengeTypeHandle());
                 if ($challengeType !== null) {
-                    $challengeType->afterChallenge($authorizationChallenge);
+                    $challengeType->afterChallenge($authorizationChallenge, $logger);
                 }
             } catch (Exception $foo) {
             } catch (Throwable $foo) {
@@ -451,9 +499,11 @@ final class OrderService
      *
      * @return array
      */
-    private function fetchOrderData(Order $order)
+    private function fetchOrderData(Order $order, LoggerInterface $logger)
     {
-        return $this->fetchData($order->getCertificate()->getAccount(), $order->getOrderUrl());
+        $logger->debug(t('Fetching the order data'));
+
+        return $this->fetchData($order->getCertificate()->getAccount(), $order->getOrderUrl(), $logger);
     }
 
     /**
@@ -461,9 +511,11 @@ final class OrderService
      *
      * @return array
      */
-    private function fetchAuthorizationData(AuthorizationChallenge $authorizationChallenge)
+    private function fetchAuthorizationData(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
     {
-        return $this->fetchData($authorizationChallenge->getDomain()->getAccount(), $authorizationChallenge->getAuthorizationUrl());
+        $logger->debug(t('Fetching the authorization data'));
+
+        return $this->fetchData($authorizationChallenge->getDomain()->getAccount(), $authorizationChallenge->getAuthorizationUrl(), $logger);
     }
 
     /**
@@ -471,9 +523,11 @@ final class OrderService
      *
      * @return array
      */
-    private function fetchChallengeData(AuthorizationChallenge $authorizationChallenge)
+    private function fetchChallengeData(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
     {
-        return $this->fetchData($authorizationChallenge->getDomain()->getAccount(), $authorizationChallenge->getChallengeUrl());
+        $logger->debug(t('Fetching the challenge data'));
+
+        return $this->fetchData($authorizationChallenge->getDomain()->getAccount(), $authorizationChallenge->getChallengeUrl(), $logger);
     }
 
     /**
@@ -483,7 +537,7 @@ final class OrderService
      *
      * @return array
      */
-    private function fetchData(Account $account, $url)
+    private function fetchData(Account $account, $url, LoggerInterface $logger)
     {
         $response = $this->communicator->send(
             $account,
@@ -492,6 +546,7 @@ final class OrderService
             null,
             [200, 202]
         );
+        $this->logResponse($logger, $response);
 
         return $response->getData();
     }
@@ -511,5 +566,10 @@ final class OrderService
             default:
                 throw UnrecognizedProtocolVersionException::create($account->getServer()->getProtocolVersion());
         }
+    }
+
+    private function logResponse(LoggerInterface $logger, Response $response)
+    {
+        $logger->debug(t('Response: %s', json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)));
     }
 }

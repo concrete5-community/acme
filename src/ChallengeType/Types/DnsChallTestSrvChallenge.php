@@ -9,6 +9,7 @@ use Acme\Http\ClientFactory as HttpClientFactory;
 use ArrayAccess;
 use Concrete\Core\Filesystem\ElementManager;
 use Concrete\Core\Page\Page;
+use Psr\Log\LoggerInterface;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
@@ -159,7 +160,7 @@ final class DnsChallTestSrvChallenge extends DnsChallenge
      *
      * @see \Acme\ChallengeType\ChallengeTypeInterface::beforeChallenge()
      */
-    public function beforeChallenge(AuthorizationChallenge $authorizationChallenge)
+    public function beforeChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
     {
         $managementAddress = array_get($authorizationChallenge->getDomain()->getChallengeTypeConfiguration(), 'managementaddress');
         $this->createDnsTokenTxt($authorizationChallenge->getDomain(), $authorizationChallenge->getChallengeAuthorizationKey(), $managementAddress);
@@ -170,7 +171,7 @@ final class DnsChallTestSrvChallenge extends DnsChallenge
      *
      * @see \Acme\ChallengeType\ChallengeTypeInterface::afterChallenge()
      */
-    public function afterChallenge(AuthorizationChallenge $authorizationChallenge)
+    public function afterChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
     {
         $managementAddress = array_get($authorizationChallenge->getDomain()->getChallengeTypeConfiguration(), 'managementaddress');
         $this->clearDnsTokenTxt($authorizationChallenge->getDomain(), $managementAddress);

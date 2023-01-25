@@ -5,6 +5,7 @@ use Acme\ChallengeType\Types;
 return [
     // Space/comma-separated list of default authorization ports.
     'default_authorization_ports' => '80 443',
+    'debug' => false,
     'types' => [
         'http_intercept' => [
             'class' => Types\HttpInterceptChallenge::class,
