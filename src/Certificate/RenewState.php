@@ -50,7 +50,7 @@ final class RenewState extends ArrayLogger
     }
 
     /**
-     * Get the number of seconds to wait before re-calling the the "nextStep()" after this number of seconds (NULL if no).
+     * Get the number of seconds to wait before re-calling the the "nextStep()" after this number of seconds (NULL if there's no other step).
      *
      * @return int|null
      */
@@ -70,6 +70,26 @@ final class RenewState extends ArrayLogger
     {
         $this->nextStepAfter = (string) $value === '' ? null : (int) $value;
 
+        return $this;
+    }
+
+    /**
+     * Set the number of seconds to wait at least before re-calling the the "nextStep()" after this number of seconds (NULL if no).
+     *
+     * @param int|null $value
+     *
+     * @return $this
+     */
+    public function setNextStepAtLeastAfter($value)
+    {
+        $current = $this->getNextStepAfter();
+        if ($current === null || (string) $value === '') {
+            return $this->setNextStepAfter($value);
+        }
+        $value = (int) $value;
+        if ($current < $value) {
+            return $this->setNextStepAfter($value);
+        }
         return $this;
     }
 

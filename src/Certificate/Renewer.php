@@ -248,7 +248,7 @@ final class Renewer
                 $this->orderService->startAuthorizationChallenges($order, $state);
                 $state
                     ->chainNotice(t('The authorization process started since the ACME server needs to authorize the domains'))
-                    ->setNextStepAfter(1)
+                    ->setNextStepAtLeastAfter(1)
                 ;
             } else {
                 $error = $response->getErrorDescription();
@@ -277,7 +277,7 @@ final class Renewer
             $this->orderService->startAuthorizationChallenges($order, $state);
             $state
                 ->chainNotice(t('The order for a new certificate has been submitted'))
-                ->setNextStepAfter(1)
+                ->setNextStepAtLeastAfter(1)
             ;
         } catch (Exception $foo) {
             $error = $foo->getMessage();
@@ -314,7 +314,7 @@ final class Renewer
                 $state
                     ->chainCritical(t('Failed to refresh the domain authorizations state: %s', $error->getMessage()))
                     ->setOrderOrAuthorizationsRequest($order)
-                    ->setNextStepAfter(10)
+                    ->setNextStepAtLeastAfter(10)
                 ;
             }
         }
@@ -332,7 +332,7 @@ final class Renewer
         $state
             ->chainError(t('The domains authorization process expired on %s', $order->getExpiration()->format('c')))
             ->setOrderOrAuthorizationsRequest($order)
-            ->setNextStepAfter(1)
+            ->setNextStepAtLeastAfter(1)
         ;
     }
 
@@ -370,7 +370,7 @@ final class Renewer
         $state
             ->chainInfo(t('The domains authorization process is still running'))
             ->setOrderOrAuthorizationsRequest($certificate->getOngoingOrder())
-            ->setNextStepAfter(1)
+            ->setNextStepAtLeastAfter(1)
         ;
     }
 
@@ -393,7 +393,7 @@ final class Renewer
                 $state
                     ->chainInfo(t('The ACME server authorized the domains, and the request for the certificate generation has been submitted'))
                     ->setOrderOrAuthorizationsRequest($order)
-                    ->setNextStepAfter(1)
+                    ->setNextStepAtLeastAfter(1)
                 ;
             } catch (Exception $x) {
                 $error = $x;
@@ -404,7 +404,7 @@ final class Renewer
                 $state
                     ->chainCritical(t('Failed to request the certificate generation: %s', $error->getMessage()))
                     ->setOrderOrAuthorizationsRequest($order)
-                    ->setNextStepAfter(2)
+                    ->setNextStepAtLeastAfter(2)
                 ;
             }
         }
@@ -419,7 +419,7 @@ final class Renewer
         $state
             ->chainInfo(t('The ACME server is going to issue the requested certificate'))
             ->setOrderOrAuthorizationsRequest($certificate->getOngoingOrder())
-            ->setNextStepAfter(1)
+            ->setNextStepAtLeastAfter(1)
         ;
     }
 
@@ -452,7 +452,7 @@ final class Renewer
                 $state
                     ->chainInfo(t('The certificate has been renewed'))
                     ->setNewCertificateInfo($certificateInfo)
-                    ->setNextStepAfter($certificate->getActions()->isEmpty() ? null : 0)
+                    ->setNextStepAtLeastAfter($certificate->getActions()->isEmpty() ? null : 0)
                 ;
             }
         } catch (Exception $x) {
@@ -464,7 +464,7 @@ final class Renewer
             $state
                 ->chainError(t('Failed to download the generated certificate: %s', $error->getMessage()))
                 ->setOrderOrAuthorizationsRequest($order)
-                ->setNextStepAfter(2)
+                ->setNextStepAtLeastAfter(2)
             ;
         }
     }
@@ -597,7 +597,7 @@ final class Renewer
                 }
                 if ($this->getNextActionToBeExecuted($certificate) !== null) {
                     $certificate->setActionsState($actionsState | ($actionsHadProblems ? $certificate::ACTIONSTATEFLAG_PROBLEMS : 0));
-                    $state->setNextStepAfter(0);
+                    $state->setNextStepAtLeastAfter(0);
                 } else {
                     $certificate
                         ->setActionsState($actionsState | $certificate::ACTIONSTATEFLAG_EXECUTED | ($actionsHadProblems ? $certificate::ACTIONSTATEFLAG_PROBLEMS : 0))
