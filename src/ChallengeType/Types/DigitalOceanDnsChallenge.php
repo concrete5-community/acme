@@ -397,11 +397,28 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
     private function waitDnsReady($punycodeDomain, $recordName, $recordValue, LoggerInterface $logger)
     {
         $logger->debug(t('Waiting for the DNS record to be available'));
+        $nameservers = [''];
+        if ($this->queryAuthoritativeNameservers && $this->dnsChecker->supportsSpecifyingNameserves()) {
+            $nameservers = $this->dnsChecker->resolveNameservers($punycodeDomain);
+            if ($nameservers === []) {
+                $nameservers = [''];
+            }
+        }
+        $numNameservers = count($nameservers);
         $startTime = microtime(true);
         for (;;) {
-            if (in_array($recordValue, $this->dnsChecker->listTXTRecords($punycodeDomain, $recordName, $this->queryAuthoritativeNameservers, $logger))) {
-                $logger->debug(t('The DNS record has been found'));
-
+            $numFound = 0;
+            foreach ($nameservers as $nameserver) {
+                if (in_array($recordValue, $this->dnsChecker->listTXTRecords($punycodeDomain, $recordName, $nameserver, $logger))) {
+                    $numFound++;
+                }
+            }
+            if ($numFound === $numNameservers) {
+                if ($numNameservers === 1) {
+                    $logger->debug(t('The DNS record has been found'));
+                } else {
+                    $logger->debug(t('The DNS record has been found in all nameservers.'));
+                }
                 return true;
             }
             $elapsed = microtime(true) - $startTime;
@@ -410,7 +427,11 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
 
                 return false;
             }
-            $logger->debug(t("The DNS record hasn't been found: let's wait for a while.", $this->maxDnsWaitSeconds));
+            $logger->debug(t2(
+                "The DNS record has been found in %1\$s nameserver out of %2\$s: let's wait for a while.",
+                "The DNS record has been found in %1\$s nameservers out of %2\$s: let's wait for a while.",
+                $numFound, $numNameservers, $this->maxDnsWaitSeconds
+            ));
             usleep(500000);
         }
     }

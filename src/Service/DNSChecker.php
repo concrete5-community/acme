@@ -26,51 +26,90 @@ final class DNSChecker
     {
         $this->functionInspector = $functionInspector;
     }
+    
+    /**
+     * Check if it's possible to specify a nameserver for DNS queries.
+     *
+     * @return bool
+     */
+    public function supportsSpecifyingNameserves()
+    {
+        return $this->isNSLookupAvailable();
+    }
+
+    /**
+     * Get the authoritative nameservers for a domain.
+     *
+     * @param string $punycodeDomain
+     *
+     * @return string[] Empty array in case of errors
+     */
+    public function resolveNameservers($punycodeDomain)
+    {
+        if (isset($this->resolverNameservers[$punycodeDomain])) {
+            return $this->resolverNameservers[$punycodeDomain];
+        }
+        set_error_handler(static function () {}, -1);
+        try {
+            $records = dns_get_record($punycodeDomain, DNS_NS);
+        } finally {
+            restore_error_handler();
+        }
+        if (!is_array($records)) {
+            return '';
+        }
+        $nameservers = [];
+        foreach ($records as $record) {
+            if (is_array($record)
+                && isset($record['type']) && $record['type'] === 'NS'
+                && array_key_exists('target', $record) && is_string($record['target']) && $record['target'] !== ''
+                ) {
+                    $nameservers[] = $record['target'];
+                }
+        }
+        natcasesort($nameservers);
+        $this->resolverNameservers[$punycodeDomain] = $nameservers;
+        
+        return $this->resolverNameservers[$punycodeDomain];
+    }
 
     /**
      * @param string $punycodeDomain
      * @param string $recordName
-     * @param string|bool $nameserver TRUE to try to detect the authoritative nameserver and use it, false to always use the system lookup, a string containing a nameserver otherwise
+     * @param string|null $nameserver NULL to try to detect the authoritative nameserver and use it, an empty string to always use the system lookup, a string containing a nameserver otherwise
      *
      * @return string[] Empty array in case of errors
      */
-    public function listTXTRecords($punycodeDomain, $recordName = '', $nameserver = true, LoggerInterface $logger = null)
+    public function listTXTRecords($punycodeDomain, $recordName = '', $nameserver = null, LoggerInterface $logger = null)
     {
         if ($logger === null) {
             $logger = new NullLogger();
         }
-        switch (gettype($nameserver)) {
-            case 'boolean':
-                break;
-            case 'string':
-                if ($nameserver === '') {
-                    $nameserver = true;
-                }
-                break;
-            default:
-                $nameserver = true;
-                break;
-        }
         $punycodeDomain = trim($punycodeDomain, '.');
         $recordName = trim($recordName, '.');
         $fullRecordName = $recordName === '' ? $punycodeDomain : "{$recordName}.{$punycodeDomain}";
-        if ($nameserver !== false) {
+        if ($nameserver !== null && !is_string($nameserver)) {
+            $nameserver = null;
+        }
+        if ($nameserver !== '') {
             if (!$this->isNSLookupAvailable()) {
                 $logger->debug(t('DNS requests will be made using the nameservers of the current system since the %s program is not available.', 'nslookup'));
-                $nameserver = false;
-            } elseif ($nameserver === true) {
-                $nameserver = $this->resolveNameserver($punycodeDomain);
-                if ($nameserver === '') {
+                $nameserver = '';
+            } elseif ($nameserver === null) {
+                $nameservers = $this->resolveNameservers($punycodeDomain);
+                if ($nameservers === []) {
                     $logger->debug(t("DNS requests will be made using the nameservers of the current system since we haven't been able to determine the authoritative nameservers."));
-                    $nameserver = false;
+                    $nameserver = '';
+                } else {
+                    $nameserver = array_shift($nameservers);
                 }
             }
         }
-        if ($nameserver === false) {
-            $logger->debug(t('Fetching DNS recurds using the nameservers of the current system', $nameserver));
+        if ($nameserver === '') {
+            $logger->debug(t('Fetching DNS records using the nameservers of the current system', $nameserver));
             $records = $this->listTXTRecordsNative($fullRecordName, $logger);
         } else {
-            $logger->debug(t('Fetching DNS recurds using the %s nameserver', $nameserver));
+            $logger->debug(t('Fetching DNS records using the %s nameserver', $nameserver));
             $records = $this->listTXTRecordsNSLookup($fullRecordName, $nameserver);
         }
         if ($records === []) {
@@ -105,43 +144,6 @@ final class DNSChecker
         }
 
         return $this->nslookupAvailable;
-    }
-
-    /**
-     * @param string $punycodeDomain
-     *
-     * @return string Empty string in case of errors
-     */
-    private function resolveNameserver($punycodeDomain)
-    {
-        if (isset($this->resolverNameservers[$punycodeDomain])) {
-            return $this->resolverNameservers[$punycodeDomain];
-        }
-        set_error_handler(static function () {}, -1);
-        try {
-            $records = dns_get_record($punycodeDomain, DNS_NS);
-        } finally {
-            restore_error_handler();
-        }
-        if (!is_array($records)) {
-            return '';
-        }
-        $nameservers = [];
-        foreach ($records as $record) {
-            if (is_array($record)
-                && isset($record['type']) && $record['type'] === 'NS'
-                && array_key_exists('target', $record) && is_string($record['target']) && $record['target'] !== ''
-            ) {
-                $nameservers[] = $record['target'];
-            }
-        }
-        if ($nameservers === []) {
-            return '';
-        }
-        natcasesort($nameservers);
-        $this->resolverNameservers[$punycodeDomain] = array_shift($nameservers);
-
-        return $this->resolverNameservers[$punycodeDomain];
     }
 
     /**
