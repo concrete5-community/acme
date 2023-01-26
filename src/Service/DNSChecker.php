@@ -70,7 +70,7 @@ final class DNSChecker
             $logger->debug(t('Fetching DNS recurds using the nameservers of the current system', $nameserver));
             $records = $this->listTXTRecordsNative($fullRecordName, $logger);
         } else {
-            $logger->debug(t('Fetching DNS recurds using the %s nameservers', $nameserver));
+            $logger->debug(t('Fetching DNS recurds using the %s nameserver', $nameserver));
             $records = $this->listTXTRecordsNSLookup($fullRecordName, $nameserver);
         }
         if ($records === []) {
