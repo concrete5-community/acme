@@ -19,6 +19,8 @@ return [
         ],
         'dns_digitalocean' => [
             'class' => Types\DigitalOceanDnsChallenge::class,
+            'query_authoritative_nameservers' => true,
+            'max_dns_wait_seconds' => 8,
         ],
     ],
 ];

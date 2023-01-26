@@ -30,31 +30,47 @@ final class DNSChecker
     /**
      * @param string $punycodeDomain
      * @param string $recordName
-     * @param string $nameserver
+     * @param string|bool $nameserver TRUE to try to detect the authoritative nameserver and use it, false to always use the system lookup, a string containing a nameserver otherwise
      *
      * @return string[] Empty array in case of errors
      */
-    public function listTXTRecords($punycodeDomain, $recordName = '', $nameserver = '', LoggerInterface $logger = null)
+    public function listTXTRecords($punycodeDomain, $recordName = '', $nameserver = true, LoggerInterface $logger = null)
     {
         if ($logger === null) {
             $logger = new NullLogger();
         }
+        switch (gettype($nameserver)) {
+            case 'boolean':
+                break;
+            case 'string':
+                if ($nameserver === '') {
+                    $nameserver = true;
+                }
+                break;
+            default:
+                $nameserver = true;
+                break;
+        }
         $punycodeDomain = trim($punycodeDomain, '.');
         $recordName = trim($recordName, '.');
         $fullRecordName = $recordName === '' ? $punycodeDomain : "{$recordName}.{$punycodeDomain}";
-        if (!$this->isNSLookupAvailable()) {
-            $logger->debug(t('DNS requests will be made using the current system, since the %s program is not available.', 'nslookup'));
-            $nameserver = '';
-        } elseif ($nameserver === '') {
-            $nameserver = $this->resolveNameserver($punycodeDomain);
-            if ($nameserver === '') {
-                $logger->debug(t("DNS requests will be made using the current system, since we haven't been able to determine the authoritative nameservers."));
+        if ($nameserver !== false) {
+            if (!$this->isNSLookupAvailable()) {
+                $logger->debug(t('DNS requests will be made using the nameservers of the current system since the %s program is not available.', 'nslookup'));
+                $nameserver = false;
+            } elseif ($nameserver === true) {
+                $nameserver = $this->resolveNameserver($punycodeDomain);
+                if ($nameserver === '') {
+                    $logger->debug(t("DNS requests will be made using the nameservers of the current system since we haven't been able to determine the authoritative nameservers."));
+                    $nameserver = false;
+                }
             }
         }
-        if ($nameserver === '') {
+        if ($nameserver === false) {
+            $logger->debug(t('Fetching DNS recurds using the nameservers of the current system', $nameserver));
             $records = $this->listTXTRecordsNative($fullRecordName, $logger);
         } else {
-            $logger->debug(t('DNS requests will be made using the %s nameserver.', $nameserver));
+            $logger->debug(t('Fetching DNS recurds using the %s nameservers', $nameserver));
             $records = $this->listTXTRecordsNSLookup($fullRecordName, $nameserver);
         }
         if ($records === []) {

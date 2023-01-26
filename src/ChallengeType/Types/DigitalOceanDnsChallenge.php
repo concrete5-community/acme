@@ -34,6 +34,16 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
      */
     private $handle;
 
+    /**
+     * @var bool
+     */
+    private $queryAuthoritativeNameservers;
+
+    /**
+     * @var float
+     */
+    private $maxDnsWaitSeconds;
+
     public function __construct(HttpClientFactory $httpClientFactory, DNSChecker $dnsChecker)
     {
         $this->httpClientFactory = $httpClientFactory;
@@ -48,6 +58,8 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
     public function initialize($handle, array $challengeTypeOptions)
     {
         $this->handle = $handle;
+        $this->queryAuthoritativeNameservers = (bool) $challengeTypeOptions['query_authoritative_nameservers'];
+        $this->maxDnsWaitSeconds = max(1.0, (float) $challengeTypeOptions['max_dns_wait_seconds']);
     }
 
     /**
@@ -187,7 +199,8 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
      */
     public function beforeChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
     {
-        $configuration = $authorizationChallenge->getDomain()->getChallengeTypeConfiguration();
+        $domain = $authorizationChallenge->getDomain();
+        $configuration = $domain->getChallengeTypeConfiguration();
         $recordName = '_acme-challenge' . $configuration['recordSuffix'];
         $recordValue = $this->generateDnsRecordValue($authorizationChallenge->getChallengeAuthorizationKey());
         $recordID = $this->createDnsRecord(
@@ -196,8 +209,8 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
             $configuration['digitalOceanDomain'],
             $configuration['apiToken']
         );
-        $logger->debug(t('Created record named %1$s with ID %2$s for domain %3$s. Its value is "%s"', $recordName, $recordID, $configuration['digitalOceanDomain']), $recordValue);
-        $this->waitDnsReady($configuration['digitalOceanDomain'], $recordName, $recordValue, 8, $logger);
+        $logger->debug(t('Created record named %1$s with ID %2$s for domain %3$s. Its value is "%4$s"', $recordName, $recordID, $domain->getHostDisplayName(), $recordValue));
+        $this->waitDnsReady($configuration['digitalOceanDomain'], $recordName, $recordValue, $logger);
     }
 
     /**
@@ -378,27 +391,26 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
      * @param string $punycodeDomain
      * @param string $recordName
      * @param string $recordValue
-     * @param int|float $timeout in seconds
      *
      * @return bool
      */
-    private function waitDnsReady($punycodeDomain, $recordName, $recordValue, $timeout, LoggerInterface $logger)
+    private function waitDnsReady($punycodeDomain, $recordName, $recordValue, LoggerInterface $logger)
     {
         $logger->debug(t('Waiting for the DNS record to be available'));
         $startTime = microtime(true);
         for (;;) {
-            if (in_array($recordValue, $this->dnsChecker->listTXTRecords($punycodeDomain, $recordName, '', $logger))) {
+            if (in_array($recordValue, $this->dnsChecker->listTXTRecords($punycodeDomain, $recordName, $this->queryAuthoritativeNameservers, $logger))) {
                 $logger->debug(t('The DNS record has been found'));
 
                 return true;
             }
             $elapsed = microtime(true) - $startTime;
-            if ($elapsed > $timeout) {
-                $logger->debug(t("The DNS record hasn't been found after %s seconds: let's proceed anyway.", $timeout));
+            if ($elapsed > $this->maxDnsWaitSeconds) {
+                $logger->debug(t("The DNS record hasn't been found after %s seconds: let's proceed anyway.", $this->maxDnsWaitSeconds));
 
                 return false;
             }
-            $logger->debug(t("The DNS record hasn't been found: let's wait for a while.", $timeout));
+            $logger->debug(t("The DNS record hasn't been found: let's wait for a while.", $this->maxDnsWaitSeconds));
             usleep(500000);
         }
     }
