@@ -19,6 +19,13 @@ final class ChallengeTypeManager
      */
     private $app;
 
+    /**
+     * Array keys are the challenge handles.
+     *
+     * @var \Acme\ChallengeType\ChallengeTypeInterface[]
+     */
+    private $challengeTypes = [];
+
     public function __construct(Repository $config, Application $app)
     {
         $this->config = $config;
@@ -52,14 +59,17 @@ final class ChallengeTypeManager
      */
     public function getChallengeByHandle($handle)
     {
-        $data = $this->getChallengeDetails($handle);
-        if ($data === null) {
-            return null;
+        if (!array_key_exists($handle, $this->challengeTypes)) {
+            $challenge = null;
+            $data = $this->getChallengeDetails($handle);
+            if ($data !== null) {
+                $challenge = $this->app->make($data['class']);
+                $challenge->initialize($handle, $data['challengeTypeOptions']);
+            }
+            $this->challengeTypes[$handle] = $challenge;
         }
-        $challenge = $this->app->make($data['class']);
-        $challenge->initialize($handle, $data['challengeTypeOptions']);
 
-        return $challenge;
+        return $this->challengeTypes[$handle];
     }
 
     /**
