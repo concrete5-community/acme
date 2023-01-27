@@ -361,10 +361,10 @@ final class Renewer
     {
         $order = $certificate->getOngoingOrder();
         if ($this->orderService->startAuthorizationChallenges($order, $state)) {
-            $state->info(t('All the authoriation challenges are ready and started.'));
+            $state->info(t('All the authorization challenges are ready and started.'));
         } else {
             $state
-                ->chainInfo(t("Not all the authoriation challenges are ready: we'll retry again in a while."))
+                ->chainInfo(t("Not all the authorization challenges are ready: we'll retry again in a while."))
                 ->setNextStepAtLeastAfter(10)
             ;
         }
