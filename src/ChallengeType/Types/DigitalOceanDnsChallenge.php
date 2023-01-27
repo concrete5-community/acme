@@ -253,7 +253,6 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
                 $numNameservers
             ));
         }
-        $logger->debug(t("The DNS record hasn't been found after %s seconds: let's proceed anyway.", $this->maxDnsWaitSeconds));
 
         return false;
     }
