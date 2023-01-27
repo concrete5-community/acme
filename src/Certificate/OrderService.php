@@ -19,7 +19,6 @@ use Acme\Service\PemDerConversionTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 use Throwable;
 
 defined('C5_EXECUTE') or die('Access Denied.');
@@ -70,11 +69,8 @@ final class OrderService
      *
      * @return \Acme\Entity\Order
      */
-    public function createOrder(Certificate $certificate, LoggerInterface $logger = null)
+    public function createOrder(Certificate $certificate, LoggerInterface $logger)
     {
-        if ($logger === null) {
-            $logger = new NullLogger();
-        }
         $logger->debug(t('Creating the order for a new certificate'));
         $mainResponse = $this->communicator->send(
             $certificate->getAccount(),
@@ -102,15 +98,12 @@ final class OrderService
     }
 
     /**
-     * Create a set of domain authorizations (ACME v1 and maybe ACME v2).
+     * Create a set of domain authorizations (ACME v1 only).
      *
      * @return \Acme\Entity\Order
      */
-    public function createAuthorizationChallenges(Certificate $certificate, LoggerInterface $logger = null)
+    public function createAuthorizationChallenges(Certificate $certificate, LoggerInterface $logger)
     {
-        if ($logger === null) {
-            $logger = new NullLogger();
-        }
         $authorizationResponses = [];
         foreach ($certificate->getDomains() as $certificateDomain) {
             $logger->debug(t('Requesting the authorization challenge for the domain %s', $certificateDomain->getDomain()->getHostDisplayName()));
@@ -132,17 +125,21 @@ final class OrderService
      * Start the authorization challenges (if not already started).
      *
      * @param \Acme\Entity\Order $order it must be already persisted
+     *
+     * @return bool return TRUE if all the challenges are ready, FALSE if we have to retry to start the challenges later
      */
-    public function startAuthorizationChallenges(Order $order, LoggerInterface $logger = null)
+    public function startAuthorizationChallenges(Order $order, LoggerInterface $logger)
     {
-        if ($logger === null) {
-            $logger = new NullLogger();
-        }
+        $result = true;
         $refreshGlobalState = false;
         foreach ($order->getAuthorizationChallenges() as $authorizationChallenge) {
             if ($authorizationChallenge->getAuthorizationStatus() === AuthorizationChallenge::AUTHORIZATIONSTATUS_PENDING && $authorizationChallenge->getChallengeStatus() === AuthorizationChallenge::CHALLENGESTATUS_PENDING) {
-                $this->startAuthorizationChallenge($authorizationChallenge, $logger);
-                $refreshGlobalState = true;
+                $started = $this->startAuthorizationChallenge($authorizationChallenge, $logger);
+                if ($started === true) {
+                    $refreshGlobalState = true;
+                } elseif ($started === false) {
+                    $result = false;
+                }
             }
         }
         if ($refreshGlobalState) {
@@ -156,6 +153,8 @@ final class OrderService
             }
             $this->em->flush($order);
         }
+
+        return $result;
     }
 
     /**
@@ -163,11 +162,8 @@ final class OrderService
      *
      * @param \Acme\Entity\Order $order it must be already persisted
      */
-    public function refresh(Order $order, LoggerInterface $logger = null)
+    public function refresh(Order $order, LoggerInterface $logger)
     {
-        if ($logger === null) {
-            $logger = new NullLogger();
-        }
         foreach ($order->getAuthorizationChallenges() as $authorizationChallenge) {
             $this->orderUnserializer->updateAuthorizationChallenge(
                 $authorizationChallenge,
@@ -191,13 +187,10 @@ final class OrderService
      *
      * @param \Acme\Entity\Order $order it must be already persisted
      */
-    public function stopAuthorizationChallenges(Order $order, LoggerInterface $logger = null)
+    public function disposeAuthorizationChallenges(Order $order, LoggerInterface $logger)
     {
-        if ($logger === null) {
-            $logger = new NullLogger();
-        }
         foreach ($order->getAuthorizationChallenges() as $authorizationChallenge) {
-            $this->stopAuthorizationChallenge($authorizationChallenge, $logger);
+            $this->disposeAuthorizationChallenge($authorizationChallenge, $logger);
         }
     }
 
@@ -206,11 +199,8 @@ final class OrderService
      *
      * @throws \Acme\Exception\Exception
      */
-    public function finalizeOrder(Order $order, LoggerInterface $logger = null)
+    public function finalizeOrder(Order $order, LoggerInterface $logger)
     {
-        if ($logger === null) {
-            $logger = new NullLogger();
-        }
         $resetCsr = false;
         $certificate = $order->getCertificate();
         try {
@@ -248,11 +238,8 @@ final class OrderService
      *
      * @return \Acme\Protocol\Response Possible codes: 201 (new certificate available), 403 (new authorization required)
      */
-    public function callAcme01NewCert(Certificate $certificate, LoggerInterface $logger = null)
+    public function callAcme01NewCert(Certificate $certificate, LoggerInterface $logger)
     {
-        if ($logger === null) {
-            $logger = new NullLogger();
-        }
         $resetCsr = false;
         try {
             $account = $certificate->getAccount();
@@ -297,11 +284,8 @@ final class OrderService
      *
      * @return string
      */
-    public function downloadActualCertificate(Account $account, $url, $retryOnEmptyResponse = false, LoggerInterface $logger = null)
+    public function downloadActualCertificate(Account $account, $url, $retryOnEmptyResponse, LoggerInterface $logger)
     {
-        if ($logger === null) {
-            $logger = new NullLogger();
-        }
         switch ($account->getServer()->getProtocolVersion()) {
             case Version::ACME_01:
                 $method = 'GET';
@@ -325,7 +309,7 @@ final class OrderService
             if (!empty($response->getData()) || !$retryOnEmptyResponse) {
                 break;
             }
-            $logger->debug(t("Failed (we'll retry)"));
+            $logger->debug(t("The download failed: we'll retry in a while."));
             pause(2);
         }
         $result = $response->getData();
@@ -390,48 +374,57 @@ final class OrderService
 
     /**
      * @throws \Acme\Exception\Exception
+     *
+     * @return bool|null return NULL if no operation is needed, TRUE in case of success, FALSE if we have to retry to start the challenge later
      */
     private function startAuthorizationChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
     {
+        if ($authorizationChallenge->getAuthorizationStatus() !== AuthorizationChallenge::AUTHORIZATIONSTATUS_PENDING || $authorizationChallenge->getChallengeStatus() !== AuthorizationChallenge::CHALLENGESTATUS_PENDING) {
+            return null;
+        }
         $domain = $authorizationChallenge->getDomain();
         $logger->debug(t('Starting the autorization for the domain %s', $domain->getHostDisplayName()));
         $challengeType = $this->challengeTypeManager->getChallengeByHandle($domain->getChallengeTypeHandle());
         if ($challengeType === null) {
             throw new RuntimeException(t('Invalid challenge type set for domain %s', $domain->getHostDisplayName()));
         }
-        $payload = $this->getStartAuthorizationChallengePayload($authorizationChallenge);
+        $result = false;
         $revertStartedStatus = false;
-        if ($authorizationChallenge->isChallengeStarted() !== true) {
-            $challengeType->beforeChallenge($authorizationChallenge, $logger);
-            $revertStartedStatus = true;
-        }
         try {
-            $startException = null;
-            try {
-                $authorizationChallenge->setIsChallengeStarted(true);
-                $this->em->flush($authorizationChallenge);
-                $logger->debug(t('Asking the ACME server to start the challenge'));
-                $response = $this->communicator->send(
-                    $domain->getAccount(),
-                    'POST',
-                    $authorizationChallenge->getChallengeUrl(),
-                    $payload,
-                    [200, 202]
-                );
-                $this->logResponse($logger, $response);
-                $challenge = $response->getData();
-            } catch (Exception $x) {
-                $startException = $x;
-            } catch (Throwable $x) {
-                $startException = $x;
+            if ($authorizationChallenge->isChallengePrepared() !== true) {
+                $challengeType->beforeChallenge($authorizationChallenge, $logger);
+                $revertStartedStatus = true;
             }
-            if ($startException !== null) {
-                $challenge = $this->fetchChallengeData($authorizationChallenge, $logger);
-            }
-            $authorization = $this->fetchAuthorizationData($authorizationChallenge, $logger);
-            $this->orderUnserializer->updateAuthorizationChallenge($authorizationChallenge, $authorization, $challenge);
-            if ($startException !== null && $authorizationChallenge->getChallengeStatus() === $authorizationChallenge::CHALLENGESTATUS_PENDING) {
-                throw $startException;
+            if ($challengeType->isReadyForChallenge($authorizationChallenge, $logger)) {
+                $payload = $this->getStartAuthorizationChallengePayload($authorizationChallenge);
+                $startException = null;
+                try {
+                    $authorizationChallenge->setIsChallengePrepared(true);
+                    $this->em->flush($authorizationChallenge);
+                    $logger->debug(t('Asking the ACME server to start the challenge'));
+                    $response = $this->communicator->send(
+                        $domain->getAccount(),
+                        'POST',
+                        $authorizationChallenge->getChallengeUrl(),
+                        $payload,
+                        [200, 202]
+                    );
+                    $this->logResponse($logger, $response);
+                    $challenge = $response->getData();
+                } catch (Exception $x) {
+                    $startException = $x;
+                } catch (Throwable $x) {
+                    $startException = $x;
+                }
+                if ($startException !== null) {
+                    $challenge = $this->fetchChallengeData($authorizationChallenge, $logger);
+                }
+                $authorization = $this->fetchAuthorizationData($authorizationChallenge, $logger);
+                $this->orderUnserializer->updateAuthorizationChallenge($authorizationChallenge, $authorization, $challenge);
+                if ($startException !== null && $authorizationChallenge->getChallengeStatus() === $authorizationChallenge::CHALLENGESTATUS_PENDING) {
+                    throw $startException;
+                }
+                $result = true;
             }
             $this->em->flush($authorizationChallenge);
             $revertStartedStatus = false;
@@ -443,13 +436,15 @@ final class OrderService
                 } catch (Throwable $foo) {
                 }
                 try {
-                    $authorizationChallenge->setIsChallengeStarted(false);
+                    $authorizationChallenge->setIsChallengePrepared(false);
                     $this->em->flush($authorizationChallenge);
                 } catch (Exception $foo) {
                 } catch (Throwable $foo) {
                 }
             }
         }
+
+        return $result;
     }
 
     /**
@@ -476,22 +471,23 @@ final class OrderService
     /**
      * Stop an authorization challenge (if it was started).
      */
-    private function stopAuthorizationChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
+    private function disposeAuthorizationChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
     {
-        if ($authorizationChallenge->isChallengeStarted()) {
-            $logger->debug(t('Cleanup after the challenge for the domain %s', $authorizationChallenge->getDomain()->getHostDisplayName()));
-            try {
-                $domain = $authorizationChallenge->getDomain();
-                $challengeType = $this->challengeTypeManager->getChallengeByHandle($domain->getChallengeTypeHandle());
-                if ($challengeType !== null) {
-                    $challengeType->afterChallenge($authorizationChallenge, $logger);
-                }
-            } catch (Exception $foo) {
-            } catch (Throwable $foo) {
-            }
-            $authorizationChallenge->setIsChallengeStarted(false);
-            $this->em->flush($authorizationChallenge);
+        if (!$authorizationChallenge->isChallengePrepared()) {
+            return;
         }
+        $logger->debug(t('Cleanup after the challenge for the domain %s', $authorizationChallenge->getDomain()->getHostDisplayName()));
+        try {
+            $domain = $authorizationChallenge->getDomain();
+            $challengeType = $this->challengeTypeManager->getChallengeByHandle($domain->getChallengeTypeHandle());
+            if ($challengeType !== null) {
+                $challengeType->afterChallenge($authorizationChallenge, $logger);
+            }
+        } catch (Exception $foo) {
+        } catch (Throwable $foo) {
+        }
+        $authorizationChallenge->setIsChallengePrepared(false);
+        $this->em->flush($authorizationChallenge);
     }
 
     /**

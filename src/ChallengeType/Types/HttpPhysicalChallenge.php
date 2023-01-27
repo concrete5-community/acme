@@ -196,6 +196,16 @@ final class HttpPhysicalChallenge extends HttpChallenge
     /**
      * {@inheritdoc}
      *
+     * @see \Acme\ChallengeType\ChallengeTypeInterface::isReadyForChallenge()
+     */
+    public function isReadyForChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
+    {
+        return true;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
      * @see \Acme\ChallengeType\ChallengeTypeInterface::afterChallenge()
      */
     public function afterChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)

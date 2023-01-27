@@ -8,7 +8,7 @@ use Psr\Log\NullLogger;
 
 defined('C5_EXECUTE') or die('Access Denied.');
 
-final class DNSChecker
+final class DnsChecker
 {
     /**
      * @var \Concrete\Core\Foundation\Environment\FunctionInspector
@@ -69,7 +69,7 @@ final class DNSChecker
         }
         natcasesort($nameservers);
         $this->resolverNameservers[$punycodeDomain] = $nameservers;
-        
+
         return $this->resolverNameservers[$punycodeDomain];
     }
 
@@ -80,7 +80,7 @@ final class DNSChecker
      *
      * @return string[] Empty array in case of errors
      */
-    public function listTXTRecords($punycodeDomain, $recordName = '', $nameserver = null, LoggerInterface $logger = null)
+    public function listTXTRecords($punycodeDomain, $recordName, LoggerInterface $logger, $nameserver = null)
     {
         if ($logger === null) {
             $logger = new NullLogger();

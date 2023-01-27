@@ -68,7 +68,7 @@ final class AuthorizationMiddleware implements MiddlewareInterface
             $qb
                 ->select('ac.challengeAuthorizationKey')
                 ->from(AuthorizationChallenge::class, 'ac')
-                ->andWhere($qb->expr()->eq('ac.challengeStarted', ':true'))
+                ->andWhere($qb->expr()->eq('ac.challengePrepared', ':true'))
                 ->andWhere($qb->expr()->eq('ac.challengeToken', ':challengeToken'))
                 ->setMaxResults(1)
                 ->setParameters(new ArrayCollection([

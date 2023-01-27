@@ -14,7 +14,7 @@ defined('C5_EXECUTE') or die('Access Denied.');
  * @Doctrine\ORM\Mapping\Table(
  *     name="AcmeAuthorizationChallenges",
  *     indexes={
- *         @Doctrine\ORM\Mapping\Index(name="DomainChallengeStatusToken", columns={"challengeStarted", "challengeToken"})
+ *         @Doctrine\ORM\Mapping\Index(name="DomainChallengeStatusToken", columns={"challengePrepared", "challengeToken"})
  *     },
  *     options={"comment":"Domain authorizations and the choosen challenges"}
  * )
@@ -177,13 +177,13 @@ class AuthorizationChallenge implements JsonSerializable
     protected $challengeStatus;
 
     /**
-     * Did we ask to start the authorization challenge?
+     * Did we prepare the challenge to be started?
      *
-     * @Doctrine\ORM\Mapping\Column(type="boolean", nullable=false, options={"comment":"Did we ask to start the authorization challenge?"})
+     * @Doctrine\ORM\Mapping\Column(type="boolean", nullable=false, options={"comment":"Did we prepare the challenge to be started?"})
      *
      * @var bool
      */
-    protected $challengeStarted;
+    protected $challengePrepared;
 
     /**
      * The challenge failure error message.
@@ -216,7 +216,7 @@ class AuthorizationChallenge implements JsonSerializable
             ->setChallengeToken('')
             ->setChallengeAuthorizationKey('')
             ->setChallengeStatus('')
-            ->setIsChallengeStarted(false)
+            ->setIsChallengePrepared(false)
             ->setChallengeErrorMessage('')
         ;
     }
@@ -408,25 +408,25 @@ class AuthorizationChallenge implements JsonSerializable
     }
 
     /**
-     * Did we ask to start the authorization challenge?
+     * Did we prepare the challenge to be started?
      *
-     * @return string
+     * @return bool
      */
-    public function isChallengeStarted()
+    public function isChallengePrepared()
     {
-        return $this->challengeStarted;
+        return $this->challengePrepared;
     }
 
     /**
-     * Did we ask to start the authorization challenge?
+     * Did we prepare the challenge to be started?
      *
      * @param bool $value
      *
      * @return $this
      */
-    public function setIsChallengeStarted($value)
+    public function setIsChallengePrepared($value)
     {
-        $this->challengeStarted = (bool) $value;
+        $this->challengePrepared = (bool) $value;
 
         return $this;
     }

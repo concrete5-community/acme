@@ -20,7 +20,6 @@ return [
         'dns_digitalocean' => [
             'class' => Types\DigitalOceanDnsChallenge::class,
             'query_authoritative_nameservers' => false,
-            'max_dns_wait_seconds' => 8,
         ],
     ],
 ];

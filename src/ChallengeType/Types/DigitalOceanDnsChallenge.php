@@ -7,7 +7,7 @@ use Acme\Entity\Domain;
 use Acme\Exception\RuntimeException;
 use Acme\Http\ClientFactory as HttpClientFactory;
 use Acme\Http\Response;
-use Acme\Service\DNSChecker;
+use Acme\Service\DnsChecker;
 use ArrayAccess;
 use Concrete\Core\Filesystem\ElementManager;
 use Concrete\Core\Page\Page;
@@ -25,7 +25,7 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
     private $httpClientFactory;
 
     /**
-     * @var \Acme\Service\DNSChecker
+     * @var \Acme\Service\DnsChecker
      */
     private $dnsChecker;
 
@@ -39,12 +39,7 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
      */
     private $queryAuthoritativeNameservers;
 
-    /**
-     * @var float
-     */
-    private $maxDnsWaitSeconds;
-
-    public function __construct(HttpClientFactory $httpClientFactory, DNSChecker $dnsChecker)
+    public function __construct(HttpClientFactory $httpClientFactory, DnsChecker $dnsChecker)
     {
         $this->httpClientFactory = $httpClientFactory;
         $this->dnsChecker = $dnsChecker;
@@ -59,7 +54,6 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
     {
         $this->handle = $handle;
         $this->queryAuthoritativeNameservers = (bool) $challengeTypeOptions['query_authoritative_nameservers'];
-        $this->maxDnsWaitSeconds = max(1.0, (float) $challengeTypeOptions['max_dns_wait_seconds']);
     }
 
     /**
@@ -203,6 +197,9 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
         $configuration = $domain->getChallengeTypeConfiguration();
         $recordName = '_acme-challenge' . $configuration['recordSuffix'];
         $recordValue = $this->generateDnsRecordValue($authorizationChallenge->getChallengeAuthorizationKey());
+        if ($this->findDnsRecordID($recordName, $recordValue, $configuration['digitalOceanDomain'], $configuration['apiToken']) !== null) {
+            return;
+        }
         $recordID = $this->createDnsRecord(
             $recordName,
             $recordValue,
@@ -210,7 +207,55 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
             $configuration['apiToken']
         );
         $logger->debug(t('Created record named %1$s with ID %2$s for domain %3$s. Its value is "%4$s"', $recordName, $recordID, $domain->getHostDisplayName(), $recordValue));
-        $this->waitDnsReady($configuration['digitalOceanDomain'], $recordName, $recordValue, $logger);
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @see \Acme\ChallengeType\ChallengeTypeInterface::isReadyForChallenge()
+     */
+    public function isReadyForChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
+    {
+        $domain = $authorizationChallenge->getDomain();
+        $logger->debug(t('Checking if the DNS record is ready for the domain %s', $domain->getHostDisplayName()));
+        $configuration = $domain->getChallengeTypeConfiguration();
+        $recordName = '_acme-challenge' . $configuration['recordSuffix'];
+        $recordValue = $this->generateDnsRecordValue($authorizationChallenge->getChallengeAuthorizationKey());
+        $nameservers = [''];
+        if ($this->queryAuthoritativeNameservers && $this->dnsChecker->supportsSpecifyingNameserves()) {
+            $nameservers = $this->dnsChecker->resolveNameservers($configuration['digitalOceanDomain']);
+            if ($nameservers === []) {
+                $nameservers = [''];
+            }
+        }
+        $numNameservers = count($nameservers);
+        $numFound = 0;
+        foreach ($nameservers as $nameserver) {
+            if (in_array($recordValue, $this->dnsChecker->listTXTRecords($configuration['digitalOceanDomain'], $recordName, $logger, $nameserver))) {
+                $numFound++;
+            }
+        }
+        if ($numFound === $numNameservers) {
+            if ($numNameservers === 1) {
+                $logger->debug(t('The DNS record has been found'));
+            } else {
+                $logger->debug(t('The DNS record has been found in all nameservers.'));
+            }
+            return true;
+        }
+        if ($numFound === 0) {
+            $logger->debug(t('The DNS record has not been found'));
+        } else {
+            $logger->debug(t2(
+                'The DNS record has not been found in %1$s nameserver out of %2$s',
+                'The DNS record has not been found in %2$s nameservers out of %2$s',
+                $numFound,
+                $numNameservers
+            ));
+        }
+        $logger->debug(t("The DNS record hasn't been found after %s seconds: let's proceed anyway.", $this->maxDnsWaitSeconds));
+
+        return false;
     }
 
     /**
@@ -220,54 +265,27 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
      */
     public function afterChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger)
     {
-        $logger->debug(t('Looking for DNS records'));
-        $configuration = $authorizationChallenge->getDomain()->getChallengeTypeConfiguration();
-        $url = "https://api.digitalocean.com/v2/domains/{$configuration['digitalOceanDomain']}/records?" . http_build_query([
-            'name' => '_acme-challenge' . $configuration['recordSuffix'] . '.' . $configuration['digitalOceanDomain'],
-            'type' => 'TXT',
-            'per_page' => '200',
-        ]);
-        $headers = $this->createClientHeaders($configuration['apiToken']);
+        $domain = $authorizationChallenge->getDomain();
+        $logger->debug(t('Looking for the DNS record to be deleted for domain %s', $domain->getHostDisplayName()));
+        $configuration = $domain->getChallengeTypeConfiguration();
+        $recordName = '_acme-challenge' . $configuration['recordSuffix'];
+        $recordValue = $this->generateDnsRecordValue($authorizationChallenge->getChallengeAuthorizationKey());
         try {
-            $response = $this->httpClientFactory->getClient()->get($url, $headers);
+            $recordID = $this->findDnsRecordID($recordName, $recordValue, $configuration['digitalOceanDomain'], $configuration['apiToken']);
         } catch (RuntimeException $x) {
-            $logger->debug(t('Operation failed with error %s', $x->getMessage()));
-            $response = null;
-        }
-        if ($response === null) {
+            $logger->debug($x->getMessage());
             return;
         }
-        $records = null;
-        if ($response->statusCode >= 200 && $response->statusCode < 300) {
-            $data = json_decode($response->body, true);
-            if (is_array($data) && isset($data['domain_records']) && is_array($data['domain_records'])) {
-                $records = $data['domain_records'];
-            }
-        }
-        if ($records === null) {
-            $logger->debug(implode("\n", [
-                t('Invalid response code: %s', $response->statusCode),
-                t('Response body: %s', $response->body),
-            ]));
-
+        if ($recordID === null) {
+            $logger->debug(t("The DNS record couldn't be found."));
             return;
         }
-        $recordData = $this->generateDnsRecordValue($authorizationChallenge->getChallengeAuthorizationKey());
-        foreach ($records as $record) {
-            if (isset($record['data']) && $record['data'] === $recordData) {
-                if (isset($record['id']) && is_numeric($record['id'])) {
-                    try {
-                        $this->deleteDnsRecord($record['id'], $configuration['digitalOceanDomain'], $configuration['apiToken']);
-                        $logger->debug(t('Record with ID %s has been deleted.', $record['id']));
-                    } catch (RuntimeException $x) {
-                        $logger->debug(t('Failed to delete the record with ID %s: %s', $record['id'], $x->getMessage()));
-                    }
-                }
-
-                return;
-            }
+        try {
+            $this->deleteDnsRecord($recordID, $configuration['digitalOceanDomain'], $configuration['apiToken']);
+            $logger->debug(t('The record with ID %s has been deleted.', $recordID));
+        } catch (RuntimeException $x) {
+            $logger->debug(t('Failed to delete the record with ID %s: %s', $recordID, $x->getMessage()));
         }
-        $logger->debug(t('Failed to find the DNS record to be deleted.'));
     }
 
     /**
@@ -340,6 +358,49 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
     }
 
     /**
+     * @param string $name
+     * @param string $value
+     * @param string $digitalOceanDomain
+     * @param string $apiToken
+     *
+     * @throws \Acme\Exception\RuntimeException
+     *
+     * @return int|string|null NULL if not found, an integer (or a string containing an integer) otherwise
+     */
+    private function findDnsRecordID($name, $value, $digitalOceanDomain, $apiToken)
+    {
+        $url = "https://api.digitalocean.com/v2/domains/{$digitalOceanDomain}/records?" . http_build_query([
+            'name' => "{$name}.{$digitalOceanDomain}",
+            'type' => 'TXT',
+            'per_page' => '200',
+        ]);
+        $headers = $this->createClientHeaders($apiToken);
+        $response = $this->httpClientFactory->getClient()->get($url, $headers);
+        $records = null;
+        if ($response->statusCode >= 200 && $response->statusCode < 300) {
+            $data = json_decode($response->body, true);
+            if (is_array($data) && isset($data['domain_records']) && is_array($data['domain_records'])) {
+                $records = $data['domain_records'];
+            }
+        }
+        if ($records === null) {
+            throw new RuntimeException(implode("\n", [
+                t('Invalid response code: %s', $response->statusCode),
+                t('Response body: %s', $response->body),
+            ]));
+        }
+        foreach ($records as $record) {
+            if (isset($record['data']) && $record['data'] === $value) {
+                if (isset($record['id']) && is_numeric($record['id'])) {
+                    return $record['id'];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @param int $recordID
      * @param string $digitalOceanDomain
      * @param string $apiToken
@@ -385,54 +446,5 @@ final class DigitalOceanDnsChallenge extends DnsChallenge
         }
 
         return "{$response->statusCode} ({$response->reasonPhrase})";
-    }
-
-    /**
-     * @param string $punycodeDomain
-     * @param string $recordName
-     * @param string $recordValue
-     *
-     * @return bool
-     */
-    private function waitDnsReady($punycodeDomain, $recordName, $recordValue, LoggerInterface $logger)
-    {
-        $logger->debug(t('Waiting for the DNS record to be available'));
-        $nameservers = [''];
-        if ($this->queryAuthoritativeNameservers && $this->dnsChecker->supportsSpecifyingNameserves()) {
-            $nameservers = $this->dnsChecker->resolveNameservers($punycodeDomain);
-            if ($nameservers === []) {
-                $nameservers = [''];
-            }
-        }
-        $numNameservers = count($nameservers);
-        $startTime = microtime(true);
-        for (;;) {
-            $numFound = 0;
-            foreach ($nameservers as $nameserver) {
-                if (in_array($recordValue, $this->dnsChecker->listTXTRecords($punycodeDomain, $recordName, $nameserver, $logger))) {
-                    $numFound++;
-                }
-            }
-            if ($numFound === $numNameservers) {
-                if ($numNameservers === 1) {
-                    $logger->debug(t('The DNS record has been found'));
-                } else {
-                    $logger->debug(t('The DNS record has been found in all nameservers.'));
-                }
-                return true;
-            }
-            $elapsed = microtime(true) - $startTime;
-            if ($elapsed > $this->maxDnsWaitSeconds) {
-                $logger->debug(t("The DNS record hasn't been found after %s seconds: let's proceed anyway.", $this->maxDnsWaitSeconds));
-
-                return false;
-            }
-            $logger->debug(t2(
-                "The DNS record has been found in %1\$s nameserver out of %2\$s: let's wait for a while.",
-                "The DNS record has been found in %1\$s nameservers out of %2\$s: let's wait for a while.",
-                $numFound, $numNameservers, $this->maxDnsWaitSeconds
-            ));
-            usleep(500000);
-        }
     }
 }

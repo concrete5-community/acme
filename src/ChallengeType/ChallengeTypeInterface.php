@@ -84,6 +84,13 @@ interface ChallengeTypeInterface
     public function beforeChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger);
 
     /**
+     * Method called before actually starting the authorization process.
+     *
+     * @return bool
+     */
+    public function isReadyForChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger);
+
+    /**
      * Method called right after terminating the authorization challenge.
      */
     public function afterChallenge(AuthorizationChallenge $authorizationChallenge, LoggerInterface $logger);
