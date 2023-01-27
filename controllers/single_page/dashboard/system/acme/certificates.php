@@ -50,7 +50,16 @@ final class Certificates extends DashboardPageController
             }
         );
         $this->set('servers', $servers);
-        $certificates = $em->getRepository(Certificate::class)->findBy([], ['createdOn' => 'ASC']);
+        $qb = $em->createQueryBuilder();
+        $qb
+            ->from(Certificate::class, 'c')
+            ->leftJoin('c.domains', 'cd', 'WITH', 'cd.isPrimary = :true')
+            ->leftJoin('cd.domain', 'd')
+            ->addSelect('c')
+            ->addOrderBy('d.hostname')
+            ->addOrderBy('c.createdOn')
+        ;
+        $certificates = $qb->getQuery()->execute(['true' => true]);
         $this->set('certificates', $certificates);
         $this->set('resolverManager', $this->app->make(ResolverManagerInterface::class));
         $this->set('dateHelper', $this->app->make('date'));
