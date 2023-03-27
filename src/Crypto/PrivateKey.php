@@ -9,6 +9,7 @@ use Exception;
 use phpseclib\Crypt\RSA as RSA2;
 use phpseclib3\Crypt\Common\Formats\Keys\OpenSSH;
 use phpseclib3\Crypt\Common\Formats\Keys\PuTTY;
+use phpseclib3\Crypt\RSA as RSAKey3;
 use phpseclib3\Crypt\RSA\PrivateKey as PrivateKey3;
 
 final class PrivateKey
@@ -104,7 +105,7 @@ final class PrivateKey
                 return new self($privateKey, $engineID);
             case Engine::PHPSECLIB3:
                 try {
-                    $privateKey = PrivateKey3::load($value);
+                    $privateKey = RSAKey3::load($value);
                     if (!$privateKey instanceof PrivateKey3) {
                         throw new RuntimeException(t('The specified private key is not valid.'));
                     }
