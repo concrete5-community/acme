@@ -1,0 +1,28 @@
+name: Attach ZIP to GitHub Release
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  attach-zip:
+    name: Attach ZIP to release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '5.5'
+          tools: composer:v1
+          coverage: none
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Create and attach ZIP
+        uses: concrete5-community/gh-package-release-attach@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          remove-files: |
+            composer.json
+            composer.lock

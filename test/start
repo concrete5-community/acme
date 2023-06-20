@@ -17,7 +17,7 @@ ccm-service start db
 cd /app/packages/acme
 
 cp composer.json composer.json-original
-printf '{\n    "replace": {"phpseclib/phpseclib": "*"},\n' >composer.json
+printf '{\n    "replace": {"concrete5/core": "*"},\n' >composer.json
 tail +2 composer.json-original >>composer.json
 TEST_PHPUNIT_BIN=../../concrete/vendor/bin/phpunit
 if [ -f "$TEST_PHPUNIT_BIN" ]; then
