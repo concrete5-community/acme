@@ -33,6 +33,7 @@
         "source": "https://github.com/concrete5-community/acme"
     },
     "require": {
+        "concrete5/core": ">=8.5",
         "mlocati/idna": "^1",
         "mlocati/ocsp": "^1"
     },
