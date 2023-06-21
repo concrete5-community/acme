@@ -2,6 +2,8 @@
 
 set -o errexit
 
+cd -- "$(dirname -- "$0")" && cd ..
+
 if [ -n "${1:-}" ]; then
     switch-php "$1"
 fi
@@ -14,20 +16,16 @@ composer valid --strict
 
 ccm-service start db
 
-cd /app/packages/acme
-
-cp composer.json composer.json-original
-printf '{\n    "replace": {"concrete5/core": "*"},\n' >composer.json
-tail +2 composer.json-original >>composer.json
 TEST_PHPUNIT_BIN=../../concrete/vendor/bin/phpunit
 if [ -f "$TEST_PHPUNIT_BIN" ]; then
-    composer --no-interaction --ansi update --prefer-dist --optimize-autoloader --no-dev
+    composerpkg --no-interaction --ansi update --prefer-dist --optimize-autoloader --no-dev
 else
     TEST_PHPUNIT_BIN=./vendor/bin/phpunit
-    composer --no-interaction --ansi update --prefer-dist --optimize-autoloader
+    cp composer.json composer.json.original
+    composer --no-interaction --ansi require --no-update concrete5/core:$(c5 c5:info | grep 'Core Version' | cut -d' ' -f4)
+    composerpkg --no-interaction --ansi update --prefer-dist --optimize-autoloader
+    mv composer.json.original composer.json
 fi
-mv composer.json-original composer.json
-rm composer.lock
 
 c5 c5:package:install acme
 
