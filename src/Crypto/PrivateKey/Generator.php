@@ -14,7 +14,7 @@ use Concrete\Core\Config\Repository\Repository;
 use Concrete\Core\File\Service\File;
 use Concrete\Core\Foundation\Environment\FunctionInspector;
 use phpseclib\Crypt\RSA as RSA2;
-use phpseclib3\Crypt\RSA\PrivateKey as PrivateKey3;
+use phpseclib3\Crypt\RSA as RSA3;
 
 final class Generator
 {
@@ -104,12 +104,12 @@ final class Generator
                         @set_time_limit(0);
                     }
                     if ($openSslConfFile !== '') {
-                        PrivateKey3::setOpenSSLConfigPath($openSslConfFile);
+                        RSA3::setOpenSSLConfigPath($openSslConfFile);
                     }
                     try {
-                        $generated = PrivateKey3::createKey($size);
+                        $generated = RSA3::createKey($size);
                     } finally {
-                        PrivateKey3::setOpenSSLConfigPath(null);
+                        RSA3::setOpenSSLConfigPath(null);
                     }
 
                     return PrivateKey::fromString((string) $generated, $this->engineID);
