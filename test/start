@@ -12,6 +12,13 @@ if [ -n "${2:-}" ]; then
     switch-composer "$2"
 fi
 
+COMPOSER_ROOT_VERSION="$(grep -E '^[[:space:]]*protected \$pkgVersion = ' controller.php | cut -d"'" -f2)"
+if [ -z "$COMPOSER_ROOT_VERSION" ]; then
+    echo "Failed to detect the package version" >&2
+    exit 1
+fi
+export COMPOSER_ROOT_VERSION
+
 composer valid --strict
 
 ccm-service start db
