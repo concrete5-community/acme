@@ -1,0 +1,28 @@
+name: Publish GitHub Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  publish-gh-release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          tools: composer:v2.2
+          coverage: none
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Create release
+        uses: concrete5-community/gh-package-release-attach@main
+        with:
+          publish-release: true
+          remove-files: |
+            composer.json
