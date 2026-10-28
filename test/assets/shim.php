@@ -1,4 +1,11 @@
 <?php
+
+/*
+ * Empty stubs for IDEs and static analysis: the package supports both Concrete 8.5 (phpseclib 2, Zend) and Concrete 9
+ * (phpseclib 3, Laminas), but a Concrete installation ships only one of them.
+ * This file is never loaded at runtime and is excluded from releases.
+ */
+ 
 namespace phpseclib\Crypt
 {
     class Hash {}

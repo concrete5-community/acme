@@ -1,5 +1,4 @@
 /.* export-ignore
-/src/shim.php export-ignore
 /test/ export-ignore
 /phpunit.xml export-ignore
 /icon.svg export-ignore
