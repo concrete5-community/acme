@@ -23,7 +23,7 @@ else
     TEST_PHPUNIT_BIN=./vendor/bin/phpunit
     cp composer.json composer.json.original
     composer --no-interaction --ansi require --no-update concrete5/core:$(c5 c5:info | grep 'Core Version' | cut -d' ' -f4)
-    composerpkg --no-interaction --ansi update --prefer-dist --optimize-autoloader
+    COMPOSER_POLICY_ADVISORIES_BLOCK=0 composerpkg --no-interaction --ansi update --prefer-dist --optimize-autoloader
     mv composer.json.original composer.json
 fi
 
